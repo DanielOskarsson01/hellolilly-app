@@ -6,6 +6,10 @@ const DEFAULT_QUERY = {
 };
 
 async function searchJobs(query = {}) {
+  if (typeof window !== 'undefined' && window.location.hostname.endsWith('github.io')) {
+    throw new Error('Live API är inte aktiv på GitHub Pages. Visar sparade exempel.');
+  }
+
   const response = await fetch('/api/jobs/search', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
