@@ -2,6 +2,7 @@ const KEYS = {
   savedSearches: 'hellolilly:saved-searches',
   acceptedJobs: 'hellolilly:accepted-jobs',
   removedJobs: 'hellolilly:removed-jobs',
+  latestSearch: 'hellolilly:latest-job-search',
 };
 
 function canStore() {
@@ -95,6 +96,22 @@ function getRemovedJobIds() {
   return readJson(KEYS.removedJobs, []);
 }
 
+function getLatestJobSearch() {
+  return readJson(KEYS.latestSearch, null);
+}
+
+function saveLatestJobSearch(query, payload) {
+  const next = {
+    query,
+    jobs: Array.isArray(payload?.jobs) ? payload.jobs.map(compactJob) : [],
+    summary: payload?.summary || null,
+    meta: payload?.meta || null,
+    searchedAt: new Date().toISOString(),
+  };
+  writeJson(KEYS.latestSearch, next);
+  return next;
+}
+
 function removeJob(job) {
   const id = jobKey(job);
   const removed = new Set(getRemovedJobIds());
@@ -110,6 +127,7 @@ function isJobRemoved(job) {
 export {
   acceptJob,
   getAcceptedJobs,
+  getLatestJobSearch,
   getRemovedJobIds,
   getSavedSearches,
   isJobRemoved,
@@ -117,5 +135,6 @@ export {
   removeAcceptedJob,
   removeJob,
   removeSavedSearch,
+  saveLatestJobSearch,
   saveSearch,
 };

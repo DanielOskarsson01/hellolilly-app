@@ -1,12 +1,14 @@
 import React from 'react';
 import { DEFAULT_QUERY, searchJobs } from '../api/jobSearch.js';
-import { LIVE_JOBS } from '../data/strategyData.js';
+import { getLatestJobSearch, saveLatestJobSearch } from '../utils/jobStore.js';
 
 function useLiveJobSearch(initialQuery = DEFAULT_QUERY, options = {}) {
-  const [query, setQuery] = React.useState(initialQuery);
-  const [jobs, setJobs] = React.useState(LIVE_JOBS);
-  const [summary, setSummary] = React.useState(null);
-  const [meta, setMeta] = React.useState(null);
+  const latest = React.useMemo(() => getLatestJobSearch(), []);
+  const firstQuery = latest?.query || initialQuery;
+  const [query, setQuery] = React.useState(firstQuery);
+  const [jobs, setJobs] = React.useState(latest?.jobs || []);
+  const [summary, setSummary] = React.useState(latest?.summary || null);
+  const [meta, setMeta] = React.useState(latest?.meta || null);
   const [status, setStatus] = React.useState(options.auto === false ? 'idle' : 'loading');
   const [error, setError] = React.useState('');
 
@@ -19,6 +21,7 @@ function useLiveJobSearch(initialQuery = DEFAULT_QUERY, options = {}) {
       setJobs(payload.jobs?.length ? payload.jobs : []);
       setSummary(payload.summary || null);
       setMeta(payload.meta || null);
+      saveLatestJobSearch(nextQuery, payload);
       setStatus('success');
       return payload;
     } catch (err) {
@@ -32,12 +35,13 @@ function useLiveJobSearch(initialQuery = DEFAULT_QUERY, options = {}) {
     if (options.auto === false) return undefined;
     let alive = true;
     setStatus('loading');
-    searchJobs(initialQuery)
+    searchJobs(firstQuery)
       .then((payload) => {
         if (!alive) return;
         setJobs(payload.jobs?.length ? payload.jobs : []);
         setSummary(payload.summary || null);
         setMeta(payload.meta || null);
+        saveLatestJobSearch(firstQuery, payload);
         setStatus('success');
       })
       .catch((err) => {

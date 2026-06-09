@@ -6,6 +6,7 @@ import { useLiveJobSearch } from '../hooks/useLiveJobSearch.js';
 import {
   acceptJob,
   getAcceptedJobs,
+  getLatestJobSearch,
   getRemovedJobIds,
   getSavedSearches,
   jobKey,
@@ -25,14 +26,16 @@ function parseTerms(value) {
 }
 
 function JobSearch() {
-  const [terms, setTerms] = React.useState(DEFAULT_QUERY.keywords.join(', '));
-  const [sources, setSources] = React.useState(DEFAULT_QUERY.sources);
-  const [municipality, setMunicipality] = React.useState(DEFAULT_QUERY.municipality);
+  const latestSearch = React.useMemo(() => getLatestJobSearch(), []);
+  const initialQuery = latestSearch?.query || DEFAULT_QUERY;
+  const [terms, setTerms] = React.useState((initialQuery.keywords || DEFAULT_QUERY.keywords).join(', '));
+  const [sources, setSources] = React.useState(initialQuery.sources || DEFAULT_QUERY.sources);
+  const [municipality, setMunicipality] = React.useState(initialQuery.municipality || DEFAULT_QUERY.municipality);
   const [savedSearches, setSavedSearches] = React.useState(() => getSavedSearches());
   const [removedIds, setRemovedIds] = React.useState(() => getRemovedJobIds());
   const [acceptedIds, setAcceptedIds] = React.useState(() => getAcceptedJobs().map((job) => jobKey(job)));
   const [savedNotice, setSavedNotice] = React.useState('');
-  const { jobs, meta, summary, status, error, runSearch } = useLiveJobSearch(DEFAULT_QUERY);
+  const { jobs, meta, summary, status, error, runSearch } = useLiveJobSearch(initialQuery);
 
   React.useEffect(() => {
     const sync = () => {
