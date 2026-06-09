@@ -26,17 +26,49 @@ function VoiceWave({ bars = 18 }) {
   return <div className="voicewave">{Array.from({length:bars}).map((_,i)=>(<span key={i} style={{ height:hs[i%hs.length] }} />))}</div>;
 }
 
+const CV_TEMPLATES = [
+  { id:'lager', title:'Lager & logistik', tone:'ph--sky', meta:'ATS-vänlig · bild valfri', focus:'Tydlig erfarenhet, truckkort och skiftvana' },
+  { id:'classic', title:'Klassisk rekryterare', tone:'ph--mint', meta:'En sida · hög läsbarhet', focus:'Profil, arbetslivserfarenhet och kompetenser först' },
+  { id:'visual', title:'Bild-CV enkelt', tone:'ph--sun', meta:'Foto + sidospalt', focus:'Bra när personlig presentation hjälper' },
+];
+
+const CV_SECTIONS = [
+  { title:'Profil', body:'Pålitlig lager- och logistikmedarbetare med praktik från PostNord, truck A1 och vana vid scanning, plockning och inleverans.' },
+  { title:'Erfarenhet', body:'PostNord praktik, ICA-kundkontakt och daglig vana av tempo, ansvar och tydlig kommunikation.' },
+  { title:'Kompetenser', body:'Truck A1, lagerhantering, handdator/scanning, plock och pack, noggrannhet, punktlighet och lagarbete.' },
+  { title:'Utbildning', body:'Gymnasieutbildning samt kurser och intyg som kan kompletteras direkt när de laddas upp.' },
+  { title:'Språk', body:'Svenska flytande, arabiska modersmål och enkel yrkesengelska för instruktioner och system.' },
+  { title:'Referenser', body:'Referenser lämnas på begäran. Lilly hjälper till att formulera frågan till handledare eller tidigare chef.' },
+];
+
 function CVBuilder() {
+  const [uploadedTemplates, setUploadedTemplates] = React.useState([]);
+
+  const onTemplateUpload = (event) => {
+    const files = Array.from(event.target.files || []).map((file) => ({
+      id: `${file.name}-${file.lastModified}`,
+      name: file.name,
+      size: Math.round(file.size / 1024),
+    }));
+    setUploadedTemplates((current) => [...files, ...current].slice(0, 6));
+    event.target.value = '';
+  };
+
   return (
     <div className="ll app" data-screen-label="CV-byggaren">
       <Sidebar active="cv" />
       <div className="main">
         <ToolHeader title="CV-byggaren" step="4" total="7">
+          <label className="btn btn--secondary btn--sm cv-upload-btn">
+            <Icon name="upload" size={16} />
+            Ladda upp mall
+            <input type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" multiple onChange={onTemplateUpload} />
+          </label>
           <Button variant="ghost" size="sm" icon="download">Ladda ner PDF</Button>
           <Button variant="primary" size="sm" icon="check">Spara</Button>
         </ToolHeader>
 
-        <div style={{ display:'grid', gridTemplateColumns:'minmax(420px,1fr) 1.05fr', flex:1, minHeight:0 }}>
+        <div className="cvbuilder-grid">
           {/* intake */}
           <section className="intake" style={{ borderRight:'1px solid var(--ll-border)' }}>
             <div className="intake__head">
@@ -46,6 +78,38 @@ function CVBuilder() {
                 <div className="cap">En fråga i taget - kopplat till {PIPELINE_RUN.company}-analysen</div>
               </div>
               <span className="intake__prog">60% klart</span>
+            </div>
+
+            <div className="cv-template-panel">
+              <div className="between" style={{ marginBottom:10 }}>
+                <div>
+                  <h3>CV-mallar</h3>
+                  <p className="cap">Välj bas eller ladda upp en egen mall.</p>
+                </div>
+                <span className="pill">{CV_TEMPLATES.length + uploadedTemplates.length} mallar</span>
+              </div>
+              <div className="cv-templates">
+                {CV_TEMPLATES.map((template) => (
+                  <button className="cv-template-card" key={template.id} type="button">
+                    <Photo tone={template.tone} clover person={template.id === 'visual'} label={template.title} />
+                    <div>
+                      <b>{template.title}</b>
+                      <span>{template.meta}</span>
+                      <p>{template.focus}</p>
+                    </div>
+                  </button>
+                ))}
+                {uploadedTemplates.map((template) => (
+                  <button className="cv-template-card cv-template-card--uploaded" key={template.id} type="button">
+                    <div className="filetype ft-doc">DOC</div>
+                    <div>
+                      <b>{template.name}</b>
+                      <span>{template.size} KB · uppladdad</span>
+                      <p>Redo att mappas mot HelloLillys CV-sektioner.</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div className="intake__feed">
@@ -76,6 +140,24 @@ function CVBuilder() {
               </div>
             </div>
 
+            <div className="cv-section-panel">
+              <div className="between" style={{ marginBottom:10 }}>
+                <h3>CV-sektioner</h3>
+                <span className="cap">Allt innehåll är redigerbart</span>
+              </div>
+              <div className="cv-section-grid">
+                {CV_SECTIONS.map((section) => (
+                  <div className="cv-section-card" key={section.title}>
+                    <div className="cv-section-card__icon"><Icon name="doc" size={16} /></div>
+                    <div>
+                      <b>{section.title}</b>
+                      <p>{section.body}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <div className="intake__composer">
               <div className="intake__inputrow">
                 <input placeholder="Skriv ditt svar…" aria-label="Ditt svar" />
@@ -98,6 +180,9 @@ function CVBuilder() {
                 <span className="cap" style={{ fontWeight:700 }}>Förhandsvisning · ansökningsklar</span>
               </div>
               <div className="cvpaper">
+                <div className="cvpaper__photo">
+                  <Photo tone="ph--sky" clover person label="CV-bild" />
+                </div>
                 <h2>{CASE_PROFILE.person}</h2>
                 <div className="cv-role">Lager &amp; logistik · Truckförare</div>
                 <div className="cv-contact">

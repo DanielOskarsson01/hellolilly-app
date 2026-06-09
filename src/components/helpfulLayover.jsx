@@ -1,5 +1,6 @@
 import React from 'react';
 import { Icon, Clover, Photo, Avatar, Button, Tag, SectionHeader } from './primitives.jsx';
+import { acceptJob, getAcceptedJobs, jobKey, removeJob } from '../utils/jobStore.js';
 
 // HelloLilly — Helpful Now layover
 // Opens when a Helpful Now item is clicked (custom event `ll:helpful:open`).
@@ -46,8 +47,8 @@ const RICH_CONTENT = {
 };
 
 function HelpfulLayoverContent({ item }) {
-  // Job-match payload (sent from the job list on home)
-  if (item && item.kind === 'job') return <MatchAnalysisContent job={item} />;
+  if (item && item.kind === 'job') return <JobDescriptionContent job={item} />;
+  if (item && item.kind === 'job-analysis') return <JobAnalysisContent job={item.job || item} />;
 
   const rich = item && item.id && RICH_CONTENT[item.id];
   if (!rich) {
@@ -213,10 +214,101 @@ function HelpfulLayover() {
 }
 
 /* ============================================================
-   Match-analysis content (job preview)
-   The home job list dispatches `ll:helpful:open` with a job
-   object — this renders Lilly's analysis of the match.
+   Job description + match-analysis content
+   Jobbsök opens a plain job description. Matchanalys opens the
+   analysis flow for an accepted job.
    ============================================================ */
+
+function JobDescriptionContent({ job }) {
+  const [accepted, setAccepted] = React.useState(() => getAcceptedJobs().some((item) => jobKey(item) === jobKey(job)));
+
+  const onApply = () => {
+    acceptJob(job);
+    setAccepted(true);
+  };
+
+  const onRemove = () => {
+    removeJob(job);
+    window.dispatchEvent(new CustomEvent('ll:helpful:close'));
+  };
+
+  return (
+    <React.Fragment>
+      <div className="jobdesc__head">
+        <div className="jobdesc__logo" style={{ background: job.logo || '#2B6CF0' }}>{(job.co || 'JO').slice(0, 2).toUpperCase()}</div>
+        <div>
+          <span className="helpitem__kind">Jobbannons</span>
+          <h1 className="jobdesc__title">{job.t}</h1>
+          <div className="jobdesc__meta">{job.co} · {job.city} · {job.type}{job.when ? ` · ${job.when}` : ''}</div>
+        </div>
+      </div>
+
+      <div className="jobdesc__actions">
+        <Button variant="ghost" size="sm" icon="plus" onClick={onRemove}>Ta bort</Button>
+        <Button variant="primary" size="sm" icon="check" onClick={onApply}>{accepted ? 'Sparad till Matchanalys' : 'Ansök'}</Button>
+      </div>
+
+      {Array.isArray(job.tags) && job.tags.length > 0 && (
+        <div className="jobdesc__tags">
+          {job.tags.map((tag) => <Tag key={tag} variant="tag--ghost">{tag}</Tag>)}
+        </div>
+      )}
+
+      <div className="jobdesc__body">
+        <h2>Jobbeskrivning</h2>
+        <p>{job.snippet || 'Ingen beskrivning fanns i sökresultatet. Öppna originalannonsen för full text.'}</p>
+      </div>
+
+      <div className="jobdesc__note">
+        <Icon name="doc" size={18} />
+        <span>Den här vyn visar bara annonsens text. För analys: lägg jobbet som ansökan och öppna det från Matchanalys.</span>
+      </div>
+
+      {job.url && (
+        <a className="jobdesc__external" href={job.url} target="_blank" rel="noreferrer">
+          Öppna originalannons <Icon name="arrow" size={16} />
+        </a>
+      )}
+    </React.Fragment>
+  );
+}
+
+const ANALYSIS_STEPS = [
+  'Hämtar annonsen',
+  'Läser krav och signalord',
+  'Jämför mot CV-sektionerna',
+  'Bygger konkreta nästa steg',
+];
+
+function JobAnalysisContent({ job }) {
+  const [step, setStep] = React.useState(0);
+
+  React.useEffect(() => {
+    const timers = ANALYSIS_STEPS.map((_, index) => window.setTimeout(() => setStep(index + 1), 520 + index * 520));
+    return () => timers.forEach((timer) => window.clearTimeout(timer));
+  }, [job]);
+
+  if (step < ANALYSIS_STEPS.length) {
+    return (
+      <div className="lay-analysis-loading">
+        <Clover size={44} color="#2B6CF0" />
+        <span className="helpitem__kind">Matchanalys</span>
+        <h1>{job.t}</h1>
+        <p>Lilly startar analysflödet för den sparade annonsen och jämför den mot CV-byggarens innehåll.</p>
+        <div className="analysis-steps">
+          {ANALYSIS_STEPS.map((label, index) => (
+            <div key={label} className={`analysis-step ${index < step ? 'is-done' : index === step ? 'is-now' : ''}`}>
+              <span>{index < step ? <Icon name="check" size={14} sw={3} /> : index + 1}</span>
+              <b>{label}</b>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return <MatchAnalysisContent job={job} />;
+}
 
 const MATCH_DETAILS = {
   matches: [
