@@ -89,32 +89,6 @@ function HomeExpanded() {
             </div>
           </section>
 
-          {/* ---------- FOUNDATION SYSTEM ---------- */}
-          <section>
-            <SectionHeader title="Grundsystemet som gör jobbet med dig" sub="Sex första moduler från strategin, kopplade till samma case och samma kunskap" seeAll={null} />
-            <div className="quickact">
-              {FOUNDATION_TOOLS.map((tool) => (
-                <a key={tool.id} href={`#${tool.id}`} className="qact">
-                  <div className={`qact__ic ${tool.tint}`}><Icon name={tool.ic} size={18} /></div>
-                  <div className="qact__b">
-                    <div className="qact__t">{tool.sv}</div>
-                    <div className="qact__h">{tool.problem}: {tool.outcome}</div>
-                  </div>
-                  <Icon name="arrow" size={16} className="qact__go" />
-                </a>
-              ))}
-            </div>
-            <div className="grid" style={{ gridTemplateColumns:'repeat(3, 1fr)', gap:12, marginTop:12 }}>
-              {OUTCOME_METRICS.map((m) => (
-                <div key={m.label} className="card card--pad">
-                  <div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:26, color:'var(--ll-blue-deep)' }}>{m.value}</div>
-                  <div style={{ fontFamily:'var(--font-display)', fontWeight:800, fontSize:14 }}>{m.label}</div>
-                  <p className="cap" style={{ marginTop:4 }}>{m.hint}</p>
-                </div>
-              ))}
-            </div>
-          </section>
-
           {/* ---------- AUTO JOB SEARCH ---------- */}
           <section>
             <SectionHeader title="Jobb som matchar dig" sub="Live från jobbpipelinen — och blir bättre för varje dag" seeAll="Visa alla" />
@@ -215,6 +189,32 @@ function HomeExpanded() {
                 </div>
                 <Button variant="primary" size="sm" icon="plus" block>Skapa brev</Button>
               </div>
+            </div>
+          </section>
+
+          {/* ---------- FOUNDATION SYSTEM ---------- */}
+          <section>
+            <SectionHeader title="Grundsystemet som gör jobbet med dig" sub="Sex första moduler från strategin, kopplade till samma case och samma kunskap" seeAll={null} />
+            <div className="quickact">
+              {FOUNDATION_TOOLS.map((tool) => (
+                <a key={tool.id} href={`#${tool.id}`} className="qact">
+                  <div className={`qact__ic ${tool.tint}`}><Icon name={tool.ic} size={18} /></div>
+                  <div className="qact__b">
+                    <div className="qact__t">{tool.sv}</div>
+                    <div className="qact__h">{tool.problem}: {tool.outcome}</div>
+                  </div>
+                  <Icon name="arrow" size={16} className="qact__go" />
+                </a>
+              ))}
+            </div>
+            <div className="grid" style={{ gridTemplateColumns:'repeat(3, 1fr)', gap:12, marginTop:12 }}>
+              {OUTCOME_METRICS.map((m) => (
+                <div key={m.label} className="card card--pad">
+                  <div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:26, color:'var(--ll-blue-deep)' }}>{m.value}</div>
+                  <div style={{ fontFamily:'var(--font-display)', fontWeight:800, fontSize:14 }}>{m.label}</div>
+                  <p className="cap" style={{ marginTop:4 }}>{m.hint}</p>
+                </div>
+              ))}
             </div>
           </section>
 
