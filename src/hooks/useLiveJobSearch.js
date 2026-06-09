@@ -1,10 +1,10 @@
 import React from 'react';
-import { DEFAULT_QUERY, searchJobs } from '../api/jobSearch.js';
+import { DEFAULT_QUERY, normalizeJobQuery, searchJobs } from '../api/jobSearch.js';
 import { getLatestJobSearch, saveLatestJobSearch } from '../utils/jobStore.js';
 
 function useLiveJobSearch(initialQuery = DEFAULT_QUERY, options = {}) {
   const latest = React.useMemo(() => getLatestJobSearch(), []);
-  const firstQuery = latest?.query || initialQuery;
+  const firstQuery = normalizeJobQuery(latest?.query || initialQuery);
   const [query, setQuery] = React.useState(firstQuery);
   const [jobs, setJobs] = React.useState(latest?.jobs || []);
   const [summary, setSummary] = React.useState(latest?.summary || null);
@@ -13,15 +13,16 @@ function useLiveJobSearch(initialQuery = DEFAULT_QUERY, options = {}) {
   const [error, setError] = React.useState('');
 
   const runSearch = React.useCallback(async (nextQuery = query) => {
+    const normalizedQuery = normalizeJobQuery(nextQuery);
     setStatus('loading');
     setError('');
-    setQuery(nextQuery);
+    setQuery(normalizedQuery);
     try {
-      const payload = await searchJobs(nextQuery);
+      const payload = await searchJobs(normalizedQuery);
       setJobs(payload.jobs?.length ? payload.jobs : []);
       setSummary(payload.summary || null);
       setMeta(payload.meta || null);
-      saveLatestJobSearch(nextQuery, payload);
+      saveLatestJobSearch(normalizedQuery, payload);
       setStatus('success');
       return payload;
     } catch (err) {

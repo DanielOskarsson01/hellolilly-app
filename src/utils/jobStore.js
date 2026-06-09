@@ -1,3 +1,5 @@
+import { normalizeJobQuery } from '../api/jobSearch.js';
+
 const KEYS = {
   savedSearches: 'hellolilly:saved-searches',
   acceptedJobs: 'hellolilly:accepted-jobs',
@@ -49,21 +51,36 @@ function jobKey(job = {}) {
   return String(job.id || job.originalId || job.url || `${job.co || 'job'}-${job.t || 'role'}-${job.city || ''}`);
 }
 
+function normalizeSavedSearch(search = {}) {
+  const normalized = normalizeJobQuery(search);
+  const fingerprint = `${normalized.keywords.join('|')}::${normalized.sources.join('|')}::${normalized.municipality}`;
+  return {
+    ...search,
+    label: `${normalized.keywords.join(', ') || 'Alla jobb'} · ${normalized.municipality}`,
+    keywords: normalized.keywords,
+    sources: normalized.sources,
+    municipality: normalized.municipality,
+    fingerprint,
+  };
+}
+
 function getSavedSearches() {
-  return readJson(KEYS.savedSearches, []);
+  return readJson(KEYS.savedSearches, []).map(normalizeSavedSearch);
 }
 
 function saveSearch(search) {
   const current = getSavedSearches();
-  const keywords = Array.isArray(search.keywords) ? search.keywords : [];
-  const sources = Array.isArray(search.sources) ? search.sources : [];
-  const fingerprint = `${keywords.join('|')}::${sources.join('|')}::${search.municipality || ''}`;
+  const normalizedSearch = normalizeJobQuery(search);
+  const keywords = normalizedSearch.keywords;
+  const sources = normalizedSearch.sources;
+  const municipality = normalizedSearch.municipality;
+  const fingerprint = `${keywords.join('|')}::${sources.join('|')}::${municipality}`;
   const nextSearch = {
     id: search.id || `search-${Date.now()}`,
-    label: search.label || `${keywords.join(', ') || 'Alla jobb'} · ${search.municipality || 'alla orter'}`,
+    label: search.label || `${keywords.join(', ') || 'Alla jobb'} · ${municipality}`,
     keywords,
     sources,
-    municipality: search.municipality || '',
+    municipality,
     createdAt: search.createdAt || new Date().toISOString(),
     fingerprint,
   };
@@ -97,12 +114,14 @@ function getRemovedJobIds() {
 }
 
 function getLatestJobSearch() {
-  return readJson(KEYS.latestSearch, null);
+  const latest = readJson(KEYS.latestSearch, null);
+  return latest ? { ...latest, query: normalizeJobQuery(latest.query || {}) } : null;
 }
 
 function saveLatestJobSearch(query, payload) {
+  const normalizedQuery = normalizeJobQuery(query);
   const next = {
-    query,
+    query: normalizedQuery,
     jobs: Array.isArray(payload?.jobs) ? payload.jobs.map(compactJob) : [],
     summary: payload?.summary || null,
     meta: payload?.meta || null,

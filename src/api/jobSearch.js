@@ -1,7 +1,9 @@
+const FIXED_MUNICIPALITY = '0180';
+
 const DEFAULT_QUERY = {
   keywords: ['lager', 'logistik', 'truck'],
   sources: ['jobtech'],
-  municipality: '1980',
+  municipality: FIXED_MUNICIPALITY,
   maxResults: 20,
 };
 
@@ -191,11 +193,7 @@ async function searchProvider(providerId, query) {
 }
 
 async function searchJobs(query = {}) {
-  const merged = { ...DEFAULT_QUERY, ...query };
-  const keywords = cleanList(merged.keywords, DEFAULT_QUERY.keywords, 8);
-  const sources = cleanList(merged.sources, DEFAULT_QUERY.sources, 5);
-  const maxResults = Math.max(5, Math.min(Number(merged.maxResults || DEFAULT_QUERY.maxResults), 50));
-  const municipality = String(merged.municipality || DEFAULT_QUERY.municipality).trim();
+  const { keywords, sources, maxResults, municipality } = normalizeJobQuery(query);
 
   const settled = await Promise.all(sources.map((source) => searchProvider(source, {
     keywords,
@@ -238,4 +236,14 @@ async function searchJobs(query = {}) {
   };
 }
 
-export { DEFAULT_QUERY, searchJobs };
+function normalizeJobQuery(query = {}) {
+  const merged = { ...DEFAULT_QUERY, ...query };
+  return {
+    keywords: cleanList(merged.keywords, DEFAULT_QUERY.keywords, 8),
+    sources: cleanList(merged.sources, DEFAULT_QUERY.sources, 5),
+    maxResults: Math.max(5, Math.min(Number(merged.maxResults || DEFAULT_QUERY.maxResults), 50)),
+    municipality: FIXED_MUNICIPALITY,
+  };
+}
+
+export { DEFAULT_QUERY, FIXED_MUNICIPALITY, normalizeJobQuery, searchJobs };

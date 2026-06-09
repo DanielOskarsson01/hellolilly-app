@@ -1,16 +1,12 @@
 import React from 'react';
-import { Icon, Tag, Button, SectionHeader } from '../components/primitives.jsx';
+import { Icon, Button, SectionHeader } from '../components/primitives.jsx';
+import { JobResultsList } from '../components/jobResultsList.jsx';
 import { Sidebar, Topbar } from '../components/shell.jsx';
-import { DEFAULT_QUERY } from '../api/jobSearch.js';
+import { DEFAULT_QUERY, FIXED_MUNICIPALITY, normalizeJobQuery } from '../api/jobSearch.js';
 import { useLiveJobSearch } from '../hooks/useLiveJobSearch.js';
 import {
-  acceptJob,
-  getAcceptedJobs,
   getLatestJobSearch,
-  getRemovedJobIds,
   getSavedSearches,
-  jobKey,
-  removeJob,
   removeSavedSearch,
   saveSearch,
 } from '../utils/jobStore.js';
@@ -27,21 +23,17 @@ function parseTerms(value) {
 
 function JobSearch() {
   const latestSearch = React.useMemo(() => getLatestJobSearch(), []);
-  const initialQuery = latestSearch?.query || DEFAULT_QUERY;
+  const initialQuery = normalizeJobQuery(latestSearch?.query || DEFAULT_QUERY);
   const [terms, setTerms] = React.useState((initialQuery.keywords || DEFAULT_QUERY.keywords).join(', '));
   const [sources, setSources] = React.useState(initialQuery.sources || DEFAULT_QUERY.sources);
-  const [municipality, setMunicipality] = React.useState(initialQuery.municipality || DEFAULT_QUERY.municipality);
+  const municipality = FIXED_MUNICIPALITY;
   const [savedSearches, setSavedSearches] = React.useState(() => getSavedSearches());
-  const [removedIds, setRemovedIds] = React.useState(() => getRemovedJobIds());
-  const [acceptedIds, setAcceptedIds] = React.useState(() => getAcceptedJobs().map((job) => jobKey(job)));
   const [savedNotice, setSavedNotice] = React.useState('');
   const { jobs, meta, summary, status, error, runSearch } = useLiveJobSearch(initialQuery);
 
   React.useEffect(() => {
     const sync = () => {
       setSavedSearches(getSavedSearches());
-      setRemovedIds(getRemovedJobIds());
-      setAcceptedIds(getAcceptedJobs().map((job) => jobKey(job)));
     };
     window.addEventListener('ll:jobs:changed', sync);
     window.addEventListener('storage', sync);
@@ -50,11 +42,6 @@ function JobSearch() {
       window.removeEventListener('storage', sync);
     };
   }, []);
-
-  const visibleJobs = React.useMemo(
-    () => jobs.filter((job) => !removedIds.includes(jobKey(job))),
-    [jobs, removedIds],
-  );
 
   const toggleSource = (id) => {
     setSources((current) => current.includes(id)
@@ -67,7 +54,7 @@ function JobSearch() {
     runSearch({
       keywords: parseTerms(terms),
       sources,
-      municipality,
+      municipality: FIXED_MUNICIPALITY,
       maxResults: 20,
     });
   };
@@ -75,7 +62,7 @@ function JobSearch() {
   const currentSearch = () => ({
     keywords: parseTerms(terms),
     sources,
-    municipality,
+    municipality: FIXED_MUNICIPALITY,
   });
 
   const handleSaveSearch = () => {
@@ -88,27 +75,12 @@ function JobSearch() {
   const applySavedSearch = (search) => {
     setTerms(search.keywords.join(', '));
     setSources(search.sources);
-    setMunicipality(search.municipality || '');
     runSearch({
       keywords: search.keywords,
       sources: search.sources,
-      municipality: search.municipality,
+      municipality: FIXED_MUNICIPALITY,
       maxResults: 20,
     });
-  };
-
-  const openJob = (job) => {
-    window.dispatchEvent(new CustomEvent('ll:helpful:open', { detail: { ...job, kind: 'job' } }));
-  };
-
-  const handleRemoveJob = (job) => {
-    removeJob(job);
-    setRemovedIds(getRemovedJobIds());
-  };
-
-  const handleApplyJob = (job) => {
-    acceptJob(job);
-    setAcceptedIds(getAcceptedJobs().map((item) => jobKey(item)));
   };
 
   return (
@@ -145,8 +117,8 @@ function JobSearch() {
                   <span>Kommunkod</span>
                   <input
                     value={municipality}
-                    onChange={(event) => setMunicipality(event.target.value)}
-                    placeholder="1980"
+                    readOnly
+                    placeholder="0180"
                   />
                 </label>
                 <div className="livejob-sources" aria-label="Källor">
@@ -205,50 +177,7 @@ function JobSearch() {
               </div>
 
               <SectionHeader title="Live-resultat" sub="Klicka på ett jobb för att läsa annonsen" seeAll={null} />
-              <div className="joblist">
-                {visibleJobs.map((job) => {
-                  const accepted = acceptedIds.includes(jobKey(job));
-                  return (
-                  <div
-                    className="jobrow"
-                    key={job.id || job.url || `${job.co}-${job.t}`}
-                    onClick={() => openJob(job)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter' || event.key === ' ') {
-                        event.preventDefault();
-                        openJob(job);
-                      }
-                    }}
-                  >
-                    <div className="joblogo" style={{ background:job.logo }}>{job.co.slice(0,2).toUpperCase()}</div>
-                    <div className="jobrow__main">
-                      <div className="jobrow__t">{job.t}{job.hot && <span style={{ color:'var(--ll-coral)', fontSize:12, fontWeight:800, marginLeft:8 }}>● Het</span>}</div>
-                      <div className="jobrow__sub">{job.co}<span className="sep" />{job.city}<span className="sep" />{job.type}</div>
-                      {job.snippet && <p className="livejob-snippet">{job.snippet}</p>}
-                      <div className="jobrow__tags">{job.tags.map((tag) => <Tag key={tag} variant="tag--ghost">{tag}</Tag>)}</div>
-                    </div>
-                    <div className="jobrow__right">
-                      <div className="matchbadge"><div className="n">{job.match}%</div><div className="l">match</div></div>
-                      <span className="jobrow__when">{job.when}</span>
-                      <div className="jobrow__act">
-                        <Button variant="secondary" size="sm" icon="search" onClick={(event) => { event.stopPropagation(); openJob(job); }}>Läs</Button>
-                        <Button variant="ghost" size="sm" icon="plus" onClick={(event) => { event.stopPropagation(); handleRemoveJob(job); }}>Ta bort</Button>
-                        <Button variant="primary" size="sm" icon="check" onClick={(event) => { event.stopPropagation(); handleApplyJob(job); }}>{accepted ? 'Sparad' : 'Ansök'}</Button>
-                      </div>
-                    </div>
-                  </div>
-                  );
-                })}
-              </div>
-
-              {status !== 'loading' && visibleJobs.length === 0 && (
-                <div className="livejob-empty">
-                  <Icon name="search" size={22} />
-                  Inga träffar just nu. Prova färre sökord eller slå på fler källor.
-                </div>
-              )}
+              <JobResultsList jobs={jobs} status={status} />
             </div>
           </section>
         </div>

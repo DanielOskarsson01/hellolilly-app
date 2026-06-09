@@ -1,5 +1,6 @@
 import React from 'react';
 import { Icon, Clover, Avatar, AvatarStack, Photo, Tag, Button, Rating, SectionHeader } from '../components/primitives.jsx';
+import { JobResultsList } from '../components/jobResultsList.jsx';
 import { Sidebar, Topbar, CoachCard, MilestonePath, Stats, Todo, ToolGrid, CourseFeed } from '../components/shell.jsx';
 import {
   CASE_PROFILE,
@@ -35,7 +36,6 @@ const QUICK_ACTIONS = NEXT_ACTIONS;
 
 function HomeExpanded() {
   const { jobs: liveJobs, status: jobStatus, error: jobError, meta: jobMeta } = useLiveJobSearch();
-  const jobs = liveJobs.slice(0, 5);
 
   return (
     <div className="ll app app--lively" data-screen-label="Hem · Allt samlat">
@@ -98,7 +98,7 @@ function HomeExpanded() {
                 <span className="term">lager <Icon name="plus" size={12} className="x" style={{ transform:'rotate(45deg)' }} /></span>
                 <span className="term">logistik <Icon name="plus" size={12} className="x" style={{ transform:'rotate(45deg)' }} /></span>
                 <span className="term">truck <Icon name="plus" size={12} className="x" style={{ transform:'rotate(45deg)' }} /></span>
-                <span className="term term--geo"><Icon name="target" size={13} />Västerås + 30 km</span>
+                <span className="term term--geo"><Icon name="target" size={13} />Kommunkod 0180</span>
                 <a className="term term--add" href="#jobbsok"><Icon name="plus" size={13} />Ändra sökning</a>
                 <span style={{ marginLeft:'auto', display:'inline-flex', alignItems:'center', gap:7 }} className="coach__status">
                   <span className="dot" />{jobStatus === 'loading' ? 'Söker live' : 'Aktiv sökning'}
@@ -108,42 +108,15 @@ function HomeExpanded() {
               {jobStatus === 'error' && (
                 <div className="feedbackline" style={{ marginBottom:10 }}>
                   <Icon name="lock" size={18} style={{ color:'var(--ll-coral)' }} />
-                  Live-sökningen svarade inte just nu. Visar sparade exempel tills vidare. {jobError}
+                  Live-sökningen svarade inte just nu. {jobError}
                 </div>
               )}
 
-              <div className="joblist">
-                {jobs.map((j,i) => {
-                  const openJob = (e) => {
-                    e.stopPropagation();
-                    window.dispatchEvent(new CustomEvent('ll:helpful:open', { detail: { ...j, kind:'job' } }));
-                  };
-                  return (
-                    <div className="jobrow" key={i} onClick={openJob} role="button" tabIndex={0} onKeyDown={(e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); openJob(e);} }}>
-                      <div className="joblogo" style={{ background:j.logo }}>{j.co.slice(0,2).toUpperCase()}</div>
-                      <div className="jobrow__main">
-                        <div className="jobrow__t">{j.t}{j.hot && <span style={{ color:'var(--ll-coral)', fontSize:12, fontWeight:800, marginLeft:8 }}>● Het</span>}</div>
-                        <div className="jobrow__sub">{j.co}<span className="sep" />{j.city}<span className="sep" />{j.type}</div>
-                        <div className="jobrow__tags">{j.tags.map((t,k)=><Tag key={k} variant="tag--ghost">{t}</Tag>)}</div>
-                      </div>
-                      <div className="jobrow__right">
-                        <div className="matchbadge"><div className="n">{j.match}%</div><div className="l">match</div></div>
-                        <span className="jobrow__when">{j.when}</span>
-                        <div className="jobrow__act">
-                          <Button variant="secondary" size="sm" icon="search" onClick={openJob}>Snabbtitt</Button>
-                          {j.url
-                            ? <a className="btn btn--primary btn--sm" href={j.url} target="_blank" rel="noreferrer" onClick={(e)=>e.stopPropagation()}>Öppna</a>
-                            : <Button variant="primary" size="sm" onClick={(e)=>e.stopPropagation()}>Ansök</Button>}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+              <JobResultsList jobs={liveJobs} status={jobStatus} />
 
               <div className="feedbackline">
                 <Icon name="bulb" size={18} style={{ color:'var(--ll-amber)' }} />
-                {jobMeta ? `${jobMeta.total_found || jobs.length} jobb hittade via ${jobMeta.sources?.join(', ') || 'API-sökning'}.` : 'Var de här jobben relevanta? Din matchning blir bättre när du säger till.'}
+                {jobMeta ? `${jobMeta.total_found || liveJobs.length} jobb hittade via ${jobMeta.sources?.join(', ') || 'API-sökning'}.` : 'Var de här jobben relevanta? Din matchning blir bättre när du säger till.'}
                 <span className="fbtns">
                   <button className="thumbbtn" aria-label="Ja, relevanta"><Icon name="thumb" size={17} /></button>
                   <button className="thumbbtn down" aria-label="Nej, mindre relevanta"><Icon name="thumb" size={17} /></button>
