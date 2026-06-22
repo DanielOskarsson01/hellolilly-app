@@ -427,6 +427,56 @@
 
   /* ---- Focus ring (accessible) ---- */
   --focus: 0 0 0 3px #fff, 0 0 0 5.5px var(--ll-blue);
+
+  /* ============================================================
+     DESIGN-SYSTEM SCALE TOKENS (extraction mission) — source of
+     truth for spacing, type, the grid, control sizing. Screens
+     reference these; they never hardcode px/hex. One edit here
+     propagates everywhere the token is used.
+     ============================================================ */
+  /* Warm off-white brand canvas (cream, not white) */
+  --ll-cream:      #FBF7F0;
+  --ll-cream-deep: #F4ECE0;
+
+  /* Bubblegum pink — the brand's interchangeable 2nd colour */
+  --ll-pink:        #FF6FA8;
+  --ll-pink-strong: #F2478F;
+  --ll-pink-deep:   #B12E66;
+  --ll-pink-soft:   #FFE6F1;
+
+  /* Spacing scale (4px base) */
+  --sp-0: 0; --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
+  --sp-5: 20px; --sp-6: 24px; --sp-7: 32px; --sp-8: 40px; --sp-9: 48px;
+  --sp-10: 64px; --sp-11: 80px; --sp-12: 96px;
+
+  /* Type scale */
+  --fs-stat: 48px; --fs-3xl: 40px; --fs-2xl: 34px; --fs-xl: 25px;
+  --fs-lg: 20px; --fs-md: 16px; --fs-base: 14.5px; --fs-sm: 13px;
+  --fs-xs: 12px; --fs-2xs: 11px;
+  --lh-tight: 1.15; --lh-snug: 1.3; --lh-normal: 1.5;
+  --fw-regular: 400; --fw-medium: 500; --fw-semibold: 600;
+  --fw-bold: 700; --fw-extrabold: 800; --fw-black: 900;
+  --tracking-tight: -.02em; --tracking-eyebrow: .07em;
+
+  /* Control sizing (proof targets) */
+  --cta-radius: var(--r-pill);
+  --cta-pad-y: 14px; --cta-pad-x: 26px; --cta-font: 16px;
+  --cta-font-sm: 14px; --cta-pad-y-sm: 9px; --cta-pad-x-sm: 18px;
+  --field-radius: var(--r-md); --field-pad-y: 12px; --field-pad-x: 16px;
+  --card-radius: var(--r-card);
+
+  /* The 4-column / three-area grid */
+  --grid-gap: 64px; --grid-gutter: 16px;
+  --grid-nav-w: 208px; --grid-cross-w: 256px;
+  --grid-max: 1440px; --grid-pad: 40px; --grid-side-inset: 4px; --grid-side-pad: 14px;
+  /* spacing rule: 16px boxes/lists default, 32px text/media/large */
+  --pad-box: 16px; --pad-feature: 32px; --gap-list: 16px;
+
+  /* reflow breakpoints */
+  --bp-lg: 1180px; --bp-md: 900px;
+
+  /* Motion */
+  --ease: cubic-bezier(.2,.7,.2,1); --dur-fast: .14s; --dur: .22s;
 }
 
 
@@ -603,11 +653,11 @@
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 9px;
   font-weight: 700; font-family: var(--font-body); border: 1.5px solid transparent;
-  border-radius: var(--r-pill); cursor: pointer; transition: all .15s ease;
+  border-radius: var(--cta-radius); cursor: pointer; transition: all .15s ease;
   white-space: nowrap;
 }
-.btn--lg { font-size: 16px; padding: 14px 26px; }
-.btn--sm { font-size: 14px; padding: 9px 18px; }
+.btn--lg { font-size: var(--cta-font); padding: var(--cta-pad-y) var(--cta-pad-x); }
+.btn--sm { font-size: var(--cta-font-sm); padding: var(--cta-pad-y-sm) var(--cta-pad-x-sm); }
 .btn--primary { background: var(--ll-blue); color: #fff; box-shadow: var(--sh-blue); }
 .btn--primary:hover { background: var(--ll-blue-strong); transform: translateY(-1px); }
 .btn--primary:active { transform: translateY(0); }
@@ -615,28 +665,40 @@
 .btn--secondary:hover { border-color: var(--ll-blue); background: var(--ll-blue-tint-2); }
 .btn--ghost { background: transparent; color: var(--ll-blue); }
 .btn--ghost:hover { background: var(--ll-blue-tint); }
+.btn--pink { background: var(--ll-pink); color: #fff; box-shadow: 0 8px 20px rgba(242,71,143,.26); }
+.btn--pink:hover { background: var(--ll-pink-strong); transform: translateY(-1px); }
+.btn--pink:active { transform: translateY(0); }
 .btn--coral { background: var(--ll-coral); color: #fff; box-shadow: 0 8px 20px rgba(255,122,89,.28); }
 .btn--coral:hover { filter: brightness(.97); transform: translateY(-1px); }
+/* White CTA — for use on coloured (blue/pink) backgrounds so the action always contrasts. */
+.btn--white { background: #fff; color: var(--ll-blue-deep); box-shadow: 0 8px 20px rgba(20,52,110,.18); }
+.btn--white:hover { background: var(--ll-blue-tint); transform: translateY(-1px); }
+.btn--white:active { transform: translateY(0); }
 .btn--block { display: flex; width: 100%; }
 .btn:disabled { opacity: .5; cursor: not-allowed; box-shadow: none; }
 
 /* ---------------- Tags / chips ---------------- */
 .tag {
   display: inline-flex; align-items: center; gap: 6px;
-  font-size: 12.5px; font-weight: 700; padding: 5px 12px;
-  border-radius: var(--r-pill); background: var(--ll-blue-tint); color: var(--ll-blue-deep);
+  font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 0;
+  background: transparent;
+  border: 1px solid currentColor;
+  color: var(--ll-blue-deep);
   white-space: nowrap;
 }
-.tag--coral { background: var(--ll-coral-soft); color: #b5421f; }
-.tag--green { background: var(--ll-green-soft); color: #1c7a48; }
-.tag--amber { background: var(--ll-amber-soft); color: #9a6611; }
-.tag--lilac { background: var(--ll-lilac-soft); color: #5a48b8; }
-.tag--ghost { background: var(--ll-white); color: var(--ll-ink-soft); border: 1px solid var(--ll-border); }
+.tag--coral { color: #b5421f; }
+.tag--green { color: #1c7a48; }
+.tag--amber { color: #9a6611; }
+.tag--lilac { color: #5a48b8; }
+.tag--ghost { color: var(--ll-ink-soft); }
 .tag .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
 
 .chip {
   display: inline-flex; align-items: center; gap: 7px;
   font-size: 13.5px; font-weight: 600; padding: 9px 16px;
+  border-radius: 0;
   border-radius: var(--r-pill); background: var(--ll-white);
   border: 1.5px solid var(--ll-border); color: var(--ll-ink-soft);
   transition: all .14s;
@@ -670,7 +732,7 @@
 /* ---------------- Cards ---------------- */
 .card {
   background: var(--ll-white); border: 1px solid var(--ll-border);
-  border-radius: var(--r-card); box-shadow: var(--sh-sm);
+  border-radius: var(--card-radius); box-shadow: var(--sh-sm);
 }
 .card--pad { padding: 22px; }
 .card--soft { box-shadow: none; }
@@ -1151,7 +1213,7 @@
 .jobrow__tags { flex-wrap: wrap; }
 .jobrow__right { display: flex; align-items: center; gap: 16px; flex: 0 0 auto; }
 .matchbadge { text-align: center; }
-.matchbadge .n { font-family: var(--font-display); font-weight: 900; font-size: 19px; color: var(--ll-green); line-height: 1; }
+.matchbadge .n { font-family: var(--font-display); font-weight: 900; font-size: 19px; color: var(--ll-green); line-height: 1; white-space: nowrap; }
 .matchbadge .l { font-size: 11px; color: var(--ll-ink-mute); font-weight: 700; }
 .jobrow__when { font-size: 12.5px; color: var(--ll-ink-mute); font-weight: 600; white-space: nowrap; min-width: 64px; text-align: right; }
 .jobrow__act { display: flex; gap: 8px; }
@@ -1604,7 +1666,7 @@
 .match-score svg .bg { stroke: #fff; }
 .match-score svg .fg { stroke: url(#scoreGrad); }
 .match-score__n { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; }
-.match-score__n b { font-family: var(--font-display); font-weight: 900; font-size: 48px; line-height: 1; color: var(--ll-blue-deep); }
+.match-score__n b { font-family: var(--font-display); font-weight: 900; font-size: 48px; line-height: 1; color: var(--ll-blue-deep); white-space: nowrap; }
 .match-score__n span { display: block; font-size: 12px; font-weight: 700; color: var(--ll-ink-mute); letter-spacing: .04em; text-transform: uppercase; margin-top: 4px; }
 .match-meta__co { display: flex; align-items: center; gap: 13px; }
 .match-meta h1 { font-family: var(--font-display); font-size: 26px; font-weight: 900; color: var(--ll-ink); margin-top: 12px; }
@@ -2687,3 +2749,561 @@ body.lay-open .helpful { opacity: 0; transition: opacity .18s ease; }
   @media (min-width: 1200px) {
     .ll-site .topbar { padding-right: 24px; }
   }
+
+/* ============================================================
+   FRAMED LAYOUT  (added on top of the shell above)
+   ------------------------------------------------------------
+   • Light-blue page background behind everything.
+   • Left nav + right "Helpful Now" become floating boxes:
+     16px radius, soft drop shadow, inset from the edges, and
+     they HUG their content (height grows to fit, then scrolls).
+   • Whole composition is centred inside a max width.
+   To revert: delete this entire block. Nothing else depends on it.
+   ============================================================ */
+
+/* Light-blue page wash behind the whole site */
+body.ll-site { background: var(--ll-blue-tint); }
+
+@media (min-width: 1200px) {
+  :root {
+    --ll-frame-gap:  18px;             /* outer margin + gutter between box and content */
+    --ll-frame-max:  1320px;           /* total centred composition width */
+    --ll-frame-side: max(var(--ll-frame-gap), calc((100vw - var(--ll-frame-max)) / 2));
+    --ll-frame-radius: 16px;
+    --ll-frame-shadow: 0 1px 2px rgba(20,52,110,.05), 0 10px 30px rgba(20,52,110,.10);
+  }
+
+  /* Reserve the right gutter for the floating Helpful box (+ inner gap) */
+  body.ll-site {
+    padding-right: calc(var(--ll-frame-side) + var(--ll-helpful-w) + var(--ll-frame-gap));
+  }
+
+  /* Main shell: transparent so the blue page shows through, and clear the
+     floating sidebar box on the left (frame margin + sidebar width + gap) */
+  .ll-site .app,
+  .ll-site .app--warm,
+  .ll-site .app--lively { background: transparent; }
+  .ll-site .app {
+    padding-left: calc(var(--ll-frame-side) + var(--ll-side-w) + var(--ll-frame-gap));
+  }
+
+  /* Left navigation — floating box that hugs its content */
+  .ll-site .side {
+    left: var(--ll-frame-side);
+    top: var(--ll-frame-gap);
+    bottom: auto;
+    height: auto;
+    max-height: calc(100vh - var(--ll-frame-gap) * 2);
+    background: var(--ll-white);
+    border: 1px solid var(--ll-border);
+    border-radius: var(--ll-frame-radius);
+    box-shadow: var(--ll-frame-shadow);
+    padding-bottom: 24px;            /* breathing room below the Sara CTA */
+  }
+  /* kill the marginTop:auto that pushed the footer down + add a thin divider */
+  .ll-site .side > div:last-child {
+    margin-top: 0 !important;
+    padding-top: 10px;
+    border-top: 1px solid var(--ll-border);
+  }
+
+  /* Right "Helpful Now" — floating box that hugs its content */
+  .helpful {
+    right: var(--ll-frame-side);
+    top: var(--ll-frame-gap);
+    bottom: auto;
+    height: auto;
+    max-height: calc(100vh - var(--ll-frame-gap) * 2);
+    background: var(--ll-white);
+    border: 1px solid var(--ll-border);
+    border-radius: var(--ll-frame-radius);
+    box-shadow: var(--ll-frame-shadow);
+    padding: 16px;
+  }
+}
+
+
+/* ===== GRID PRIMITIVE (mirrored from ll-grid.css) ===== */
+/* ============================================================
+   HelloLilly — THE GRID (layout primitive)
+   ------------------------------------------------------------
+   4 columns, three areas:
+     | NAVIGATION |  CONTENT (2 columns)  | CROSSLINKING |
+   Firm rules, enforced here so no screen re-solves them:
+     • ≥ 64px padding between the three areas  → --grid-gap
+     • 16px gutter between the two content cols → --grid-gutter
+     • side areas carry extra padding toward the centre
+     • nav + crosslinking are slim, whole columns, set in calm
+       cream-deep boxes so they don't pull focus from the content
+     • the crosslinking column is a real grid area on every page
+     • REFLOW is defined ONCE here via CONTAINER queries (so the
+       layout responds to its own width — works in fixed design
+       frames and on real phones alike, never per screen)
+   Reference these classes from templates — never hand-roll layout.
+   ============================================================ */
+
+
+/* ---------- The page frame ----------
+   The container context lives on a WRAPPER (.ll-shell) so that .ll-page
+   itself can be reflowed by @container (an element can't match its own
+   container query). Fixed mobile chrome pins to the nearest transformed
+   ancestor in the styleguide frames, and to the viewport in the real app. */
+.ll-shell {
+  container-type: inline-size;
+  container-name: llpage;
+  display: block;
+}
+.ll-page {
+  position: relative;
+
+  display: grid;
+  grid-template-columns: var(--grid-nav-w) minmax(0, 1fr) var(--grid-cross-w);
+  grid-template-areas: "nav content cross";
+  column-gap: var(--grid-gap);
+  align-items: start;
+
+  max-width: calc(var(--grid-max) + 2 * var(--grid-pad));
+  margin-inline: auto;
+  padding: var(--sp-8) var(--grid-pad) var(--sp-11);
+  min-height: 100%;
+  background: var(--ll-cream);
+  font-family: var(--font-body);
+  color: var(--ll-ink);
+}
+
+.ll-page__nav     { grid-area: nav;     min-width: 0; }
+.ll-page__content { grid-area: content; min-width: 0; }
+.ll-page__cross   { grid-area: cross;   min-width: 0; }
+
+/* Side areas are calm cream-deep boxes with soft corners. They carry
+   more padding toward the centre, setting the content apart. */
+.ll-page__nav, .ll-page__cross {
+  position: sticky;
+  top: var(--sp-6);
+  align-self: start;
+  max-height: calc(100vh - var(--sp-9));
+  overflow: auto;
+  scrollbar-width: thin;
+  background: var(--ll-cream-deep);
+  border-radius: var(--r-card);
+  padding: var(--grid-side-pad);
+  box-shadow: var(--sh-sm);
+}
+.ll-page__nav   { padding-right: calc(var(--grid-side-pad) + var(--grid-side-inset)); }
+.ll-page__cross { padding-left:  calc(var(--grid-side-pad) + var(--grid-side-inset)); }
+
+/* The shell Sidebar blends into the cream-deep nav box (no double surface) */
+.ll-page__nav .side {
+  background: transparent; border-right: none; padding: 0; gap: var(--sp-5);
+}
+
+/* Mobile chrome — hidden on desktop, switched on by container queries */
+.ll-page__bar { display: none; }
+.ll-scrim     { display: none; }
+
+/* ============================================================
+   CONTENT AREA — dual mode, from the same grid
+   • default  .ll-content            → one combined middle area
+   • modifier .ll-content--split     → two boxes side by side (16px gutter)
+   ============================================================ */
+.ll-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--sp-6);
+}
+.ll-content--split {
+  grid-template-columns: var(--split-cols, 1fr 1fr);
+  column-gap: var(--grid-gutter);   /* firm 16px between content columns */
+  row-gap: var(--sp-6);
+  align-items: start;
+}
+.ll-span-2 { grid-column: 1 / -1; }
+
+/* ---------- Content box: the white rounded content surface ---------- */
+.ll-box {
+  background: var(--ll-white);
+  border: 1px solid var(--ll-border);
+  border-radius: var(--card-radius);
+  box-shadow: var(--sh-sm);
+  padding: var(--pad-box);
+}
+.ll-box--feature { padding: var(--pad-feature); }
+.ll-box--plain { background: none; border: none; box-shadow: none; padding: 0; }
+.ll-box--tint  { background: var(--ll-blue-tint); border-color: transparent; box-shadow: none; }
+.ll-box--pink  { background: var(--ll-pink-soft);  border-color: transparent; box-shadow: none; }
+
+/* ============================================================
+   CROSSLINKING COLUMN — first-class grid area, not a sidebar.
+   The home of the crosslinking layer (related discussions, templates,
+   research, people, tools surfaced for whatever the centre shows).
+   ============================================================ */
+.ll-cross {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+.ll-cross__head { display: flex; align-items: center; gap: var(--sp-2); }
+.ll-cross__head h2 {
+  font-family: var(--font-display);
+  font-weight: var(--fw-extrabold);
+  font-size: var(--fs-md);
+  color: var(--ll-blue-deep);
+  margin: 0;
+}
+.ll-cross__sub {
+  font-size: var(--fs-xs);
+  color: var(--ll-ink-mute);
+  line-height: var(--lh-normal);
+  margin: 0 0 var(--sp-2);
+}
+.ll-cross__label {
+  font-size: var(--fs-2xs);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+  color: var(--ll-ink-mute);
+  padding: var(--sp-2) var(--sp-1) var(--sp-1);
+}
+
+/* ============================================================
+   REFLOW — defined once, via CONTAINER queries on .ll-page.
+   ============================================================ */
+
+/* Tablet (still two content columns possible): nav stays a slim left
+   column; the crosslinking column moves BELOW the content area as a
+   full-width related-material strip (its cards scroll horizontally). */
+@container llpage (max-width: 1180px) {
+  .ll-page {
+    grid-template-columns: var(--grid-nav-w) minmax(0, 1fr);
+    grid-template-areas:
+      "nav content"
+      "nav cross";
+    row-gap: var(--sp-8);
+  }
+  .ll-page__cross {
+    position: static;
+    max-height: none;
+    overflow: visible;
+    padding-left: var(--grid-side-pad);
+  }
+  .ll-cross {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(232px, 1fr);
+    gap: var(--sp-3);
+    overflow-x: auto;
+    padding-bottom: var(--sp-2);
+    scroll-snap-type: x mandatory;
+  }
+  .ll-cross > .ll-cross__head,
+  .ll-cross > .ll-cross__sub,
+  .ll-cross > .ll-cross__label { grid-column: 1 / -1; }
+  .ll-cross > .xlink { scroll-snap-align: start; }
+}
+
+/* Phone (single column only):
+   • navigation NEVER sits above content — it collapses to a hamburger
+     in a top bar and opens as a layover drawer from the LEFT
+   • the crosslinking column becomes a docked BOTTOM bar: its heading
+     stays visible and the cards scroll horizontally */
+@container llpage (max-width: 900px) {
+  .ll-page {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "bar"
+      "content";
+    column-gap: 0;
+    row-gap: var(--sp-6);
+    /* the page becomes the scroll viewport so the fixed top bar and the
+       docked bottom crosslink bar stay put (a container-query container
+       scopes fixed positioning to itself) */
+    height: 100svh;
+    overflow-y: auto;
+    /* room for the fixed top bar and the docked bottom crosslink bar */
+    padding: calc(56px + var(--sp-4)) var(--sp-4) 184px;
+  }
+
+  /* --- top bar with hamburger --- */
+  .ll-page__bar {
+    grid-area: bar;
+    display: flex; align-items: center; gap: var(--sp-3);
+    position: fixed; top: 0; left: 0; right: 0; height: 56px;
+    padding: 0 var(--sp-4);
+    background: var(--ll-cream);
+    border-bottom: 1px solid var(--ll-cream-deep);
+    z-index: 30;
+  }
+  .ll-burger {
+    width: 44px; height: 44px; flex: 0 0 auto;
+    display: grid; place-items: center;
+    border: 1px solid var(--ll-border); border-radius: var(--r-sm);
+    background: var(--ll-white); color: var(--ll-blue-deep); cursor: pointer;
+  }
+  .ll-page__bar b {
+    font-family: var(--font-display); font-weight: 800;
+    font-size: var(--fs-md); color: var(--ll-blue-deep);
+  }
+  .ll-page__bar b span { color: var(--ll-blue); }
+
+  /* --- nav as a left layover drawer --- */
+  .ll-page__nav {
+    position: fixed; top: 0; left: 0; bottom: 0;
+    width: min(82vw, 300px); max-height: none;
+    border-radius: 0 var(--r-card) var(--r-card) 0;
+    padding: calc(56px + var(--sp-4)) var(--sp-4) var(--sp-6);
+    box-shadow: var(--sh-lg);
+    transform: translateX(-104%);
+    transition: transform var(--dur) var(--ease);
+    z-index: 50;
+  }
+  .ll-page[data-nav-open="true"] .ll-page__nav { transform: translateX(0); }
+  .ll-scrim {
+    display: block; position: fixed; inset: 0;
+    background: rgba(20,52,110,.34);
+    opacity: 0; pointer-events: none;
+    transition: opacity var(--dur) var(--ease);
+    z-index: 45;
+  }
+  .ll-page[data-nav-open="true"] .ll-scrim { opacity: 1; pointer-events: auto; }
+
+  /* --- single content column --- */
+  .ll-content--split { grid-template-columns: minmax(0, 1fr); }
+  .ll-box { padding: var(--sp-5); border-radius: var(--r-md); }
+
+  /* --- crosslinking as a compact docked BOTTOM NAV bar ---
+     Not cards: small icon-over-label nav points. Heading & tags hidden.
+     The trailing edge fades so the bar reads as horizontally scrollable. */
+  .ll-page__cross {
+    position: fixed; left: 0; right: 0; bottom: 0; top: auto;
+    max-height: none; overflow: hidden;
+    padding: 8px 0 calc(8px + env(safe-area-inset-bottom, 0px));
+    background: var(--ll-cream-deep);
+    border-radius: var(--r-md) var(--r-md) 0 0;
+    box-shadow: 0 -8px 22px rgba(20,52,110,.12);
+    z-index: 35;
+  }
+  .ll-page__cross .ll-cross__head,
+  .ll-page__cross .ll-cross__sub,
+  .ll-page__cross .ll-cross__label { display: none; }
+  .ll-cross {
+    display: flex;
+    flex-direction: row;
+    gap: 2px;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    padding: 0 12px;
+    scrollbar-width: none;
+    -webkit-mask-image: linear-gradient(90deg, #000 0, #000 85%, transparent 100%);
+            mask-image: linear-gradient(90deg, #000 0, #000 85%, transparent 100%);
+  }
+  .ll-cross::-webkit-scrollbar { display: none; }
+  .ll-cross > .xlink {
+    flex: 0 0 auto; width: 76px;
+    background: none; border: none; box-shadow: none;
+    border-radius: var(--r-sm);
+    padding: 6px 4px;
+    align-items: center; text-align: center; gap: 5px;
+    scroll-snap-align: start;
+  }
+  .ll-cross > .xlink:hover { transform: none; box-shadow: none; background: var(--ll-blue-tint); }
+  .ll-cross .xlink__icon { display: grid; place-items: center; color: var(--ll-blue); }
+  .ll-cross .xlink__kind,
+  .ll-cross .xlink__title,
+  .ll-cross .xlink__why { display: none; }
+  .ll-cross .xlink__nav {
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    font-family: var(--font-body); font-weight: 700;
+    font-size: 11px; line-height: 1.15; color: var(--ll-blue-deep);
+  }
+}
+
+/* Touch targets: never below 44px on coarse pointers (system-wide). */
+@media (pointer: coarse) {
+  .ll-page .btn,
+  .ll-page .chip,
+  .ll-page .iconbtn,
+  .ll-page .xlink,
+  .ll-page .jobrow { min-height: 44px; }
+}
+
+
+/* ===== ATOMS & MOLECULES (mirrored from ll-atoms.css) ===== */
+/* ============================================================
+   HelloLilly — atoms & molecules that complete the library
+   (token-only; the visual language extracted, made reusable)
+   ============================================================ */
+
+/* ---------- Field (labelled input atom) ---------- */
+.field { display: flex; flex-direction: column; gap: var(--sp-2); }
+.field__label {
+  font-family: var(--font-display);
+  font-weight: var(--fw-bold);
+  font-size: var(--fs-sm);
+  color: var(--ll-ink);
+}
+.field__label .req { color: var(--ll-pink-strong); margin-left: 2px; }
+.field__wrap {
+  display: flex; align-items: center; gap: var(--sp-3);
+  background: var(--ll-white);
+  border: 1.5px solid var(--ll-border);
+  border-radius: var(--field-radius);
+  padding: var(--field-pad-y) var(--field-pad-x);
+  transition: border-color var(--dur-fast), box-shadow var(--dur-fast);
+}
+.field__wrap:focus-within { border-color: var(--ll-blue); box-shadow: 0 0 0 3px var(--ll-blue-tint); }
+.field__wrap > svg { color: var(--ll-ink-mute); flex: 0 0 auto; }
+.field__input {
+  flex: 1; min-width: 0;
+  border: none; background: none; outline: none;
+  font-family: var(--font-body); font-size: var(--fs-base); color: var(--ll-ink);
+}
+.field__input::placeholder { color: var(--ll-ink-mute); }
+.field__hint { font-size: var(--fs-xs); color: var(--ll-ink-mute); }
+.field--error .field__wrap { border-color: var(--ll-pink-strong); }
+.field--error .field__hint { color: var(--ll-pink-deep); }
+
+/* ---------- Big stat (proud number molecule) ---------- */
+.bigstat { display: flex; flex-direction: column; gap: var(--sp-1); }
+.bigstat__n {
+  font-family: var(--font-display);
+  font-weight: var(--fw-black);
+  font-size: var(--fs-stat);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--tracking-tight);
+  color: var(--ll-blue);
+  white-space: nowrap;   /* number + unit never break across lines */
+}
+.bigstat--pink  .bigstat__n { color: var(--ll-pink-strong); }
+.bigstat--ink   .bigstat__n { color: var(--ll-ink); }
+.bigstat--green .bigstat__n { color: var(--ll-green); }
+.bigstat__l { font-size: var(--fs-sm); font-weight: var(--fw-semibold); color: var(--ll-ink-soft); }
+.bigstat__sub { font-size: var(--fs-xs); color: var(--ll-ink-mute); }
+
+/* ---------- Match ring (score atom) ---------- */
+.mring { position: relative; display: inline-grid; place-items: center; }
+.mring svg { transform: rotate(-90deg); }
+.mring svg circle { fill: none; stroke-linecap: round; }
+.mring__n {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  font-family: var(--font-display); font-weight: var(--fw-black);
+  color: var(--ll-blue-deep); white-space: nowrap;
+}
+
+/* Number + unit must never wrap apart (68%, 3 000 kr, 12 min). */
+.num { white-space: nowrap; }
+
+/* ---------- Crosslink card (the crosslinking-layer item) ---------- */
+.xlink {
+  display: flex; flex-direction: column; gap: var(--sp-1);
+  text-align: left; width: 100%;
+  background: var(--ll-white);
+  border: 1px solid var(--ll-border);
+  border-radius: var(--r-sm);
+  padding: var(--sp-3);
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: border-color var(--dur-fast), transform var(--dur-fast), box-shadow var(--dur-fast);
+}
+.xlink:hover { border-color: var(--ll-border-strong); transform: translateY(-1px); box-shadow: var(--sh-sm); }
+.xlink:focus-visible { border-color: var(--ll-blue); outline: none; }
+.xlink__kind {
+  align-self: flex-start;
+  font-size: var(--fs-2xs); font-weight: var(--fw-extrabold);
+  letter-spacing: .04em; text-transform: uppercase;
+  padding: 3px 8px; border-radius: var(--r-pill);
+  background: var(--ll-blue-tint); color: var(--ll-blue);
+}
+.xlink__kind--mall   { background: var(--ll-lilac-soft); color: var(--ll-lilac); }
+.xlink__kind--coach  { background: var(--ll-green-soft);  color: var(--ll-green); }
+.xlink__kind--video  { background: var(--ll-coral-soft);  color: #d95a36; }
+.xlink__kind--diskussion { background: var(--ll-amber-soft); color: #b07212; }
+.xlink__kind--person { background: var(--ll-pink-soft); color: var(--ll-pink-deep); }
+.xlink__title {
+  font-family: var(--font-display); font-weight: var(--fw-extrabold);
+  font-size: var(--fs-sm); color: var(--ll-ink); line-height: var(--lh-snug);
+}
+.xlink__why { font-size: var(--fs-xs); color: var(--ll-ink-mute); line-height: 1.4; }
+.xlink__icon { display: none; }
+.xlink__nav  { display: none; }
+.text-soft  { color: var(--ll-ink-soft); }
+.text-muted { color: var(--ll-ink-mute); }
+
+/* ---------- Job row (the shared jobResultsList reuse pattern) ---------- */
+.jobrow {
+  display: flex; align-items: center; gap: var(--sp-4);
+  background: var(--ll-white);
+  border: 1px solid var(--ll-border);
+  border-radius: var(--r-md);
+  padding: var(--sp-4) var(--sp-5);
+  transition: border-color var(--dur-fast), box-shadow var(--dur-fast), transform var(--dur-fast);
+  cursor: pointer; width: 100%; text-align: left; font-family: var(--font-body);
+}
+.jobrow:hover { border-color: var(--ll-border-strong); box-shadow: var(--sh-sm); transform: translateY(-1px); }
+.jobrow__logo {
+  width: 56px; height: 32px;   /* 16:9 — logos are horizontal, not square */
+  border-radius: var(--r-xs); flex: 0 0 auto;
+  display: grid; place-items: center;
+  font-family: var(--font-display); font-weight: var(--fw-black); font-size: var(--fs-xs);
+  letter-spacing: .04em;
+  background: var(--ll-blue-tint); color: var(--ll-blue-deep);
+}
+.jobrow__b { flex: 1; min-width: 0; }
+.jobrow__t { font-family: var(--font-display); font-weight: var(--fw-extrabold); font-size: var(--fs-base); color: var(--ll-ink); }
+.jobrow__m { font-size: var(--fs-xs); color: var(--ll-ink-mute); margin-top: 2px; }
+.jobrow__score {
+  flex: 0 0 auto; text-align: center; white-space: nowrap;
+  font-family: var(--font-display); font-weight: var(--fw-black);
+  font-size: var(--fs-md); color: var(--ll-green);
+}
+.jobrow__score span { display: block; font-family: var(--font-body); font-weight: var(--fw-bold); font-size: var(--fs-2xs); color: var(--ll-ink-mute); }
+.jobrow__score b { display: block; white-space: nowrap; }
+.jobrow__score-l { display: block; font-family: var(--font-body); font-weight: var(--fw-bold); font-size: var(--fs-2xs); color: var(--ll-ink-mute); }
+
+/* ---------- Links — distinct from buttons ---------- */
+/* Official link: main colour, semibold, trailing chevron. */
+.ll-link {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-family: var(--font-body);
+  font-weight: var(--fw-semibold);
+  font-size: var(--fs-sm);
+  color: var(--ll-blue);
+  text-decoration: none;
+  transition: color var(--dur-fast);
+}
+.ll-link:hover { color: var(--ll-blue-strong); }
+.ll-link:focus-visible { outline: none; box-shadow: var(--focus); border-radius: var(--r-xs); }
+.ll-link__chev { font-weight: var(--fw-bold); font-size: 1.15em; line-height: 1; transition: transform var(--dur-fast); }
+.ll-link:hover .ll-link__chev { transform: translateX(2px); }
+.ll-link--pink   { color: var(--ll-pink-strong); }
+.ll-link--onblue { color: #fff; }
+.ll-link--onblue:hover { color: rgba(255,255,255,.82); }
+/* Inline text link: underlined, sits in running copy and inherits size. */
+.ll-link--text {
+  display: inline; font-size: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-thickness: 1.5px;
+  text-decoration-color: color-mix(in oklab, currentColor 45%, transparent);
+}
+.ll-link--text:hover { text-decoration-color: currentColor; }
+
+/* ---------- Hero banner (organism) ---------- */
+.hero {
+  position: relative; overflow: hidden;
+  border-radius: var(--r-xl);
+  padding: var(--sp-8) var(--sp-8);
+  color: #fff;
+  background: linear-gradient(120deg, var(--ll-blue) 0%, #3F7DF4 60%, #5C93F7 100%);
+  box-shadow: var(--sh-blue);
+}
+.hero--pink { background: linear-gradient(120deg, var(--ll-pink-strong) 0%, var(--ll-pink) 100%); box-shadow: 0 8px 22px rgba(242,71,143,.28); }
+.hero__eyebrow {
+  display: inline-flex; align-items: center; gap: var(--sp-2);
+  font-size: var(--fs-xs); font-weight: var(--fw-extrabold);
+  letter-spacing: .04em; text-transform: uppercase;
+  color: rgba(255,255,255,.85); margin-bottom: var(--sp-3);
+}
+.hero__title { font-family: var(--font-display); font-weight: var(--fw-extrabold); font-size: var(--fs-xl); line-height: var(--lh-snug); color: #fff; max-width: 80%; }
+.hero__body { color: rgba(255,255,255,.9); font-size: var(--fs-md); margin-top: var(--sp-2); max-width: 70%; }
+.hero__actions { display: flex; gap: var(--sp-3); margin-top: var(--sp-5); flex-wrap: wrap; }
+.hero__clover { position: absolute; right: -28px; bottom: -44px; opacity: .9; color: rgba(255,255,255,.18); pointer-events: none; }

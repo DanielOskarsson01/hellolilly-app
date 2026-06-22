@@ -42,6 +42,7 @@ const ICONS = {
   globe: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM3 12h18M12 3c2.5 2.5 3.5 6 3.5 9s-1 6.5-3.5 9c-2.5-2.5-3.5-6-3.5-9s1-6.5 3.5-9Z',
   thumb: 'M7 11v9H4a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1h3Zm0 0 4-8a2 2 0 0 1 3 1.8V8h4.5a2 2 0 0 1 2 2.3l-1.2 7a2 2 0 0 1-2 1.7H7',
   filter: 'M3 5h18l-7 8v5l-4 2v-7L3 5Z',
+  menu: 'M4 7h16M4 12h16M4 17h16',
   lock: 'M6 11h12a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1Zm2 0V8a4 4 0 0 1 8 0v3',
 };
 function Icon({ name, size = 22, sw = 1.9, style, className }) {
@@ -136,7 +137,10 @@ function Chip({ children, on = false, icon }) {
 }
 
 /* ---------- Button ---------- */
-function Button({ children, variant = 'primary', size = 'lg', icon, iconRight, block = false, ...rest }) {
+function Button(props) {
+  const { children, variant = 'primary', size = 'lg', icon, iconRight, block = false } = props;
+  const rest = { ...props };
+  ['children', 'variant', 'size', 'icon', 'iconRight', 'block'].forEach(k => delete rest[k]);
   return (
     <button className={`btn btn--${variant} btn--${size} ${block ? 'btn--block' : ''}`} {...rest}>
       {icon && <Icon name={icon} size={size === 'lg' ? 19 : 16} />}
