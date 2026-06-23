@@ -18,7 +18,7 @@ function CoverLetter() {
           <Button variant="primary" size="sm" icon="check">Spara</Button>
         </ToolHeader>
 
-        <div style={{ display:'grid', gridTemplateColumns:'minmax(420px,1fr) 1.05fr', flex:1, minHeight:0 }}>
+        <div className="toolsplit">
           {/* intake */}
           <section className="intake" style={{ borderRight:'1px solid var(--ll-border)' }}>
             <div className="intake__head">
