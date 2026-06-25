@@ -3,7 +3,8 @@
     "dev": "node server/dev-server.cjs",
     "dev:vite": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node --test \"server/**/*.test.cjs\""
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",
