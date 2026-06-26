@@ -19,7 +19,7 @@ const passthru = (capabilities) => ({ reads: [], writes: [], capabilities });
 
 test('brokered flow: analyzer summons researcher through the skeleton, both write the case', async () => {
   const host = createHost();
-  assert.deepEqual([...host.loaded].sort(), ['echo-analyzer', 'echo-researcher']);
+  assert.ok(host.loaded.includes('echo-analyzer') && host.loaded.includes('echo-researcher'));
 
   const c = host.store.createCase({ company: 'Acme', role: 'Head of X' });
   const { result, log } = await host.invoke('echo-analyzer', { caseId: c.meta.id });

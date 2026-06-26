@@ -30,9 +30,10 @@ module.exports = async function execute(input, options, tools) { ... }
 ```
 
 `manifest.cjs` declares `id`, `reads`, `writes`, and `capabilities` (a subset of
-`http | logger | store | request`). The skeleton injects **only** the declared
-capabilities (least privilege). `tools.ids` (the shared contract vocabulary) is always
-present.
+`http | logger | store | request | llm | search`). The skeleton injects **only** the
+declared capabilities (least privilege). `tools.ids` (the shared contract vocabulary) is
+always present. `llm` (Anthropic/Opus) and `search` (Perplexity Sonar) are fresh in-repo
+clients under `clients/`, defaulted from `.env` (Rule 2) and injectable for tests.
 
 ## The brokering rule (the hinge)
 
@@ -67,6 +68,10 @@ npm test          # A0 acceptance tests (node:test, no extra deps)
 
 ## Status
 
-Phase A0 only. Submodules `echo-researcher` / `echo-analyzer` are stubs that prove
-registration, brokered calls, store I/O, the gate, and standalone running. The real
-submodules arrive in A1+ (Researcher, Decoder+Analyzer, …). Built to DATA_CONTRACT v0.2.
+- **A0** — skeleton complete; `echo-researcher` / `echo-analyzer` stubs prove
+  registration, brokered calls, store I/O, the gate, and standalone running.
+- **A1** — `researcher` (four fronts, niche depth) + `decoder` (true-job profile) shipped,
+  using the `llm` + `search` capabilities; live-verified on Curoflow. Reader-drill included.
+- **Next:** A2 (gap analyzer) reads `decodedRole` + the candidate data-layer.
+
+Built to DATA_CONTRACT v0.2. Run `npm test` (mocked, no keys) or `npm run verify:a1` (live).

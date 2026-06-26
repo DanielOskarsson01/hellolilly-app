@@ -14,6 +14,17 @@ const { createStore } = require('./store/index.cjs');
 const { createRegistry } = require('./registry.cjs');
 const { createBroker } = require('./broker.cjs');
 const { buildTools } = require('./capabilities.cjs');
+const { createAnthropicClient } = require('./clients/anthropic.cjs');
+const { createPerplexityClient } = require('./clients/perplexity.cjs');
+
+// Default capability clients read HelloLilly's own env (Rule 2). Returns null when the
+// key is absent, so a submodule declaring the capability fails loudly at build-tools time.
+function defaultLlm() {
+  return process.env.ANTHROPIC_API_KEY ? createAnthropicClient({ apiKey: process.env.ANTHROPIC_API_KEY }) : null;
+}
+function defaultSearch() {
+  return process.env.PERPLEXITY_API_KEY ? createPerplexityClient({ apiKey: process.env.PERPLEXITY_API_KEY }) : null;
+}
 
 function defaultHttp() {
   return {
@@ -48,10 +59,17 @@ function loadSubmodules(registry, dir) {
   return ids;
 }
 
-function createHost({ http, submodulesDir, limits } = {}) {
+function createHost({ http, llm, search, submodulesDir, limits } = {}) {
   const store = createStore();
   const registry = createRegistry();
-  const broker = createBroker({ registry, store, http: http || defaultHttp(), limits });
+  const broker = createBroker({
+    registry,
+    store,
+    http: http || defaultHttp(),
+    llm: llm === undefined ? defaultLlm() : llm,
+    search: search === undefined ? defaultSearch() : search,
+    limits,
+  });
   const dir = submodulesDir || path.resolve(__dirname, '../submodules');
   const loaded = loadSubmodules(registry, dir);
   return { store, registry, broker, loaded, invoke: broker.invoke };
@@ -67,6 +85,8 @@ async function runStandalone(manifest, execute, input, deps = {}) {
     callContext: { chain: [manifest.id], depth: 0 },
     store,
     http: deps.http || defaultHttp(),
+    llm: deps.llm,
+    search: deps.search,
     logSink: deps.logSink || (() => {}),
     dispatch: () => { throw new Error('standalone mode: no broker — peer requests unavailable'); },
   });

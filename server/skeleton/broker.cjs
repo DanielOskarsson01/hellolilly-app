@@ -21,7 +21,7 @@ class BrokerRefusal extends Error {
   }
 }
 
-function createBroker({ registry, store, http, limits = {} }) {
+function createBroker({ registry, store, http, llm, search, limits = {} }) {
   const cfg = { ...DEFAULTS, ...limits };
 
   function makeDispatch(rootState) {
@@ -60,6 +60,8 @@ function createBroker({ registry, store, http, limits = {} }) {
         callContext,
         store,
         http,
+        llm,
+        search,
         logSink: (e) => rootState.log.push({ event: 'log', ...e }),
         dispatch,
       });

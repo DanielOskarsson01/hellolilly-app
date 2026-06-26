@@ -4,7 +4,8 @@
     "dev:vite": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node --test \"server/**/*.test.cjs\""
+    "test": "node --test \"server/**/*.test.cjs\"",
+    "verify:a1": "node --env-file=.env server/verify-a1.cjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",

@@ -8,7 +8,7 @@
 
 const { mintId, ref } = require('./ids.cjs');
 
-function buildTools({ manifest, callContext, store, http, logSink, dispatch }) {
+function buildTools({ manifest, callContext, store, http, llm, search, logSink, dispatch }) {
   // tools.ids is the shared contract vocabulary (pure, no privilege) — always present,
   // so submodule files import NOTHING from the skeleton.
   const tools = { _partialItems: [], ids: { mintId, ref } };
@@ -28,6 +28,14 @@ function buildTools({ manifest, callContext, store, http, logSink, dispatch }) {
   }
 
   if (caps.has('http')) tools.http = http;
+  if (caps.has('llm')) {
+    if (!llm) throw new Error(`[${manifest.id}] declares 'llm' but no llm client is configured`);
+    tools.llm = llm;
+  }
+  if (caps.has('search')) {
+    if (!search) throw new Error(`[${manifest.id}] declares 'search' but no search client is configured`);
+    tools.search = search;
+  }
 
   if (caps.has('request')) {
     // The submodule passes only a string id; it holds no reference to the target.
