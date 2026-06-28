@@ -8,6 +8,30 @@
 
 const { mintId, ref } = require('./ids.cjs');
 
+// The submodule-facing store: a SCOPED, RESTRICTED view of the host store. A submodule
+// may only write the case parts its manifest declares, and (when the invocation carries a
+// caseId) only the case it was invoked for. It cannot reach scratch namespaces other than
+// its own (tools.scratch is bound separately) or the imported-facts ingest path
+// (ingestDatafact is host-level only — see store/index.cjs).
+function makeScopedStore(store, manifest, callContext) {
+  const writes = new Set(manifest.writes || []);
+  const boundCase = callContext && callContext.caseId;
+  function assertScope(caseId, part) {
+    if (!writes.has(part)) {
+      throw new Error(`[scope] ${manifest.id} may not write part '${part}' (declared writes: ${[...writes].join(', ') || 'none'})`);
+    }
+    if (boundCase && caseId !== boundCase) {
+      throw new Error(`[scope] ${manifest.id} may only write its invoked case ${boundCase}, not ${caseId}`);
+    }
+  }
+  return {
+    getCase: (id) => store.getCase(id),
+    listCases: () => store.listCases(),
+    writePart: (caseId, part, data) => { assertScope(caseId, part); return store.writePart(caseId, part, data); },
+    setPartStatus: (caseId, part, status, error) => { assertScope(caseId, part); return store.setPartStatus(caseId, part, status, error); },
+  };
+}
+
 function buildTools({ manifest, callContext, store, http, llm, search, logSink, dispatch }) {
   // tools.ids is the shared contract vocabulary (pure, no privilege) — always present,
   // so submodule files import NOTHING from the skeleton.
@@ -23,8 +47,8 @@ function buildTools({ manifest, callContext, store, http, llm, search, logSink, 
   }
 
   if (caps.has('store')) {
-    tools.store = store; // shared collaborative space
-    tools.scratch = store.scratch(manifest.id); // private dedicated space
+    tools.store = makeScopedStore(store, manifest, callContext); // scoped to declared writes + invoked case
+    tools.scratch = store.scratch(manifest.id); // private dedicated space (namespaced to this submodule)
   }
 
   if (caps.has('http')) tools.http = http;

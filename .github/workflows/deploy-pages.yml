@@ -28,6 +28,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Skeleton/submodule tests must pass before anything deploys. A red test here
+      # fails the job, so the Build + Upload steps below never run. (server/ is not in
+      # the Vite build, so this is the only thing that exercises the broker/gate/guard.)
+      - name: Run tests
+        run: npm test
+
       - name: Build
         run: npm run build
         env:

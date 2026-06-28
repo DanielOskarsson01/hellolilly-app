@@ -16,6 +16,7 @@ const { createBroker } = require('./broker.cjs');
 const { buildTools } = require('./capabilities.cjs');
 const { createAnthropicClient } = require('./clients/anthropic.cjs');
 const { createPerplexityClient } = require('./clients/perplexity.cjs');
+const { assertSubmodulesIsolated } = require('./submodule-isolation.cjs');
 
 // Default capability clients read HelloLilly's own env (Rule 2). Returns null when the
 // key is absent, so a submodule declaring the capability fails loudly at build-tools time.
@@ -47,6 +48,9 @@ function defaultHttp() {
 // A submodule folder is loadable if it has both manifest.cjs and execute.cjs.
 function loadSubmodules(registry, dir) {
   if (!fs.existsSync(dir)) return [];
+  // Load-time enforcement of the brokering rule: refuse to boot if any submodule
+  // reaches a peer/skeleton or uses a dynamic require (fail-closed before registering).
+  assertSubmodulesIsolated(dir);
   const ids = [];
   for (const name of fs.readdirSync(dir)) {
     const sub = path.join(dir, name);

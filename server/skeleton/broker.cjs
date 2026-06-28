@@ -51,7 +51,9 @@ function createBroker({ registry, store, http, llm, search, limits = {} }) {
       if (!entry) throw new BrokerRefusal(`unknown submodule: ${targetId}`, { kind: 'unknown' });
 
       rootState.callCount += 1;
-      const callContext = { chain: [...chain, targetId], depth };
+      // caseId (by convention input.caseId) binds the scoped store to the invoked case,
+      // so a submodule can't write a different case's parts.
+      const callContext = { chain: [...chain, targetId], depth, caseId: input && input.caseId };
       const started = Date.now();
       rootState.log.push({ event: 'call', target: targetId, depth, chain: [...chain] });
 

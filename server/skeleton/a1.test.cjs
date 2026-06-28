@@ -101,3 +101,22 @@ test('researcher self-corrects a writing-rule violation, then writes clean', asy
   assert.equal(dossiers.status, 'ready', 'write succeeded after self-correction');
   assert.ok(!JSON.stringify(dossiers.data).toLowerCase().includes('robust'), 'banned word removed');
 });
+
+test('a failed decoder summon SURFACES (ok:false), is not swallowed as ok:true', async () => {
+  const llm = makeMockLlm((prompt) => {
+    if (/decoded role as JSON/i.test(prompt)) throw new Error('decoder llm boom');
+    return undefined; // fronts use defaults
+  });
+  const host = createHost({ llm, search: mockSearch });
+  const c = host.store.createCase(META);
+
+  const { result } = await host.invoke('researcher', { caseId: c.meta.id });
+
+  assert.equal(result.ok, false, 'researcher does not report success when the summon fails');
+  assert.equal(result.partial, true);
+  assert.match(result.decoderError, /decoder llm boom/);
+
+  const updated = host.store.getCase(c.meta.id);
+  assert.equal(updated.dossiers.status, 'ready', 'dossiers still written (partial)');
+  assert.equal(updated.decodedRole.status, 'failed', 'decoder marked its part failed');
+});

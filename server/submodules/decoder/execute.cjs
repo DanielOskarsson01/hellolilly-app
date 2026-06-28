@@ -50,29 +50,36 @@ module.exports = async function execute(input, options, tools) {
   tools.store.setPartStatus(caseId, 'decodedRole', 'pending');
   if (tools.logger) tools.logger.info(`decoding true job for ${meta.role || 'role'} @ ${meta.company}`);
 
-  const result = await tools.llm.completeJSON({
-    system: SYSTEM,
-    model: options.model,
-    maxTokens: 3000,
-    prompt:
-      `Company: ${meta.company}\nAdvertised role: ${meta.role || 'unknown'}\n\n` +
-      `The ad / source input:\n${meta.sourceInput || '(none provided — infer from role + research)'}\n\n` +
-      `Research signals:\n${summarizeDossiers(dossiers)}\n\n` +
-      `Output the decoded role as JSON: { "narrative": "<short paragraph: what this job really is>", ` +
-      `"requirements": [ { "requirement": "<real requirement>", "rationale": "<why, from the signals>", ` +
-      `"weight": <1-5> } ] }. 6-12 requirements. Return JSON only.`,
-  });
+  try {
+    const result = await tools.llm.completeJSON({
+      system: SYSTEM,
+      model: options.model,
+      maxTokens: 3000,
+      prompt:
+        `Company: ${meta.company}\nAdvertised role: ${meta.role || 'unknown'}\n\n` +
+        `The ad / source input:\n${meta.sourceInput || '(none provided — infer from role + research)'}\n\n` +
+        `Research signals:\n${summarizeDossiers(dossiers)}\n\n` +
+        `Output the decoded role as JSON: { "narrative": "<short paragraph: what this job really is>", ` +
+        `"requirements": [ { "requirement": "<real requirement>", "rationale": "<why, from the signals>", ` +
+        `"weight": <1-5> } ] }. 6-12 requirements. Return JSON only.`,
+    });
 
-  const decodedRole = {
-    narrative: (result && result.narrative) || '',
-    requirements: (Array.isArray(result && result.requirements) ? result.requirements : []).map((r) => ({
-      id: tools.ids.mintId('decodedRequirement'),
-      requirement: r.requirement || '',
-      rationale: r.rationale || '',
-      weight: typeof r.weight === 'number' ? r.weight : null,
-    })).filter((r) => r.requirement),
-  };
+    const decodedRole = {
+      narrative: (result && result.narrative) || '',
+      requirements: (Array.isArray(result && result.requirements) ? result.requirements : []).map((r) => ({
+        id: tools.ids.mintId('decodedRequirement'),
+        requirement: r.requirement || '',
+        rationale: r.rationale || '',
+        weight: typeof r.weight === 'number' ? r.weight : null,
+      })).filter((r) => r.requirement),
+    };
 
-  await gatedWrite(caseId, decodedRole, options, tools);
-  return { ok: true, requirements: decodedRole.requirements.length };
+    await gatedWrite(caseId, decodedRole, options, tools);
+    return { ok: true, requirements: decodedRole.requirements.length };
+  } catch (err) {
+    // mark the part failed (in scope — decoder owns decodedRole) so the failure is visible
+    // in case state, then rethrow so the broker logs it and the caller surfaces it.
+    tools.store.setPartStatus(caseId, 'decodedRole', 'failed', err.message);
+    throw err;
+  }
 };

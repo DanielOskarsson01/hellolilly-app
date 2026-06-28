@@ -167,18 +167,15 @@ module.exports = async function execute(input, options, tools) {
 
   await writeDossiersGated(caseId, dossiers, options, tools);
 
-  // summon the decoder THROUGH the skeleton (never a direct import)
-  let decoded = null;
+  // summon the decoder THROUGH the skeleton (never a direct import). A failed or refused
+  // summon is SURFACED, not swallowed: dossiers succeeded (partial), but the run is NOT ok,
+  // so a broker refusal or decoder error can never masquerade as success.
+  const fronts = FRONTS.map((f) => f.key);
   try {
-    decoded = await tools.request('decoder', { caseId });
+    const decoded = await tools.request('decoder', { caseId });
+    return { ok: true, mode: 'research', fronts, decoded: decoded != null && decoded.ok === true };
   } catch (err) {
-    if (tools.logger) tools.logger.warn(`decoder summon failed: ${err.message}`);
+    if (tools.logger) tools.logger.error(`decoder summon failed: ${err.message}`);
+    return { ok: false, partial: true, mode: 'research', fronts, decoded: false, decoderError: err.message };
   }
-
-  return {
-    ok: true,
-    mode: 'research',
-    fronts: FRONTS.map((f) => f.key),
-    decoded: decoded ? decoded.ok === true : false,
-  };
 };

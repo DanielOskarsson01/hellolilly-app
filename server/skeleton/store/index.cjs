@@ -2,18 +2,27 @@
 
 // Shared store — interface + A0 in-memory implementation.
 //
-// Two regions (concept §7.2): a SHARED collaborative space (the case objects,
-// written by collaborating submodules) and PRIVATE dedicated scratch per submodule
-// (so a submodule's churn can't corrupt shared tables).
+// Regions (concept §7.2):
+//   - SHARED case objects (the produced content; collaborating submodules read/write)
+//   - PRIVATE per-submodule scratch (a submodule's churn can't corrupt shared tables)
+//   - the candidate DATA-LAYER (imported datafacts; the evidence the analyzer cites)
+//
+// WRITING-RULES POLICY (the gate redesign — carry this verbatim into the A2 brief):
+//   Two kinds of text, two paths:
+//   1. AUTHORED PROSE — text the system GENERATES (dossiers, decodedRole, fit, gaps, …).
+//      Persisted ONLY via writePart(), which ALWAYS runs the writing-rules gate. There is
+//      no skipGate / self-opt-out: a submodule cannot exempt its own generated prose.
+//   2. IMPORTED FACTS / VERBATIM CITATIONS — the candidate's real CV text and quotes of it.
+//      Persisted via ingestDatafact(), which is EXEMPT from the gate (these are evidence,
+//      not authored prose, and must be preserved verbatim — never rephrased to pass a style
+//      rule; rephrasing would launder the evidence the honesty mechanism depends on).
+//   ingestDatafact is HOST-LEVEL ONLY — it is NOT exposed on the submodule-facing
+//   tools.store (see capabilities.cjs), so it is not a back-door for authored prose.
+//   (A2 will add: a `datalayer` read capability for submodules, and a gate exemption for
+//   evidence fields that are a verbatim substring of a cited datafact.)
 //
 // This is the interface A0 commits to. Swapping to Hello Lilly's real DB later =
-// reimplement these methods behind the same signatures; nothing else changes.
-//
-//   createCase(meta)                    -> case
-//   getCase(id) / listCases()
-//   writePart(caseId, part, data, opts) -> envelope   (writing-rules gate runs here)
-//   setPartStatus(caseId, part, status, error)
-//   scratch(namespace)                  -> { get, set, all }  (private space)
+// reimplement these methods behind the same signatures.
 
 const { createCase, setPartData, setPartStatus } = require('../contract/case.cjs');
 const { enforce } = require('../writing-rules/gate.cjs');
@@ -21,6 +30,7 @@ const { enforce } = require('../writing-rules/gate.cjs');
 function createStore() {
   const cases = new Map(); // shared, collaborative
   const scratchByNs = new Map(); // private, dedicated per submodule
+  const datafacts = new Map(); // candidate data-layer (imported facts)
 
   function requireCase(caseId) {
     const c = cases.get(caseId);
@@ -42,12 +52,11 @@ function createStore() {
     return [...cases.values()];
   }
 
-  // The single persist chokepoint. Generated text is gated BEFORE it lands;
-  // a violation throws and nothing is written. Pass { skipGate:true } for data
-  // that is not generated prose (e.g. machine-built status maps).
-  function writePart(caseId, part, data, opts = {}) {
+  // AUTHORED-PROSE path. The single persist chokepoint for generated text. The gate
+  // ALWAYS runs — no opt-out. A violation throws and nothing is written.
+  function writePart(caseId, part, data) {
     const c = requireCase(caseId);
-    if (!opts.skipGate) enforce(data);
+    enforce(data);
     return setPartData(c, part, data);
   }
 
@@ -65,6 +74,20 @@ function createStore() {
     };
   }
 
+  // IMPORTED-FACTS path. Exempt from the writing-rules gate by design (real CV text is
+  // evidence, kept verbatim). Host-level only — not on tools.store.
+  function ingestDatafact(df) {
+    if (!df || !df.id) throw new Error('ingestDatafact: a datafact with an id is required');
+    datafacts.set(df.id, df);
+    return df;
+  }
+  function getDatafact(id) {
+    return datafacts.get(id) || null;
+  }
+  function listDatafacts() {
+    return [...datafacts.values()];
+  }
+
   return {
     createCase: createCaseRecord,
     getCase,
@@ -72,6 +95,9 @@ function createStore() {
     writePart,
     setPartStatus: setStatus,
     scratch,
+    ingestDatafact,
+    getDatafact,
+    listDatafacts,
   };
 }
 
