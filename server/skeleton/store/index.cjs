@@ -47,6 +47,21 @@ function createStore() {
     return c;
   }
 
+  // Collect the verbatim texts of the datafacts that THIS value references (by a
+  // { kind:'datafact', id } ref anywhere in the tree). Only these are gate-exempt — the
+  // value must cite a fact to keep its banned-word-bearing real CV text exact.
+  function collectRefdFactTexts(value, out = new Set()) {
+    if (Array.isArray(value)) { for (const v of value) collectRefdFactTexts(v, out); }
+    else if (value && typeof value === 'object') {
+      if (value.kind === 'datafact' && value.id) {
+        const f = datafacts.get(value.id);
+        if (f && typeof f.text === 'string') out.add(f.text);
+      }
+      for (const v of Object.values(value)) collectRefdFactTexts(v, out);
+    }
+    return out;
+  }
+
   function createCaseRecord(meta) {
     const c = createCase(meta);
     cases.set(c.meta.id, c);
@@ -66,7 +81,10 @@ function createStore() {
   // value is a detached copy, so the caller can't mutate it into the store after the fact.
   function writePart(caseId, part, data) {
     const c = requireCase(caseId);
-    enforce(data);
+    // Ref-scoped verbatim-evidence exemption: only the texts of datafacts this value
+    // cites are exempt, by EXACT equality (store/index.cjs header; gate.cjs check()).
+    const exemptTexts = [...collectRefdFactTexts(data)];
+    enforce(data, exemptTexts);
     return detach(setPartData(c, part, detach(data)));
   }
 
