@@ -4,6 +4,8 @@
 // raw fetch (Rule 2; no SDK dependency). Injected into submodules as tools.llm.
 // Default model is Opus 4.8 (A1 = quality-max); callers may override per call.
 
+const utils = require('../utils.cjs'); // shared JSON recovery (one maintained copy; clients may require the skeleton)
+
 const DEFAULT_MODEL = 'claude-opus-4-8';
 const API_URL = 'https://api.anthropic.com/v1/messages';
 
@@ -55,7 +57,7 @@ function createAnthropicClient({ apiKey, defaultModel = DEFAULT_MODEL, timeoutMs
   // (the seo-planner v2.2.1 lesson: models sometimes wrap JSON in prose/fences).
   async function completeJSON({ system, prompt, model, maxTokens = 4096, temperature = 0.3 }) {
     const raw = await complete({ system, prompt, model, maxTokens, temperature });
-    const parsed = tryParseJSON(raw);
+    const parsed = utils.parseJSON(raw);
     if (parsed !== undefined) return parsed;
 
     const retry = await complete({
@@ -65,7 +67,7 @@ function createAnthropicClient({ apiKey, defaultModel = DEFAULT_MODEL, timeoutMs
       maxTokens,
       temperature: 0,
     });
-    const reparsed = tryParseJSON(retry);
+    const reparsed = utils.parseJSON(retry);
     if (reparsed !== undefined) return reparsed;
     throw new Error('anthropic completeJSON: model did not return valid JSON after retry');
   }
@@ -75,23 +77,6 @@ function createAnthropicClient({ apiKey, defaultModel = DEFAULT_MODEL, timeoutMs
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function tryParseJSON(text) {
-  if (!text) return undefined;
-  // strip ```json ... ``` fences if present
-  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  const candidate = fenced ? fenced[1] : text;
-  try {
-    return JSON.parse(candidate.trim());
-  } catch {
-    // last resort: grab the outermost {...}
-    const brace = candidate.match(/\{[\s\S]*\}/);
-    if (brace) {
-      try { return JSON.parse(brace[0]); } catch { /* fall through */ }
-    }
-    return undefined;
-  }
 }
 
 module.exports = { createAnthropicClient, DEFAULT_MODEL };

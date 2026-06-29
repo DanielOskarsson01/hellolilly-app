@@ -27,6 +27,14 @@
 const { createCase, setPartData, setPartStatus } = require('../contract/case.cjs');
 const { enforce } = require('../writing-rules/gate.cjs');
 
+// Detach every value that crosses the store boundary, in BOTH directions, so the only way
+// to change persisted state is through the store's own methods (which run the gate). Reads
+// hand back a copy (callers can't mutate the live object); writes persist a copy (callers
+// holding the written object can't mutate it into the store afterward). structuredClone is
+// exact for the JSON-ish case shape (strings/numbers/arrays/objects/null). This closes the
+// mutate-then-write side door around the writing-rules gate (was: getCase returned the live ref).
+const detach = (v) => (v == null ? v : structuredClone(v));
+
 function createStore() {
   const cases = new Map(); // shared, collaborative
   const scratchByNs = new Map(); // private, dedicated per submodule
@@ -41,27 +49,28 @@ function createStore() {
   function createCaseRecord(meta) {
     const c = createCase(meta);
     cases.set(c.meta.id, c);
-    return c;
+    return detach(c);
   }
 
   function getCase(caseId) {
-    return cases.get(caseId) || null;
+    return detach(cases.get(caseId) || null);
   }
 
   function listCases() {
-    return [...cases.values()];
+    return [...cases.values()].map(detach);
   }
 
   // AUTHORED-PROSE path. The single persist chokepoint for generated text. The gate
-  // ALWAYS runs — no opt-out. A violation throws and nothing is written.
+  // ALWAYS runs — no opt-out. A violation throws and nothing is written. The persisted
+  // value is a detached copy, so the caller can't mutate it into the store after the fact.
   function writePart(caseId, part, data) {
     const c = requireCase(caseId);
     enforce(data);
-    return setPartData(c, part, data);
+    return detach(setPartData(c, part, detach(data)));
   }
 
   function setStatus(caseId, part, status, error) {
-    return setPartStatus(requireCase(caseId), part, status, error);
+    return detach(setPartStatus(requireCase(caseId), part, status, error));
   }
 
   function scratch(ns) {

@@ -15,13 +15,13 @@ const SYSTEM =
   'non-technical title. Output the real requirements — what this job actually demands — each with a ' +
   'short rationale grounded in those signals, and a weight (1-5, 5 = most decisive). ' + ANTI_CLICHE;
 
-function summarizeDossiers(dossiers) {
+function summarizeDossiers(dossiers, utils) {
   if (!dossiers) return '';
-  return ['company', 'product', 'people', 'niche']
+  const joined = ['company', 'product', 'people', 'niche']
     .filter((k) => dossiers[k])
     .map((k) => `## ${k}\n${dossiers[k].summary || ''}\n${(dossiers[k].paragraphs || []).map((p) => p.text).join('\n')}`)
-    .join('\n\n')
-    .slice(0, 12000); // keep the prompt bounded
+    .join('\n\n');
+  return utils.truncate(joined, 12000); // keep the prompt bounded (shared helper, injected)
 }
 
 async function gatedWrite(caseId, decodedRole, options, tools) {
@@ -58,7 +58,7 @@ module.exports = async function execute(input, options, tools) {
       prompt:
         `Company: ${meta.company}\nAdvertised role: ${meta.role || 'unknown'}\n\n` +
         `The ad / source input:\n${meta.sourceInput || '(none provided — infer from role + research)'}\n\n` +
-        `Research signals:\n${summarizeDossiers(dossiers)}\n\n` +
+        `Research signals:\n${summarizeDossiers(dossiers, tools.utils)}\n\n` +
         `Output the decoded role as JSON: { "narrative": "<short paragraph: what this job really is>", ` +
         `"requirements": [ { "requirement": "<real requirement>", "rationale": "<why, from the signals>", ` +
         `"weight": <1-5> } ] }. 6-12 requirements. Return JSON only.`,

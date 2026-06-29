@@ -48,7 +48,11 @@ function createBroker({ registry, store, http, llm, search, limits = {} }) {
       }
 
       const entry = registry.get(targetId);
-      if (!entry) throw new BrokerRefusal(`unknown submodule: ${targetId}`, { kind: 'unknown' });
+      if (!entry) {
+        // Log before throwing so an unknown summon is in the audit trail like every other refusal.
+        rootState.log.push({ event: 'refused', reason: 'unknown', target: targetId, chain: [...chain] });
+        throw new BrokerRefusal(`unknown submodule: ${targetId}`, { kind: 'unknown' });
+      }
 
       rootState.callCount += 1;
       // caseId (by convention input.caseId) binds the scoped store to the invoked case,

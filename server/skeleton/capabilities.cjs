@@ -7,6 +7,7 @@
 // Only capabilities declared in the manifest are injected (least privilege).
 
 const { mintId, ref } = require('./ids.cjs');
+const utils = require('./utils.cjs');
 
 // The submodule-facing store: a SCOPED, RESTRICTED view of the host store. A submodule
 // may only write the case parts its manifest declares, and (when the invocation carries a
@@ -50,6 +51,11 @@ function buildTools({ manifest, callContext, store, http, llm, search, logSink, 
     tools.store = makeScopedStore(store, manifest, callContext); // scoped to declared writes + invoked case
     tools.scratch = store.scratch(manifest.id); // private dedicated space (namespaced to this submodule)
   }
+
+  // Pure shared helpers (parsing/normalization/retry). Declared like any other capability so
+  // least-privilege still reads from the manifest; injected as ONE maintained copy instead of
+  // copy-pasted into each submodule (the require-guard forbids them require()-ing it directly).
+  if (caps.has('utils')) tools.utils = utils;
 
   if (caps.has('http')) tools.http = http;
   if (caps.has('llm')) {

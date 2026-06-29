@@ -17,7 +17,8 @@ server/skeleton/
   submodule-isolation.cjs  the require-guard scanner (enforces the brokering rule)
   ids.cjs             addressing scheme (DATA_CONTRACT v0.2 §2.1)
   contract/case.cjs   case factory + per-part status envelope (§2.2, §3)
-  store/index.cjs     store: cases + private scratch + data-layer (datafacts); writing-rules policy
+  store/index.cjs     store: cases + private scratch + data-layer (datafacts); writing-rules policy; reads/writes hand back detached copies (mutate only via store methods)
+  utils.cjs           pure shared helpers (parseJSON/stripHtml/truncate/retry) — the `utils` capability
   writing-rules/      rules.cjs (banned phrases) + gate.cjs (enforce before persist)
   clients/            anthropic.cjs (llm/Opus) + perplexity.cjs (search/Sonar) — fresh in-repo
 server/submodules/
@@ -32,10 +33,13 @@ module.exports = async function execute(input, options, tools) { ... }
 ```
 
 `manifest.cjs` declares `id`, `reads`, `writes`, and `capabilities` (a subset of
-`http | logger | store | request | llm | search`). The skeleton injects **only** the
+`http | logger | store | request | llm | search | utils`). The skeleton injects **only** the
 declared capabilities (least privilege). `tools.ids` (the shared contract vocabulary) is
 always present. `llm` (Anthropic/Opus) and `search` (Perplexity Sonar) are fresh in-repo
-clients under `clients/`, defaulted from `.env` (Rule 2) and injectable for tests.
+clients under `clients/`, defaulted from `.env` (Rule 2) and injectable for tests. `utils`
+(pure shared helpers — JSON recovery, HTML strip, truncate, transient-retry) is one maintained
+copy injected like any other capability, so submodules consume it instead of copy-pasting and
+still `require()` nothing (the require-guard stays intact).
 
 ## The brokering rule (the hinge)
 

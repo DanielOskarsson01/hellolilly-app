@@ -139,13 +139,21 @@ async function runDrill(input, tools) {
     maxTokens: 1500,
     prompt: `Question: ${drill.query}\n\nGrounded research:\n${grounding.text}\n\nReply as JSON: { "text": "<one focused paragraph>" }. JSON only.`,
   });
-  dossiers[drill.dossierKey].paragraphs.push({
+  // Build the updated dossiers as a NEW value and write it through the store gate —
+  // never mutate the object read from the store (the store hands back a detached copy
+  // now, but constructing a fresh value keeps the proper-write intent explicit).
+  const appended = {
     id: tools.ids.mintId('paragraph'),
     text: (result && result.text) || '',
     sources: normalizeCitations(grounding.citations),
     appended: { query: drill.query },
-  });
-  tools.store.writePart(caseId, 'dossiers', dossiers);
+  };
+  const target = dossiers[drill.dossierKey];
+  const updatedDossiers = {
+    ...dossiers,
+    [drill.dossierKey]: { ...target, paragraphs: [...target.paragraphs, appended] },
+  };
+  tools.store.writePart(caseId, 'dossiers', updatedDossiers);
   return { ok: true, mode: 'drill', appendedTo: drill.dossierKey };
 }
 
