@@ -75,6 +75,14 @@ function buildTools({ manifest, callContext, store, http, llm, search, logSink, 
     tools.search = search;
   }
 
+  // Read-only view of the candidate data-layer (imported datafacts). WRITE is host-level
+  // only (store.ingestDatafact) — submodules read evidence, they never mint datafacts.
+  if (caps.has('datalayer')) {
+    tools.datalayer = {
+      listDatafacts: () => store.listDatafacts(),
+      getDatafact: (id) => store.getDatafact(id),
+    };
+  }
   if (caps.has('request')) {
     // The submodule passes only a string id; it holds no reference to the target.
     // callContext threads the call chain so the broker can refuse cycles/cascades —
