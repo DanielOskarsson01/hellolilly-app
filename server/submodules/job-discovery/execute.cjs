@@ -78,6 +78,25 @@ function matchesAnyTerm(item, terms, fields) {
   return terms.some((t) => hay.includes(String(t).toLowerCase()));
 }
 
+// Location is a stage-1, CARD-knowable filter (it's in the job metadata — no description-body
+// fetch needed), so it's applied cheaply at discovery. Reads the seeded good/maybe/out lists from
+// filterSet.stage_1.location. Returns a matched-rule when the location is explicitly OUT, or is
+// present-but-not-on-good/maybe (off-target). A blank/unknown location is NOT penalized (we can't
+// assess it — e.g. a remote-board job with no city). Never drops; only flags.
+function locationRule(loc, locationRules) {
+  if (!locationRules) return null;
+  const l = String(loc || '').toLowerCase().trim();
+  if (!l) return null; // unknown location — don't penalize what we can't assess
+  const matchTerm = (list) => (list || []).map(String).find((term) => {
+    const t = term.toLowerCase();
+    return l.includes(t) || (l.length >= 3 && t.includes(l));
+  });
+  const outHit = matchTerm(locationRules.out);
+  if (outHit) return { rule: 'location_out', term: outHit };
+  if (matchTerm(locationRules.good) || matchTerm(locationRules.maybe)) return null; // acceptable area
+  return { rule: 'location_off_target', term: loc }; // present, but not on the good/maybe list
+}
+
 // Stage-1 (card-knowable) flagging from the store-backed filter set. Computes a signal +
 // matched rules; it NEVER drops a job — flagging is for the operator/approval layer.
 function stage1Signal(canonical, filterSet) {
@@ -90,6 +109,8 @@ function stage1Signal(canonical, filterSet) {
   for (const bad of filterSet.badCompanies || []) {
     if (company.includes(String(bad).toLowerCase())) matchedRules.push({ rule: 'bad_company', term: bad });
   }
+  const locRule = locationRule(canonical.location, filterSet.stage_1 && filterSet.stage_1.location);
+  if (locRule) matchedRules.push(locRule);
   return { signal: matchedRules.length ? 'low' : 'neutral', matchedRules };
 }
 

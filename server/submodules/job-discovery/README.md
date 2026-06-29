@@ -14,9 +14,15 @@ field-map, and search/feed modes are **owned here**, not `require()`'d across re
 3. Maps results to the **canonical job shape**, HTML-stripping the body into `text_content`.
 4. **Dedups by `externalId`** against jobs already in the store — never clobbers an existing
    `decision` (a re-run won't reset a job you already rejected to `new`).
-5. **Flags, never hides.** A job matching a store-backed reject rule (`rejectTitleTerms`,
-   `badCompanies`) is stored with `decision:'new'`, `signal:'low'`, and `matchedRules` recording
-   why — the down-rank/approval call belongs to the approval + rejection-learning layer, not here.
+5. **Flags, never hides.** A job matching a store-backed reject rule is stored with
+   `decision:'new'`, `signal:'low'`, and `matchedRules` recording why — the down-rank/approval call
+   belongs to the approval + rejection-learning layer, not here. Rules applied at discovery (all
+   card-knowable, no body fetch):
+   - `reject_title` / `bad_company` — from the flat `rejectTitleTerms` / `badCompanies`.
+   - **`location_out`** (location matches the seeded `stage_1.location.out` list) and
+     **`location_off_target`** (a present location not on `good`/`maybe`). A blank/unknown location
+     is **not** penalized (can't assess it — e.g. a remote-board job with no city). The `maybe` tier
+     is treated as acceptable (not flagged).
 
 ## Contract
 - **Capabilities:** `http` (provider calls), `store` (read filterSet, write `jobs`), `logger`, `utils`.
@@ -29,7 +35,8 @@ field-map, and search/feed modes are **owned here**, not `require()`'d across re
 ## The filter set (store-backed, seeded from `candidate_preferences.json`)
 A record in the `filterSet` collection, id `active`. job-discovery reads:
 `searchTerms[]`, `providers[]` (subset of `jobtech|remoteok|remotive`), `maxResults`,
-`rejectTitleTerms[]`, `badCompanies[]`. Seeding (file → store, with the agreed corrections —
+`rejectTitleTerms[]`, `badCompanies[]`, and `stage_1.location.{good,maybe,out}[]`. Seeding
+(file → store, with the agreed corrections —
 CMO/CPO equal weight, the conceptual-vs-technical product boundary) is a separate ingest step;
 after ingestion the store owns the filter set and the file is not re-read as source of truth.
 
@@ -41,5 +48,10 @@ Downstream (decoder/analyzer/approval) never learns provider internals.
 ## Notes
 - The provider catalog (URLs/field-maps) is **transport**, not a filter — it's infrastructure and
   stays in code, the same way the pipeline treated providers. Only filters are store-backed.
+- **Known gap — repost dedup (deferred, not a bug):** dedup keys on `externalId`, so the same role
+  reposted under different ids (e.g. five "CCO | Morris | Borås" ads) all pass through. Same
+  title+company+location ≈ probably-the-same-job is a fuzzier refinement; deliberately not solved
+  here (over-engineering dedup is a rabbit hole). The reposts are flagged like any other job, so
+  they down-rank rather than dominating the top of the list.
 - In-memory store today (A0): persistence across separate process invocations is the deferred
   "real DB" swap behind the same store interface — relevant when the OS-cron schedule goes live.

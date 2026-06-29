@@ -108,6 +108,38 @@ test('dedups by externalId against jobs already in the store (decisions are not 
   assert.equal(jt1[0].decision, 'rejected', 'the existing decision is preserved, not reset to new');
 });
 
+test('location: out and off-target jobs are FLAGGED (down-ranked), good locations are not — nothing hidden', async () => {
+  const store = createStore();
+  // stage_1 location preferences seeded (good/maybe/out) — discovery reads them
+  store.putRecord('filterSet', {
+    id: 'active', searchTerms: ['CMO'], providers: ['jobtech'], maxResults: 10,
+    stage_1: { location: { good: ['stockholm', 'remote'], maybe: ['sweden-other'], out: ['göteborg', 'goteborg'] } },
+  });
+  const cities = [
+    { id: 's1', municipality: 'Stockholm' },
+    { id: 'g1', municipality: 'Göteborg' },
+    { id: 'b1', municipality: 'Borås' },
+  ];
+  const http = {
+    get: async () => ({ status: 200, body: JSON.stringify({ hits: cities.map((c) => ({
+      id: c.id, headline: 'CMO', employer: { name: 'Co' }, workplace_address: { municipality: c.municipality },
+      description: { text: 'role' }, webpage_url: `https://jobs/${c.id}`, publication_date: '2026-06-01',
+    })) }) }),
+  };
+
+  await runStandalone(manifest, execute, {}, { store, http });
+
+  const jobs = store.listRecords('jobs');
+  assert.equal(jobs.length, 3, 'all three stored — out-of-area jobs are down-ranked, never hidden');
+  const byCity = Object.fromEntries(jobs.map((j) => [j.location, j]));
+
+  assert.equal(byCity['Stockholm'].signal, 'neutral', 'a good location is not flagged');
+  assert.equal(byCity['Göteborg'].signal, 'low', 'an explicitly-out location is flagged');
+  assert.ok(byCity['Göteborg'].matchedRules.some((r) => r.rule === 'location_out'), 'out reason recorded');
+  assert.equal(byCity['Borås'].signal, 'low', 'a location not on good/maybe is flagged off-target');
+  assert.ok(byCity['Borås'].matchedRules.some((r) => r.rule === 'location_off_target'), 'off-target reason recorded');
+});
+
 test('never drops: a job matching a store-backed reject term is stored and FLAGGED, not hidden', async () => {
   const store = createStore();
   seedFilterSet(store, { searchTerms: ['CMO'], providers: ['jobtech'], rejectTitleTerms: ['acme'], badCompanies: ['acme'] });
