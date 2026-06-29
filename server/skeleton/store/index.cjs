@@ -39,6 +39,7 @@ function createStore() {
   const cases = new Map(); // shared, collaborative
   const scratchByNs = new Map(); // private, dedicated per submodule
   const datafacts = new Map(); // candidate data-layer (imported facts)
+  const collections = new Map(); // non-case global regions: name -> Map(id -> record) — jobs/jobSources/jobRules/filterSet/…
 
   function requireCase(caseId) {
     const c = cases.get(caseId);
@@ -83,6 +84,37 @@ function createStore() {
     };
   }
 
+  // NON-CASE COLLECTIONS. Global, addressable, immutable named regions for data that is NOT a
+  // per-interview case (jobs, jobSources, jobRules, the filter set). Each record carries a stable
+  // `id` and is upserted by it. Detached on store AND on read (same immutability contract as cases).
+  //
+  // NOT writing-gated: these hold imported/structured records — a job's text_content is the
+  // employer's verbatim ad (gating it would be wrong, like a datafact), and a filter rule is
+  // operator-approved data. The writing-rules gate stays specific to case AUTHORED PROSE
+  // (writePart). When a submodule later GENERATES prose into a record (a learner's rule rationale),
+  // it runs the gate itself before putRecord — the store does not auto-gate collections.
+  function collectionMap(name) {
+    if (!collections.has(name)) collections.set(name, new Map());
+    return collections.get(name);
+  }
+  function putRecord(collection, record) {
+    if (!record || !record.id) throw new Error('putRecord: a record with an id is required');
+    collectionMap(collection).set(record.id, detach(record));
+    return detach(record);
+  }
+  function getRecord(collection, id) {
+    const m = collections.get(collection);
+    return detach((m && m.get(id)) || null);
+  }
+  function listRecords(collection) {
+    const m = collections.get(collection);
+    return m ? [...m.values()].map(detach) : [];
+  }
+  function removeRecord(collection, id) {
+    const m = collections.get(collection);
+    return m ? m.delete(id) : false;
+  }
+
   // IMPORTED-FACTS path. Exempt from the writing-rules gate by design (real CV text is
   // evidence, kept verbatim). Host-level only — not on tools.store.
   function ingestDatafact(df) {
@@ -104,6 +136,10 @@ function createStore() {
     writePart,
     setPartStatus: setStatus,
     scratch,
+    putRecord,
+    getRecord,
+    listRecords,
+    removeRecord,
     ingestDatafact,
     getDatafact,
     listDatafacts,

@@ -17,7 +17,7 @@ server/skeleton/
   submodule-isolation.cjs  the require-guard scanner (enforces the brokering rule)
   ids.cjs             addressing scheme (DATA_CONTRACT v0.2 §2.1)
   contract/case.cjs   case factory + per-part status envelope (§2.2, §3)
-  store/index.cjs     store: cases + private scratch + data-layer (datafacts); writing-rules policy; reads/writes hand back detached copies (mutate only via store methods)
+  store/index.cjs     store: cases + private scratch + data-layer (datafacts) + non-case collections (jobs/jobSources/jobRules/filterSet); writing-rules policy; reads/writes hand back detached copies (mutate only via store methods)
   utils.cjs           pure shared helpers (parseJSON/stripHtml/truncate/retry) — the `utils` capability
   writing-rules/      rules.cjs (banned phrases) + gate.cjs (enforce before persist)
   clients/            anthropic.cjs (llm/Opus) + perplexity.cjs (search/Sonar) — fresh in-repo
@@ -84,6 +84,18 @@ sandbox only if submodules ever become third-party/untrusted.
 `tools.store` is a **scoped** view: a submodule may write only the case parts its manifest
 `writes` declares, and only the case it was invoked for (caseId-bound). It cannot reach
 another submodule's scratch namespace or the data-layer ingest path.
+
+## Non-case collections (job-search and other non-interview data)
+
+Not everything is a per-interview *case*. Job-search data — discovered/ingested jobs, job
+sources, learner filter rules, the active filter set — lives in **global named collections**
+on the store: `putRecord(name, {id, …})` / `getRecord(name, id)` / `listRecords(name)` /
+`removeRecord(name, id)` (on both the host store and `tools.store`). Records are addressable
+(stable `id`), **immutable across the boundary** (detached on read and write, like cases), and
+**not writing-gated** (they hold imported/structured data — a job's body is the employer's
+verbatim text; a rule is operator-approved). Access is coarse-grained for any `store`-capable
+submodule today; per-collection scoping is a future hardening. The `job` id kind is minted via
+`tools.ids.mintId('job')`.
 
 ## Running
 

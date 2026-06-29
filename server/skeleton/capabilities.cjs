@@ -30,6 +30,14 @@ function makeScopedStore(store, manifest, callContext) {
     listCases: () => store.listCases(),
     writePart: (caseId, part, data) => { assertScope(caseId, part); return store.writePart(caseId, part, data); },
     setPartStatus: (caseId, part, status, error) => { assertScope(caseId, part); return store.setPartStatus(caseId, part, status, error); },
+    // Non-case collections (jobs/jobSources/jobRules/filterSet). Global regions — not bound to the
+    // invoked case and not part-scoped (the manifest writes-scope governs CASE parts). Access is
+    // coarse-grained for any `store`-capable submodule in the MVP; per-collection scoping is a
+    // future hardening if the cluster ever needs it (single-user, first-party submodules today).
+    putRecord: (collection, record) => store.putRecord(collection, record),
+    getRecord: (collection, id) => store.getRecord(collection, id),
+    listRecords: (collection) => store.listRecords(collection),
+    removeRecord: (collection, id) => store.removeRecord(collection, id),
   };
 }
 

@@ -11,6 +11,7 @@ const { randomUUID } = require('node:crypto');
 const KINDS = new Set([
   'case', 'dossier', 'paragraph', 'decodedRequirement', 'gap', 'bridge', 'card',
   'question', 'prepSection', 'cvSlide', 'liveQA', 'harvestItem', 'datafact',
+  'job', // job-search: a discovered/ingested job posting (lives in the `jobs` store collection, not a case)
 ]);
 
 function mintId(kind) {
