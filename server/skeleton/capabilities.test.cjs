@@ -2,6 +2,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
 const { buildTools } = require('./capabilities.cjs');
+const { validateManifest } = require('./registry.cjs');
 const { createStore } = require('./store/index.cjs');
 
 test('datalayer capability exposes read-only datafact access', () => {
@@ -22,4 +23,8 @@ test('datalayer is not injected unless declared', () => {
   const manifest = { id: 'tester2', reads: [], writes: [], capabilities: [] };
   const tools = buildTools({ manifest, callContext: {}, store });
   assert.equal(tools.datalayer, undefined);
+});
+
+test('validateManifest accepts a manifest declaring datalayer', () => {
+  assert.doesNotThrow(() => validateManifest({ id: 't', reads: [], writes: [], capabilities: ['datalayer'] }));
 });
