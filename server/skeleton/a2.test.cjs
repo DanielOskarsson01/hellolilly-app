@@ -65,6 +65,28 @@ test('gap-analyzer writes honest fit + gaps citing datafacts', async () => {
   assert.ok(updated.gaps.data[0].bridge.material.length >= 1, 'bridge has material');
 });
 
+test('gap-analyzer regenerates once when its authored prose trips the writing gate', async () => {
+  let calls = 0;
+  const llm = {
+    completeJSON: async () => {
+      calls += 1;
+      // First answer uses a banned word in authored prose; the regeneration is clean.
+      const overall = calls === 1 ? 'A dynamic commercial leader.' : 'A strong commercial leader.';
+      return { capability: { requirements: [], overall }, preference: { narrative: '' }, gaps: [] };
+    },
+  };
+  const host = createHost({ llm });
+  const c = host.store.createCase({ company: 'Acme', role: 'PM' });
+  host.store.writePart(c.meta.id, 'decodedRole', { narrative: '', requirements: [{ id: 'decodedRequirement_1', requirement: 'X', rationale: '', weight: 1 }] });
+
+  const { result } = await host.invoke('gap-analyzer', { caseId: c.meta.id });
+  assert.equal(result.ok, true);
+  assert.equal(calls, 2, 'regenerated exactly once after the gate rejected "dynamic"');
+  const updated = host.store.getCase(c.meta.id);
+  assert.equal(updated.fit.status, 'ready');
+  assert.equal(updated.fit.data.capability.overall, 'A strong commercial leader.');
+});
+
 test('cv-builder selects datafacts into a cvDraft (selects, never authors)', async () => {
   const llm = {
     completeJSON: async ({ prompt }) =>

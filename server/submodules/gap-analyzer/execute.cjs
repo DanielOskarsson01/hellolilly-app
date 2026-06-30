@@ -46,7 +46,15 @@ const SYSTEM =
   '      "material": [{ "source": "cv"|"coop-dialogue" }]\n' +
   '    }\n' +
   '  ]\n' +
-  '}';
+  '}\n\n' +
+  '=== STYLE RULES (binding — your output is REJECTED if any prose YOU write violates them) ===\n' +
+  'In every text you write yourself (capability.overall, preference.narrative, each gap what/why, ' +
+  'bridgeBody, bridgeOneLiner) do NOT use these words or phrases (case-insensitive): leveraged, ' +
+  'spearheaded, cutting-edge, robust, passionate, excited, thrilled, resonates, synergy, dynamic, ' +
+  'proven track record, perfect fit, hit the ground running, happy to discuss, "I am confident that", ' +
+  '"I believe I would be a great fit", delve, tapestry, testament to, elevate, unlock, game-changer, ' +
+  "in today's fast-paced. No em dashes. Write plainly and concretely. (Evidence is cited by datafactId, " +
+  'never written by you, so these rules apply only to your own prose.)';
 
 module.exports = async function execute(input, options, tools) {
   const { caseId, preferences } = input;
@@ -64,55 +72,64 @@ module.exports = async function execute(input, options, tools) {
   const pool = tools.datalayer.listDatafacts();
   const factById = new Map(pool.map((f) => [f.id, f]));
 
-  try {
-    const result = await tools.llm.completeJSON({
-      system: SYSTEM,
+  const reqIds = new Set(decoded.requirements.map((r) => r.id));
+  const userPrompt = [
+    `ROLE NARRATIVE: ${decoded.narrative || ''}`,
+    `REQUIREMENTS:\n${decoded.requirements.map((r) => `- (${r.id}) ${r.requirement}`).join('\n')}`,
+    `CANDIDATE DATAFACTS (evidence pool — cite the supporting one by its exact id):\n${pool.map((f) => `- (${f.id}) ${f.text}`).join('\n')}`,
+    preferences
+      ? `CANDIDATE PREFERENCES (hard-filter fit only — deal-breakers + credible-meet):\n${JSON.stringify(preferences)}`
+      : 'CANDIDATE PREFERENCES: (none provided)',
+  ].join('\n\n');
+
+  // The candidate's REAL datafacts can contain words on the writing-rules banlist
+  // (e.g. "dynamic", "synergy"). Cited evidence is gate-exempt, but the model may echo such a
+  // word into its OWN summary/gap prose, which is gated. `avoid` lets a retry name the exact
+  // violated words so the model rewrites only its own prose (evidence is cited by id, untouched).
+  const callModel = (avoid) =>
+    tools.llm.completeJSON({
+      system:
+        avoid && avoid.length
+          ? `${SYSTEM}\n\nYour previous answer used these forbidden words in YOUR prose: ${avoid.join(', ')}. Regenerate, rewriting every summary/gap/bridge field WITHOUT them (plain synonyms). Cited evidence is exempt — change only your own prose.`
+          : SYSTEM,
       model: options.model,
       maxTokens: 4000,
-      prompt: [
-        `ROLE NARRATIVE: ${decoded.narrative || ''}`,
-        `REQUIREMENTS:\n${decoded.requirements.map((r) => `- (${r.id}) ${r.requirement}`).join('\n')}`,
-        `CANDIDATE DATAFACTS (evidence pool — cite the supporting one by its exact id):\n${pool.map((f) => `- (${f.id}) ${f.text}`).join('\n')}`,
-        preferences
-          ? `CANDIDATE PREFERENCES (hard-filter fit only — deal-breakers + credible-meet):\n${JSON.stringify(preferences)}`
-          : 'CANDIDATE PREFERENCES: (none provided)',
-      ].join('\n\n'),
+      prompt: userPrompt,
     });
 
-    const reqIds = new Set(decoded.requirements.map((r) => r.id));
+  const buildFit = (result) => ({
+    capability: {
+      requirements: (result && result.capability && Array.isArray(result.capability.requirements)
+        ? result.capability.requirements
+        : []
+      )
+        .filter((r) => reqIds.has(r.requirementId))
+        .map((r) => {
+          // Cite-by-id honesty: a "match" needs a datafactId that resolves in the pool.
+          // An unverifiable cite (hallucinated or absent id) downgrades match -> partial.
+          const cited = r.datafactId ? factById.get(r.datafactId) : null;
+          // Clamp to the contract enum (an out-of-enum LLM status cannot corrupt fit),
+          // then enforce the honesty rule: an unverifiable cite cannot stand as a match.
+          const allowed = new Set(['match', 'partial', 'missing']);
+          let status = allowed.has(r.status) ? r.status : 'missing';
+          if (status === 'match' && !cited) status = 'partial';
+          const base = {
+            requirementRef: tools.ids.ref('decodedRequirement', r.requirementId),
+            evidence: cited ? cited.text : '',
+            status,
+          };
+          if (cited) base.evidenceRef = tools.ids.ref('datafact', cited.id);
+          return base;
+        }),
+      overall: (result && result.capability && result.capability.overall) || '',
+    },
+    preference: {
+      narrative: (result && result.preference && result.preference.narrative) || '',
+    },
+  });
 
-    const fit = {
-      capability: {
-        requirements: (result && result.capability && Array.isArray(result.capability.requirements)
-          ? result.capability.requirements
-          : []
-        )
-          .filter((r) => reqIds.has(r.requirementId))
-          .map((r) => {
-            // Cite-by-id honesty: a "match" needs a datafactId that resolves in the pool.
-            // An unverifiable cite (hallucinated or absent id) downgrades match -> partial.
-            const cited = r.datafactId ? factById.get(r.datafactId) : null;
-            // Clamp to the contract enum (an out-of-enum LLM status cannot corrupt fit),
-            // then enforce the honesty rule: an unverifiable cite cannot stand as a match.
-            const allowed = new Set(['match', 'partial', 'missing']);
-            let status = allowed.has(r.status) ? r.status : 'missing';
-            if (status === 'match' && !cited) status = 'partial';
-            const base = {
-              requirementRef: tools.ids.ref('decodedRequirement', r.requirementId),
-              evidence: cited ? cited.text : '',
-              status,
-            };
-            if (cited) base.evidenceRef = tools.ids.ref('datafact', cited.id);
-            return base;
-          }),
-        overall: (result && result.capability && result.capability.overall) || '',
-      },
-      preference: {
-        narrative: (result && result.preference && result.preference.narrative) || '',
-      },
-    };
-
-    const gaps = (result && Array.isArray(result.gaps) ? result.gaps : [])
+  const buildGaps = (result) =>
+    (result && Array.isArray(result.gaps) ? result.gaps : [])
       .map((g) => ({
         id: tools.ids.mintId('gap'),
         what: g.what || '',
@@ -136,8 +153,25 @@ module.exports = async function execute(input, options, tools) {
       }))
       .filter((g) => g.what);
 
-    tools.store.writePart(caseId, 'fit', fit);
-    tools.store.writePart(caseId, 'gaps', gaps);
+  try {
+    let result = await callModel();
+    let fit = buildFit(result);
+    let gaps = buildGaps(result);
+    try {
+      tools.store.writePart(caseId, 'fit', fit);
+      tools.store.writePart(caseId, 'gaps', gaps);
+    } catch (gateErr) {
+      // Gate-aware retry: regenerate ONCE naming the violated words; if it still violates,
+      // fall through to the outer catch (fail loud — never launder by stripping evidence).
+      if (gateErr.name !== 'WritingRuleError') throw gateErr;
+      const avoid = [...new Set((gateErr.violations || []).map((v) => v.phrase))];
+      if (tools.logger) tools.logger.warn(`fit/gaps prose tripped the writing gate (${avoid.join(', ')}); regenerating once`);
+      result = await callModel(avoid);
+      fit = buildFit(result);
+      gaps = buildGaps(result);
+      tools.store.writePart(caseId, 'fit', fit);
+      tools.store.writePart(caseId, 'gaps', gaps);
+    }
 
     return {
       ok: true,

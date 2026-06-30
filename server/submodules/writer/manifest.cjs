@@ -4,6 +4,6 @@ module.exports = {
   description: 'Background: writes a cover letter from fit + gaps + the datafact pool. Must-haves lead; gaps drive the honest bridge paragraph. Carries accuracy guardrails + no-overstate. Language-parameterised.',
   reads: ['meta', 'fit', 'gaps'],
   writes: ['coverLetter'],
-  capabilities: ['store', 'llm', 'datalayer'],
+  capabilities: ['store', 'logger', 'llm', 'datalayer'],
   options: { model: 'claude-opus-4-8', language: 'en' },
 };

@@ -81,25 +81,47 @@ module.exports = async function execute(input, options, tools) {
   const gaps = (theCase.gaps && theCase.gaps.data) || [];
   const pool = tools.datalayer.listDatafacts().filter((f) => f.language === language);
 
-  try {
-    const result = await tools.llm.completeJSON({
-      system: SYSTEM,
+  const userPrompt = [
+    `ROLE: ${theCase.meta.role || ''} @ ${theCase.meta.company || ''}`,
+    fit ? `FIT OVERALL: ${fit.capability.overall}\nMATCHED:\n${fit.capability.requirements.filter((r) => r.status === 'match').map((r) => `- ${r.evidence}`).join('\n')}` : '',
+    gaps.length ? `GAPS (drive the honest bridge paragraph):\n${gaps.map((g) => `- ${g.what}: ${g.bridge.oneLiner}`).join('\n')}` : '',
+    `CANDIDATE FACTS (use ONLY these):\n${pool.map((f) => `- ${f.text}`).join('\n')}`,
+  ].join('\n\n');
+
+  // The candidate's real facts can contain banlisted words (e.g. "synergy", "dynamic"); the
+  // model may echo one into an authored paragraph, which the gate (correctly) rejects. `avoid`
+  // lets a single retry name the exact words so the model rewrites without them.
+  const callModel = (avoid) =>
+    tools.llm.completeJSON({
+      system: avoid && avoid.length
+        ? `${SYSTEM}\n\nYour previous draft used these forbidden words: ${avoid.join(', ')}. Rewrite the whole letter WITHOUT them (plain synonyms), keeping every claim truthful and unchanged in substance.`
+        : SYSTEM,
       model: options.model,
       maxTokens: 1500,
-      prompt: [
-        `ROLE: ${theCase.meta.role || ''} @ ${theCase.meta.company || ''}`,
-        fit ? `FIT OVERALL: ${fit.capability.overall}\nMATCHED:\n${fit.capability.requirements.filter((r) => r.status === 'match').map((r) => `- ${r.evidence}`).join('\n')}` : '',
-        gaps.length ? `GAPS (drive the honest bridge paragraph):\n${gaps.map((g) => `- ${g.what}: ${g.bridge.oneLiner}`).join('\n')}` : '',
-        `CANDIDATE FACTS (use ONLY these):\n${pool.map((f) => `- ${f.text}`).join('\n')}`,
-      ].join('\n\n'),
+      prompt: userPrompt,
     });
 
-    const coverLetter = {
-      language,
-      paragraphs: (result?.paragraphs || []).map((p) => String(p)),
-      unsupported_by_cv: (result?.unsupported_by_cv || []).map((s) => String(s)),
-    };
-    tools.store.writePart(caseId, 'coverLetter', coverLetter); // gate runs on authored prose
+  const buildCoverLetter = (result) => ({
+    language,
+    paragraphs: (result?.paragraphs || []).map((p) => String(p)),
+    unsupported_by_cv: (result?.unsupported_by_cv || []).map((s) => String(s)),
+  });
+
+  try {
+    let result = await callModel();
+    let coverLetter = buildCoverLetter(result);
+    try {
+      tools.store.writePart(caseId, 'coverLetter', coverLetter); // gate runs on authored prose
+    } catch (gateErr) {
+      // Gate-aware retry: regenerate ONCE naming the violated words. If it still violates,
+      // fall through to the outer catch (fail loud — the safety net, never launder).
+      if (gateErr.name !== 'WritingRuleError') throw gateErr;
+      const avoid = [...new Set((gateErr.violations || []).map((v) => v.phrase))];
+      if (tools.logger) tools.logger.warn(`cover letter tripped the writing gate (${avoid.join(', ')}); regenerating once`);
+      result = await callModel(avoid);
+      coverLetter = buildCoverLetter(result);
+      tools.store.writePart(caseId, 'coverLetter', coverLetter);
+    }
     return { ok: true, paragraphs: coverLetter.paragraphs.length, unsupported: coverLetter.unsupported_by_cv.length };
   } catch (err) {
     tools.store.setPartStatus(caseId, 'coverLetter', 'failed', err.message);
