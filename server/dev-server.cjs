@@ -15,10 +15,11 @@ const { applyAnswer } = require('./skeleton/fill-gap/bullet-judge.cjs');
 const PORT = Number(process.env.PORT || 5173);
 const PIPELINE_MODULES_DIR = process.env.PIPELINE_MODULES_DIR
   || path.resolve(__dirname, '../../OnlyiGaming/content-pipeline-modules-v2');
-const executeApiSearch = require(path.join(
-  PIPELINE_MODULES_DIR,
-  'modules/step-1-discovery/api-search/execute.js'
-));
+// NOTE: the api-search module lives in a SIBLING repo that is not present in CI (or when
+// only the case API is imported for tests). Loaded lazily inside runJobSearch so that
+// `require('./dev-server.cjs')` (e.g. server/api.test.cjs importing createApiHandler) does
+// not fail with MODULE_NOT_FOUND in a clean checkout. The live job-search path loads it on
+// first /api/jobs/search call, where the sibling repo is present.
 
 function readJson(req) {
   return new Promise((resolve, reject) => {
@@ -207,6 +208,12 @@ function makeLogger(logs) {
 }
 
 async function runJobSearch(body) {
+  // Lazy cross-repo load (see PIPELINE_MODULES_DIR note above): required here, not at module
+  // top, so importing this file for the case API doesn't fail when the sibling repo is absent.
+  const executeApiSearch = require(path.join(
+    PIPELINE_MODULES_DIR,
+    'modules/step-1-discovery/api-search/execute.js'
+  ));
   const keywords = cleanList(body.keywords, DEFAULT_JOB_SEARCH.keywords, 8);
   const excludeKeywords = cleanList(body.excludeKeywords, DEFAULT_JOB_SEARCH.excludeKeywords, 20);
   const sources = cleanList(body.sources, DEFAULT_JOB_SEARCH.sources, 5);
