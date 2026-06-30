@@ -10,6 +10,7 @@ const {
 const { createHost } = require('./skeleton/host.cjs');
 const { seedDatafacts } = require('../scripts/seed-datafacts.cjs');
 const { createAnthropicClient } = require('./skeleton/clients/anthropic.cjs');
+const { applyAnswer } = require('./skeleton/fill-gap/bullet-judge.cjs');
 
 const PORT = Number(process.env.PORT || 5173);
 const PIPELINE_MODULES_DIR = process.env.PIPELINE_MODULES_DIR
@@ -93,7 +94,26 @@ function createApiHandler(host, { preferencesPath, llm } = {}) {
       return true;
     }
 
-    // /gap/:gapId/answer and /generate are added in later tasks.
+    if (req.method === 'POST' && m[3]) { // /gap/:gapId/answer
+      const gapId = decodeURIComponent(m[3]);
+      try {
+        const body = await readJson(req);
+        if (!body.answer || !body.requirementId) {
+          sendJson(res, 400, { ok: false, error: 'answer and requirementId are required' });
+          return true;
+        }
+        // Uses the threaded `llm` (NOT host.llm, which does not exist).
+        const out = await applyAnswer(host.store, llm, {
+          caseId, gapId, answer: body.answer, requirementId: body.requirementId, tags: body.tags || [],
+        });
+        sendJson(res, 200, { ok: true, ...out });
+      } catch (err) {
+        sendJson(res, 500, { ok: false, error: err.message });
+      }
+      return true;
+    }
+
+    // /generate is added in the next task.
     return false;
   };
 }

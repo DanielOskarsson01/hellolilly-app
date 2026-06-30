@@ -61,3 +61,39 @@ test('a non-case URL falls through (handler returns false)', async () => {
   assert.equal(await handle(makeReq('GET', '/api/health'), res), false);
   assert.equal(res._status, 0, 'handler did not write a response for an unmatched route');
 });
+
+function fillGapFixture(llm) {
+  const host = createHost({ llm });
+  const c = host.store.createCase({ company: 'Acme', role: 'PM' });
+  host.store.writePart(c.meta.id, 'decodedRole', { narrative: '', requirements: [{ id: 'decodedRequirement_1', requirement: 'ML infra', rationale: '', weight: 1 }] });
+  host.store.writePart(c.meta.id, 'fit', { capability: { requirements: [{ requirementRef: { kind: 'decodedRequirement', id: 'decodedRequirement_1' }, evidence: '', status: 'missing' }], overall: '' }, preference: { narrative: '' } });
+  host.store.writePart(c.meta.id, 'gaps', [{ id: 'gap_1', what: 'No ML infra', why: '', bridge: { id: 'bridge_1', kind: 'honest-ramp', body: '', oneLiner: '', material: [{ source: 'cv' }] }, provenance: 'gap-analyzer' }]);
+  return { host, caseId: c.meta.id };
+}
+
+test('POST /gap/:gapId/answer accepted flips the fit requirement to match', async () => {
+  const llm = { completeJSON: async () => ({ canFill: true, bulletText: 'Built the feature store for 12 models in production.', reason: 'ok' }) };
+  const { host, caseId } = fillGapFixture(llm);
+  const handle = createApiHandler(host, { preferencesPath: null, llm });
+
+  const res = mockRes();
+  await handle(makeReq('POST', `/api/case/${caseId}/gap/gap_1/answer`, { answer: 'I built our feature store for 12 models', requirementId: 'decodedRequirement_1' }), res);
+  assert.equal(res._status, 200);
+  assert.equal(res._body.outcome, 'accepted');
+  assert.ok(res._body.newDatafactId);
+  assert.equal(host.store.getCase(caseId).fit.data.capability.requirements[0].status, 'match');
+});
+
+test('POST answer with missing fields is 400 and mints nothing', async () => {
+  const llm = { completeJSON: async () => ({ canFill: true, bulletText: 'x', reason: 'ok' }) };
+  const { host, caseId } = fillGapFixture(llm);
+  const handle = createApiHandler(host, { preferencesPath: null, llm });
+  const before = host.store.listDatafacts().length;
+
+  const res = mockRes();
+  await handle(makeReq('POST', `/api/case/${caseId}/gap/gap_1/answer`, { answer: 'only an answer, no requirementId' }), res);
+  assert.equal(res._status, 400);
+  assert.equal(res._body.ok, false);
+  assert.equal(host.store.listDatafacts().length, before, 'nothing minted on a 400');
+  assert.equal(host.store.getCase(caseId).fit.data.capability.requirements[0].status, 'missing');
+});
