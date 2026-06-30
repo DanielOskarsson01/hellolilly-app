@@ -1,6 +1,6 @@
-# Interview Prep - Data Contract (v0.2, draft)
+# Interview Prep - Data Contract (v0.3, draft)
 
-**Date:** 2026-06-25 (v0.2) · 2026-06-15 (v0.1)
+**Date:** 2026-06-29 (v0.3) · 2026-06-25 (v0.2) · 2026-06-15 (v0.1)
 **Purpose:** The shared handshake between the backend skeleton (which serves this data) and the frontend `useCase()` layer (which consumes it). Both sides build to this so the shape is defined once, not invented twice. This is a planning artifact describing WHAT the data is, not HOW either side implements it.
 **Status:** Draft for review. v0.2 resolves the buildability gaps that blocked Phase A0; the structure is the point. Refine before either side builds on top of it.
 **Companions:** INTERVIEW_PREP_CONCEPT_FINAL.md (what the system does), DEVELOPMENT_PLAN.md (the build phases).
@@ -75,6 +75,8 @@ A case is built incrementally: early on only `meta` and (pending) dossiers exist
 - **decodedRole** — the true-job profile (Stage 2), the decoder's output, top-level. This is what analysis maps against, not the raw ad.
 - **fit** — the two-way analysis (Stage 3): capability fit and preference fit. Produced by Decoder+Analyzer.
 - **gaps** — named gaps and their bridges (Stage 3), enriched by the co-op dialogue.
+- **cvDraft** — a tailored CV assembled by `cv-builder` by SELECTING datafacts (never authoring). Shape: `{ language, sections: [{ key, heading, items: [{ datafactRef: { kind:'datafact', id }, text }] }] }`.
+- **coverLetter** — a cover letter authored by `writer`. Shape: `{ language, paragraphs: [string], unsupported_by_cv: [string] }`.
 - **prep** — the structured prep document + the CV story (Stage 4).
 - **cards** — the atomised deck (Stage 4): one content model the dashboard, panic card, and live workspace all render from.
 - **liveLog** — the distilled record from a call (Stage 6): Q&A in rewritten summary form + the topic log. Never a verbatim transcript.
@@ -97,13 +99,24 @@ Each dossier is a titled body of researched content with sources noted, a short 
 A structured profile of the **real** requirements beneath the ad: the ad read against culture, company stage, ambitions, industry signals, hidden technical depth. An array of `decodedRequirement` nodes `{ id, requirement, rationale, weight? }` plus a short narrative. The requirement `id`s are what `fit.capability` maps against.
 
 ### fit — `data` shape
-- **capability** — per decoded requirement: `{ requirementRef, evidence, status: 'match' | 'partial' | 'missing' }`, plus an overall capability read. (`requirementRef` is a reference to a `decodedRequirement`.)
+- **capability** — per decoded requirement: `{ requirementRef, evidence, evidenceRef, status: 'match' | 'partial' | 'missing' }`, plus an overall capability read. (`requirementRef` is a reference to a `decodedRequirement`; `evidenceRef` is an OPTIONAL `{ kind:'datafact', id }` present when the evidence is a cited datafact—every `match` has one.)
 - **preference** — the role against the candidate's own wishes: direction, deal-breakers, comp philosophy, culture signals, growth. A "do you want it, on what terms" read, not a score.
 
 ### gaps — `data` shape
 A list. Each gap `{ id, what, why, bridge, provenance }`:
 - **bridge** `{ id, kind: 'reframe' | 'adjacent-proof' | 'honest-ramp', body, oneLiner, material: [ { source: 'cv' | 'coop-dialogue', ref? } ] }`. `oneLiner` is the compressed form used by deterministic compression and the live cards. `material` is **required** (possibly one item) so origin is always known.
 - **provenance** — `required`: how the gap surfaced. Co-op dialogue answers attach here and append to `bridge.material`.
+
+### cvDraft — `data` shape
+A tailored CV assembled by `cv-builder` by **selecting** datafacts from the candidate pool (never authoring new content). The structure mirrors a standard CV but every text element is traced back to a datafact.
+- **language** — the language/variant (e.g. `en-US`, `sv-SE`).
+- **sections** — `[{ key, heading, items: [{ datafactRef: { kind:'datafact', id }, text }] }]`. Each section contains items, and each item is linked to its source datafact via `datafactRef`.
+
+### coverLetter — `data` shape
+A cover letter authored by `writer` using datafacts from the CV and the case analysis. Unlike cvDraft, this is authored prose, gated by the writing-rules filter.
+- **language** — the language/variant.
+- **paragraphs** — `[string]` — the body text, one paragraph per entry.
+- **unsupported_by_cv** — `[string]` — any claims in the letter not directly supported by the CV, flagged for review before sending.
 
 ### prep — `data` shape
 - **PREP** — `sections: [ { id, heading, full, compressed } ]`. The full document is the ordered `full` fields; the compressed forms are inline, so:

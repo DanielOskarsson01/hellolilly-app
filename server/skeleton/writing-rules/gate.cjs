@@ -21,9 +21,14 @@ function snippetAround(text, idx, span = 30) {
   return text.slice(start, idx + span).replace(/\s+/g, ' ').trim();
 }
 
-function check(value) {
+function check(value, exemptTexts = []) {
+  // Exact whole-string equality only. A collected string is exempt iff it EXACTLY equals
+  // the verbatim text of a datafact the value cited (built ref-scoped in store.writePart).
+  // No substring/.includes — that would be broader than the \b-bounded rules and launder prose.
+  const exempt = new Set(exemptTexts);
   const violations = [];
   for (const text of collectStrings(value)) {
+    if (exempt.has(text)) continue;
     for (const { phrase, re } of PATTERNS) {
       const m = re.exec(text);
       if (m) violations.push({ phrase, snippet: snippetAround(text, m.index) });
@@ -40,8 +45,8 @@ class WritingRuleError extends Error {
   }
 }
 
-function enforce(value) {
-  const { ok, violations } = check(value);
+function enforce(value, exemptTexts = []) {
+  const { ok, violations } = check(value, exemptTexts);
   if (!ok) throw new WritingRuleError(violations);
   return true;
 }
