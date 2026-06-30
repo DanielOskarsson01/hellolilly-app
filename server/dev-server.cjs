@@ -1,11 +1,15 @@
 const http = require('node:http');
 const path = require('node:path');
+const fs = require('node:fs');
 const { createServer: createViteServer } = require('vite');
 const {
   DEFAULT_JOB_SEARCH,
   JOB_SEARCH_PROVIDERS,
   sourceLabel,
 } = require('./job-search-config.cjs');
+const { createHost } = require('./skeleton/host.cjs');
+const { seedDatafacts } = require('../scripts/seed-datafacts.cjs');
+const { createAnthropicClient } = require('./skeleton/clients/anthropic.cjs');
 
 const PORT = Number(process.env.PORT || 5173);
 const PIPELINE_MODULES_DIR = process.env.PIPELINE_MODULES_DIR
@@ -43,6 +47,55 @@ function sendJson(res, status, payload) {
     'cache-control': 'no-store',
   });
   res.end(JSON.stringify(payload));
+}
+
+// The A2 case API. `llm` is threaded explicitly because createHost does NOT expose its
+// llm (host.cjs returns { store, registry, broker, loaded, invoke } — the llm is captured
+// inside the broker). The live server passes the SAME llm to createHost and here.
+// Returns an async handler: resolves true if it handled the request, false to fall through.
+function createApiHandler(host, { preferencesPath, llm } = {}) {
+  function readPreferences() {
+    if (!preferencesPath) return undefined;
+    try {
+      if (!fs.existsSync(preferencesPath)) {
+        console.warn(`[api] preferences not found at ${preferencesPath} — analyzing WITHOUT hard-filter preferences`);
+        return undefined;
+      }
+      return JSON.parse(fs.readFileSync(preferencesPath, 'utf8'));
+    } catch (err) {
+      console.warn(`[api] preferences unreadable (${err.message}) — analyzing WITHOUT them`); // never swallow silently
+      return undefined;
+    }
+  }
+
+  return async function handle(req, res) {
+    const m = req.url.match(/^\/api\/case\/([^/]+)(\/analyze|\/generate|\/gap\/([^/]+)\/answer)?$/);
+    if (!m) return false;
+    const caseId = decodeURIComponent(m[1]);
+    const action = m[2];
+
+    if (req.method === 'GET' && !action) {
+      const c = host.store.getCase(caseId);
+      if (!c) { sendJson(res, 404, { ok: false, error: 'no such case' }); return true; }
+      const { meta, decodedRole, fit, gaps, cvDraft, coverLetter } = c;
+      sendJson(res, 200, { ok: true, case: { meta, decodedRole, fit, gaps, cvDraft, coverLetter } });
+      return true;
+    }
+
+    if (req.method === 'POST' && action === '/analyze') {
+      try {
+        const { result } = await host.invoke('gap-analyzer', { caseId, preferences: readPreferences() });
+        const c = host.store.getCase(caseId);
+        sendJson(res, 200, { ok: true, fit: c.fit.data, gaps: c.gaps.data, summary: result });
+      } catch (err) {
+        sendJson(res, 500, { ok: false, error: err.message });
+      }
+      return true;
+    }
+
+    // /gap/:gapId/answer and /generate are added in later tasks.
+    return false;
+  };
 }
 
 function cleanList(value, fallback, max = 10) {
@@ -204,6 +257,21 @@ async function start() {
     appType: 'spa',
   });
 
+  // A2 case API: one host (with the datafact pool seeded), one handler. The SAME llm is
+  // passed to createHost and createApiHandler (host.llm does not exist — see createApiHandler).
+  const llm = process.env.ANTHROPIC_API_KEY
+    ? createAnthropicClient({ apiKey: process.env.ANTHROPIC_API_KEY })
+    : null;
+  const host = createHost({ llm });
+  try {
+    const facts = seedDatafacts(host.store);
+    console.log(`[api] seeded ${facts.length} datafacts into the case store`);
+  } catch (err) {
+    console.warn(`[api] datafact seed skipped: ${err.message}`);
+  }
+  const preferencesPath = path.resolve(__dirname, '../docs/candidate_preferences.json');
+  const handleCaseApi = createApiHandler(host, { preferencesPath, llm });
+
   const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && req.url === '/api/health') {
       return sendJson(res, 200, { ok: true, service: 'hello-lilly-dev-server' });
@@ -222,6 +290,8 @@ async function start() {
       }
     }
 
+    if (await handleCaseApi(req, res)) return;
+
     vite.middlewares(req, res);
   });
 
@@ -230,7 +300,13 @@ async function start() {
   });
 }
 
-start().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+// Only boot the live server when run directly — `require('./dev-server.cjs')` (the API
+// tests) must import createApiHandler without starting Vite / binding a port.
+if (require.main === module) {
+  start().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+}
+
+module.exports = { createApiHandler };
