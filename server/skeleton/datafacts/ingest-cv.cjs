@@ -13,7 +13,7 @@ function df(type, text, tags, language) {
 
 function cvDataToDatafacts(cv = {}, language = 'en') {
   const out = [];
-  const push = (type, text, tags = []) => { if (text && String(text).trim()) out.push(df(type, text, tags, language)); };
+  const push = (type, text, tags = []) => { const s = String(text ?? '').trim(); if (s) out.push(df(type, s, tags, language)); };
 
   // professional_summary
   if (cv.professional_summary) push('professional_summary', cv.professional_summary.default, cv.professional_summary.tags || []);
@@ -49,7 +49,8 @@ function cvDataToDatafacts(cv = {}, language = 'en') {
   // star_stories: title + situation/task + each action
   for (const st of cv.star_stories || []) {
     const stTags = ['star-story', ...(st.tags || [])];
-    push('star_story', `${st.title}: ${st.situation} ${st.task}`.trim(), stTags);
+    const body = [st.situation, st.task].filter(Boolean).join(' ');
+    push('star_story', [st.title, body].filter(Boolean).join(': '), stTags);
     for (const a of st.action || []) push('star_action', a, stTags);
   }
 

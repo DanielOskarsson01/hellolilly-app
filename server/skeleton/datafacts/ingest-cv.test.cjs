@@ -36,3 +36,10 @@ test('language parameter is honoured', () => {
   const facts = cvDataToDatafacts(SAMPLE, 'sv');
   assert.ok(facts.every((f) => f.language === 'sv'));
 });
+
+test('star_story with a missing field does not leak "undefined"', () => {
+  const facts = cvDataToDatafacts({ star_stories: [{ title: 'Turnaround', tags: ['x'], situation: 'S only' }] }, 'en');
+  const story = facts.find((f) => f.type === 'star_story');
+  assert.ok(story && !/undefined/.test(story.text), `no undefined in: ${story && story.text}`);
+  assert.equal(story.text, 'Turnaround: S only');
+});
