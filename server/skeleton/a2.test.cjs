@@ -85,3 +85,37 @@ test('cv-builder selects datafacts into a cvDraft (selects, never authors)', asy
   assert.equal(item.text, 'Grew revenue 3x.', 'selected datafact text is verbatim');
   assert.equal(item.datafactRef.id, 'datafact_x');
 });
+
+test('writer produces a coverLetter that passes the writing gate', async () => {
+  const llm = { completeJSON: async () => ({
+    paragraphs: [
+      'Your search for a commercial product leader maps closely to what I have done.',
+      'At ComeOn I ran the commercial org as CMO and grew revenue threefold.',
+      'I have led ML-adjacent delivery and would ramp on the infra side quickly.',
+      'I would welcome a conversation about the role.',
+    ],
+    unsupported_by_cv: ['Direct hands-on ML platform engineering'],
+  }) };
+  const host = createHost({ llm });
+  const c = host.store.createCase({ company: 'Acme', role: 'Head of Product' });
+  host.store.writePart(c.meta.id, 'fit', { capability: { requirements: [], overall: 'Strong commercial fit.' }, preference: { narrative: '' } });
+  host.store.writePart(c.meta.id, 'gaps', []);
+
+  const { result } = await host.invoke('writer', { caseId: c.meta.id });
+  assert.equal(result.ok, true);
+  const cl = host.store.getCase(c.meta.id).coverLetter;
+  assert.equal(cl.status, 'ready');
+  assert.equal(cl.data.language, 'en');
+  assert.ok(cl.data.paragraphs.length >= 4);
+  assert.ok(Array.isArray(cl.data.unsupported_by_cv));
+});
+
+test('writer that emits a banned phrase is rejected by the gate (safety net)', async () => {
+  const llm = { completeJSON: async () => ({ paragraphs: ['I am a perfect fit and would hit the ground running.'], unsupported_by_cv: [] }) };
+  const host = createHost({ llm });
+  const c = host.store.createCase({ company: 'Acme', role: 'X' });
+  host.store.writePart(c.meta.id, 'fit', { capability: { requirements: [], overall: '' }, preference: { narrative: '' } });
+  host.store.writePart(c.meta.id, 'gaps', []);
+  await assert.rejects(() => host.invoke('writer', { caseId: c.meta.id }), /Writing-rule violation|WritingRuleError/);
+  assert.equal(host.store.getCase(c.meta.id).coverLetter.status, 'failed');
+});
