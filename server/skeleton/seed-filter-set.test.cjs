@@ -25,8 +25,12 @@ const PREFS = {
       location: { good: ['stockholm'], out: ['goteborg'], firmness: 'firm' },
     },
     stage_2_description: {
+      us_timezone: { value: 'US-timezone remote is out.', reason_code: 'US_TIMEZONE', firmness: 'firm' },
       too_technical: { value: 'Cut if planning sprints for developers, or design-led.', reason_code: 'TOO_TECHNICAL', firmness: 'firm' },
+      language_requirement: { value: 'Cut a language not held.', reason_code: 'LANG_REQ', firmness: 'firm' },
       salary_floor: { value: 'Above 85000 EUR.', reason_code: 'SALARY_LOW', firmness: 'soft' },
+      too_sales_operational: { value: 'Cut quota-carrying roles.', reason_code: 'SALES_HEAVY', firmness: 'firm' },
+      industry_product_fit: { value: 'No email security.', reason_code: 'INDUSTRY_FIT', firmness: 'soft' },
     },
   },
   profile_basis: { summary: '~25y experience.' },
@@ -56,6 +60,22 @@ test('correction 2: the positive conceptual-vs-technical product definition sits
   assert.match(tt.product_in_scope_when || '', /conceptual|ux|customer|commercial/i, 'positive in-scope definition encoded');
   assert.match(tt.product_out_of_scope_when || '', /sprint|developer|design-led|project plan/i, 'technical out-of-scope definition encoded');
   assert.ok(tt.reject_when, 'the original too_technical reject text is preserved');
+});
+
+test('seeds store-backed body-match patterns per stage_2 reject code (machine-applicable, editable data)', () => {
+  const fs = buildFilterSet(PREFS);
+  // every reject code carries a `match` array (the editable detection patterns stage2-filter reads)
+  for (const key of ['us_timezone', 'too_technical', 'language_requirement', 'too_sales_operational', 'industry_product_fit']) {
+    assert.ok(Array.isArray(fs.stage_2[key].match) && fs.stage_2[key].match.length > 0, `${key} has seeded match patterns`);
+  }
+  // the patterns are the right kind of body signal
+  assert.ok(fs.stage_2.us_timezone.match.some((p) => /us|pacific|eastern|time/i.test(p)), 'US timezone patterns');
+  assert.ok(fs.stage_2.too_technical.match.some((p) => /sprint|developer|scrum|technical/i.test(p)), 'technical out-of-scope patterns');
+  assert.ok(fs.stage_2.language_requirement.match.some((p) => /native|fluent/i.test(p)), 'language-requirement patterns');
+  // SALARY_LOW is wired but intentionally has no default keyword patterns (numeric parsing deferred)
+  assert.ok(Array.isArray(fs.stage_2.salary_floor.match) && fs.stage_2.salary_floor.match.length === 0, 'salary_floor wired, no default keywords');
+  // the conceptual-vs-technical product boundary still sits on too_technical (correction 2 intact)
+  assert.match(fs.stage_2.too_technical.product_in_scope_when || '', /conceptual|commercial/i);
 });
 
 test('derives reject-title and bad-company term lists, dropping noise', () => {

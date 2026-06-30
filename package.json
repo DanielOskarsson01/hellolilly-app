@@ -7,7 +7,9 @@
     "test": "node --test \"server/**/*.test.cjs\" \"scripts/**/*.test.cjs\"",
     "verify:a1": "node --env-file=.env server/verify-a1.cjs",
     "discover": "node server/run-discovery.cjs",
-    "seed:datafacts": "node scripts/seed-datafacts.cjs"
+    "seed:datafacts": "node scripts/seed-datafacts.cjs",
+    "enrich": "node server/run-enrich.cjs",
+    "filter": "node server/run-filter.cjs"
   },
   "engines": {
     "node": ">=22"
