@@ -43,7 +43,7 @@ const SYSTEM =
   '      "bridgeKind": "reframe"|"adjacent-proof"|"honest-ramp",\n' +
   '      "bridgeBody": "<honest bridge narrative>",\n' +
   '      "bridgeOneLiner": "<one-line version>",\n' +
-  '      "material": [{ "source": "cv"|"coop-dialogue", "ref": "<optional ref string>" }]\n' +
+  '      "material": [{ "source": "cv"|"coop-dialogue" }]\n' +
   '    }\n' +
   '  ]\n' +
   '}';
@@ -92,7 +92,11 @@ module.exports = async function execute(input, options, tools) {
             // Cite-by-id honesty: a "match" needs a datafactId that resolves in the pool.
             // An unverifiable cite (hallucinated or absent id) downgrades match -> partial.
             const cited = r.datafactId ? factById.get(r.datafactId) : null;
-            const status = r.status === 'match' && !cited ? 'partial' : (r.status || 'missing');
+            // Clamp to the contract enum (an out-of-enum LLM status cannot corrupt fit),
+            // then enforce the honesty rule: an unverifiable cite cannot stand as a match.
+            const allowed = new Set(['match', 'partial', 'missing']);
+            let status = allowed.has(r.status) ? r.status : 'missing';
+            if (status === 'match' && !cited) status = 'partial';
             const base = {
               requirementRef: tools.ids.ref('decodedRequirement', r.requirementId),
               evidence: cited ? cited.text : '',
@@ -120,11 +124,13 @@ module.exports = async function execute(input, options, tools) {
             : 'reframe',
           body: g.bridgeBody || '',
           oneLiner: g.bridgeOneLiner || '',
-          // material REQUIRED (design §4) — default to [{ source: 'cv' }] when absent/empty
-          material:
-            Array.isArray(g.material) && g.material.length > 0
-              ? g.material
-              : [{ source: 'cv' }],
+          // material REQUIRED (design §4) — default to [{ source: 'cv' }] when absent/empty.
+          // Normalize to { source } objects: the analyzer's bridges don't cite a specific
+          // datafact, and the typed material[].ref ({kind:'datafact',id}) is reserved for the
+          // deferred co-op-dialogue write-back (minted with tools.ids.ref there) — never a
+          // free-text string from the model.
+          material: (Array.isArray(g.material) && g.material.length > 0 ? g.material : [{ source: 'cv' }])
+            .map((mm) => ({ source: (mm && mm.source) || 'cv' })),
         },
         provenance: 'gap-analyzer',
       }))

@@ -41,7 +41,7 @@ function cvDataToDatafacts(cv = {}, language = 'en') {
   for (const w of cv.other_work || []) push('other_work', `${w.role} at ${w.company} (${w.years})`, ['other-work', ...(w.tags || [])]);
 
   // education
-  for (const e of cv.education || []) push('education', `${(e.degrees || []).join(', ')} — ${e.institution} (${e.years})`, ['education']);
+  for (const e of cv.education || []) push('education', `${(e.degrees || []).join(', ')} - ${e.institution} (${e.years})`, ['education']);
 
   // awards
   for (const a of cv.awards || []) push('award', `${a.award} (${a.org}, ${a.years})`, ['award']);

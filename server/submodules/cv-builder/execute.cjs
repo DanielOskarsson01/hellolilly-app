@@ -2,7 +2,7 @@
 
 const SYSTEM = `You assemble a tailored CV by SELECTING which candidate datafacts belong in each section.
 You do NOT write, paraphrase, or invent any CV text — you only choose ids. Output STRICT JSON:
-{ "sections": [{ "key": string, "heading": string, "datafactIds": [string] }] }. The word SELECT appears so the host can route. Prefer datafacts whose tags/text match the role's requirements and the matched evidence.`;
+{ "sections": [{ "key": string, "heading": string, "datafactIds": [string] }] }. Prefer datafacts whose tags/text match the role's requirements and the matched evidence.`;
 
 module.exports = async function execute(input, options, tools) {
   const { caseId } = input;
