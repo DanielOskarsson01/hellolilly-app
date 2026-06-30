@@ -25,6 +25,8 @@ test('accepted answer mints a datafact and flips the requirement to match', asyn
   const req = store.getCase(caseId).fit.data.capability.requirements.find((r) => r.requirementRef.id === 'decodedRequirement_2');
   assert.equal(req.status, 'match');
   assert.equal(req.evidence, 'Built the ML feature store serving 12 models in production.');
+  assert.equal(req.evidenceRef.kind, 'datafact');
+  assert.equal(req.evidenceRef.id, res.newDatafactId);
 });
 
 test('rejected answer leaves the gap open and mints nothing (honest-failure path)', async () => {
@@ -47,4 +49,13 @@ test('a judge-approved bullet with a banned phrase is rejected pre-mint (stays_g
   assert.match(res.reason, /spearheaded/);
   assert.equal(store.listDatafacts().length, before, 'no banned-word datafact minted');
   assert.equal(store.getCase(caseId).fit.data.capability.requirements.find((r) => r.requirementRef.id === 'decodedRequirement_2').status, 'missing');
+});
+
+test('an unknown requirementId mints nothing and stays_gap', async () => {
+  const llm = { completeJSON: async () => ({ canFill: true, bulletText: 'Built a clean feature store for 12 models.', reason: 'ok' }) };
+  const { store, caseId } = fixtureStore();
+  const before = store.listDatafacts().length;
+  const res = await applyAnswer(store, llm, { caseId, gapId: 'gap_1', answer: 'x', requirementId: 'decodedRequirement_DOES_NOT_EXIST' });
+  assert.equal(res.outcome, 'stays_gap');
+  assert.equal(store.listDatafacts().length, before, 'nothing minted for unknown requirement');
 });

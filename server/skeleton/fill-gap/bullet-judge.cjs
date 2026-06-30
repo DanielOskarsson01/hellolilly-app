@@ -40,6 +40,13 @@ async function applyAnswer(store, llm, { caseId, gapId, answer, requirementId, t
     return { outcome: 'stays_gap', reason: verdict.reason };
   }
 
+  // Guard: ensure the target requirement exists in fit before minting anything.
+  const fit = (theCase.fit && theCase.fit.data) || { capability: { requirements: [], overall: '' }, preference: { narrative: '' } };
+  const targetExists = (fit.capability.requirements || []).some((r) => r.requirementRef && r.requirementRef.id === requirementId);
+  if (!targetExists) {
+    return { outcome: 'stays_gap', reason: `requirement ${requirementId} not found in fit — nothing minted` };
+  }
+
   // The bullet is freshly AUTHORED (not lifted from the real CV), so it MUST pass the
   // writing-rules gate BEFORE it becomes a permanent, gate-exempt datafact. Reject -> stays_gap.
   // (No exemption arg: a fill-gap bullet is authored prose, not cited evidence.)
@@ -61,7 +68,6 @@ async function applyAnswer(store, llm, { caseId, gapId, answer, requirementId, t
 
   // Flip the requirement to match; attach evidenceRef so the re-write survives the
   // ref-scoped exact-equality gate (Task 3) — fact.text is exempt only via its ref.
-  const fit = (theCase.fit && theCase.fit.data) || { capability: { requirements: [], overall: '' }, preference: { narrative: '' } };
   fit.capability.requirements = (fit.capability.requirements || []).map((r) =>
     r.requirementRef && r.requirementRef.id === requirementId
       ? { ...r, status: 'match', evidence: fact.text, evidenceRef: { kind: 'datafact', id: fact.id } }
