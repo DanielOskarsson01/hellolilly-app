@@ -113,7 +113,23 @@ function createApiHandler(host, { preferencesPath, llm } = {}) {
       return true;
     }
 
-    // /generate is added in the next task.
+    if (req.method === 'POST' && action === '/generate') {
+      const out = {};
+      for (const id of ['cv-builder', 'writer']) {
+        try { await host.invoke(id, { caseId }); } catch (err) { out[`${id}_error`] = err.message; }
+      }
+      const c = host.store.getCase(caseId);
+      if (!c) { sendJson(res, 404, { ok: false, error: 'no such case' }); return true; }
+      out.cvDraft = c.cvDraft.data;
+      out.coverLetter = c.coverLetter.data;
+      out.cvDraftStatus = c.cvDraft.status;
+      out.coverLetterStatus = c.coverLetter.status;
+      // ok ONLY when BOTH generators produced a ready part — never render a phantom-complete card.
+      out.ok = c.cvDraft.status === 'ready' && c.coverLetter.status === 'ready';
+      sendJson(res, out.ok ? 200 : 207, out);
+      return true;
+    }
+
     return false;
   };
 }
