@@ -64,3 +64,24 @@ test('gap-analyzer writes honest fit + gaps citing datafacts', async () => {
   assert.ok(updated.gaps.data[0].bridge.id.startsWith('bridge_'));
   assert.ok(updated.gaps.data[0].bridge.material.length >= 1, 'bridge has material');
 });
+
+test('cv-builder selects datafacts into a cvDraft (selects, never authors)', async () => {
+  const llm = {
+    completeJSON: async ({ prompt }) =>
+      prompt.includes('SELECT') ? { sections: [{ key: 'experience', heading: 'Experience', datafactIds: ['datafact_x'] }] } : {},
+  };
+  const host = createHost({ llm });
+  host.store.ingestDatafact({ id: 'datafact_x', kind: 'datafact', type: 'job_result', text: 'Grew revenue 3x.', tags: ['ComeOn'], language: 'en' });
+  const c = host.store.createCase({ company: 'Acme', role: 'Head of Product' });
+  host.store.writePart(c.meta.id, 'decodedRole', { narrative: '', requirements: [{ id: 'decodedRequirement_1', requirement: 'Scale a commercial org', rationale: '', weight: 0.9 }] });
+  host.store.writePart(c.meta.id, 'fit', { capability: { requirements: [{ requirementRef: { kind: 'decodedRequirement', id: 'decodedRequirement_1' }, evidence: 'Grew revenue 3x.', status: 'match' }], overall: '' }, preference: { narrative: '' } });
+
+  const { result } = await host.invoke('cv-builder', { caseId: c.meta.id });
+  assert.equal(result.ok, true);
+  const draft = host.store.getCase(c.meta.id).cvDraft;
+  assert.equal(draft.status, 'ready');
+  assert.equal(draft.data.language, 'en');
+  const item = draft.data.sections[0].items[0];
+  assert.equal(item.text, 'Grew revenue 3x.', 'selected datafact text is verbatim');
+  assert.equal(item.datafactRef.id, 'datafact_x');
+});
