@@ -175,6 +175,7 @@ module.exports = async function execute(input, options, tools) {
   const perProvider = {};
   const errors = [];
   const items = []; // every record this run saw (new + already-known), in discovery order
+  const inItems = new Set(); // one entry per externalId, even when several terms return it
 
   for (const pid of providerIds) {
     const provider = PROVIDERS[pid];
@@ -194,12 +195,16 @@ module.exports = async function execute(input, options, tools) {
       const canonical = toCanonical(item, provider, tools, nowIso);
       if (!canonical.externalId || canonical.externalId.endsWith('-undefined')) continue;
       const existing = existingByExternalId.get(canonical.externalId);
-      if (existing) { items.push(existing); continue; } // dedup; never clobber an existing decision
+      if (existing) { // dedup; never clobber an existing decision
+        if (!inItems.has(canonical.externalId)) { inItems.add(canonical.externalId); items.push(existing); }
+        continue;
+      }
       const { signal, matchedRules } = stage1Signal(canonical, filterSet);
       canonical.signal = signal;
       canonical.matchedRules = matchedRules;
       tools.store.putRecord('jobs', canonical);
       existingByExternalId.set(canonical.externalId, canonical);
+      inItems.add(canonical.externalId);
       items.push(canonical);
       added += 1;
       // checkpoint partial progress so a long multi-provider run doesn't lose everything on a later error

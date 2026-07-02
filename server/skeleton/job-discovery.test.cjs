@@ -156,6 +156,17 @@ test('returns the items it saw this run: new canonical records AND dedup-hit exi
   assert.equal(byExternalId['remotive-rm1'].decision, 'new');
 });
 
+test('items[] holds each job once even when several search terms return it', async () => {
+  const store = createStore();
+  // both terms hit the jobtech fixture, which returns an item with the SAME id (jt1)
+  seedFilterSet(store, { searchTerms: ['CMO', 'Head of Marketing'], providers: ['jobtech'] });
+
+  const result = await runStandalone(manifest, execute, {}, { store, http: makeFakeHttp() });
+
+  const ids = result.items.map((i) => i.externalId);
+  assert.equal(ids.filter((id) => id === 'jobtech-jt1').length, 1, 'no duplicate items for the same externalId in one run');
+});
+
 test('jobtech search carries the filterSet municipality when set', async () => {
   const store = createStore();
   seedFilterSet(store, { searchTerms: ['CMO'], providers: ['jobtech'], municipality: '0180' });
