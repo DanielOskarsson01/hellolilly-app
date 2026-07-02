@@ -125,6 +125,51 @@ test('POST /generate runs cv-builder + writer and returns both parts ready', asy
   assert.ok(res._body.coverLetter.paragraphs.length >= 4);
 });
 
+// --- Stream 2 jobs search (in-repo job-discovery, no sibling repo) ---
+
+function jobsFakeHttp() {
+  return {
+    get: async (url) => {
+      if (url.includes('jobtechdev.se')) {
+        return { status: 200, body: JSON.stringify({ hits: [
+          { id: 'jt9', headline: 'CMO at Acme', employer: { name: 'Acme' }, workplace_address: { municipality: 'Stockholm' }, description: { text: 'Own growth marketing.' }, webpage_url: 'https://jobs/jt9', publication_date: '2026-06-20' },
+        ] }) };
+      }
+      return { status: 200, body: '[]' };
+    },
+  };
+}
+
+test('POST /api/jobs/search runs in-repo job-discovery and returns UI-shaped jobs', async () => {
+  const host = createHost({ llm: null, search: null, http: jobsFakeHttp() });
+  const handle = createApiHandler(host, { preferencesPath: null, llm: null });
+
+  const res = mockRes();
+  assert.equal(await handle(makeReq('POST', '/api/jobs/search', { keywords: ['CMO'], sources: ['jobtech'], municipality: '0180' }), res), true);
+  assert.equal(res._status, 200);
+  assert.equal(res._body.ok, true);
+  assert.equal(res._body.jobs.length, 1);
+  const j = res._body.jobs[0];
+  assert.equal(j.co, 'Acme');
+  assert.equal(j.t, 'CMO at Acme');
+  assert.equal(j.city, 'Stockholm');
+  assert.equal(j.type, 'Platsbanken');
+  assert.ok(typeof j.match === 'number' && j.match >= 64);
+  assert.equal(j.url, 'https://jobs/jt9');
+  // the run also landed the canonical record in the backend jobs collection
+  assert.equal(host.store.listRecords('jobs').length, 1);
+});
+
+test('POST /api/jobs/search with no matching providers returns empty jobs, not an error', async () => {
+  const host = createHost({ llm: null, search: null, http: jobsFakeHttp() });
+  const handle = createApiHandler(host, { preferencesPath: null, llm: null });
+  const res = mockRes();
+  await handle(makeReq('POST', '/api/jobs/search', { keywords: ['CMO'], sources: ['nonexistent-provider'] }), res);
+  assert.equal(res._status, 200);
+  assert.equal(res._body.ok, true);
+  assert.deepEqual(res._body.jobs, []);
+});
+
 // --- Stream 2 case lifecycle routes (create / list / research) ---
 
 const researchSearch = {

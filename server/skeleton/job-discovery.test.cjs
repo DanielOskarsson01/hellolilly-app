@@ -140,6 +140,30 @@ test('location: out and off-target jobs are FLAGGED (down-ranked), good location
   assert.ok(byCity['Borås'].matchedRules.some((r) => r.rule === 'location_off_target'), 'off-target reason recorded');
 });
 
+test('returns the items it saw this run: new canonical records AND dedup-hit existing records', async () => {
+  const store = createStore();
+  seedFilterSet(store, { searchTerms: ['CMO', 'Head of Product'], providers: ['jobtech', 'remotive'] });
+  // jobtech-jt1 is already known and was rejected — the run must surface the EXISTING record
+  store.putRecord('jobs', { id: 'job_existing', externalId: 'jobtech-jt1', decision: 'rejected', title: 'old title' });
+
+  const result = await runStandalone(manifest, execute, {}, { store, http: makeFakeHttp() });
+
+  assert.ok(Array.isArray(result.items), 'items[] returned');
+  const byExternalId = Object.fromEntries(result.items.map((i) => [i.externalId, i]));
+  assert.equal(byExternalId['jobtech-jt1'].decision, 'rejected', 'dedup hit returns the stored record (with its decision), not a fresh one');
+  assert.equal(byExternalId['jobtech-jt1'].id, 'job_existing');
+  assert.ok(byExternalId['remotive-rm1'], 'a newly-added job is in items too');
+  assert.equal(byExternalId['remotive-rm1'].decision, 'new');
+});
+
+test('jobtech search carries the filterSet municipality when set', async () => {
+  const store = createStore();
+  seedFilterSet(store, { searchTerms: ['CMO'], providers: ['jobtech'], municipality: '0180' });
+  const http = makeFakeHttp();
+  await runStandalone(manifest, execute, {}, { store, http });
+  assert.ok(http.calls.some((u) => u.includes('jobtechdev.se') && u.includes('municipality=0180')), 'municipality param appended');
+});
+
 test('never drops: a job matching a store-backed reject term is stored and FLAGGED, not hidden', async () => {
   const store = createStore();
   seedFilterSet(store, { searchTerms: ['CMO'], providers: ['jobtech'], rejectTitleTerms: ['acme'], badCompanies: ['acme'] });
