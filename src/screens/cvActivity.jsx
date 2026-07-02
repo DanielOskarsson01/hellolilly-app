@@ -2,6 +2,8 @@ import React from 'react';
 import { Icon, Clover, Avatar, AvatarStack, Photo, Tag, Chip, Button, Rating, SectionHeader } from '../components/primitives.jsx';
 import { Sidebar } from '../components/shell.jsx';
 import { CASE_PROFILE, CASE_RECORD, PIPELINE_RUN } from '../data/strategyData.js';
+import { useActiveCase, useCase } from '../hooks/useCase.js';
+import { listCases } from '../api/caseApi.js';
 
 // HelloLilly — CV builder & Activity tracker
 
@@ -41,8 +43,80 @@ const CV_SECTIONS = [
   { title:'Referenser', body:'Referenser lämnas på begäran. Lilly hjälper till att formulera frågan till handledare eller tidigare chef.' },
 ];
 
+// The live preview pane, bound to the active case's cvDraft envelope. Every rendered
+// text is a SELECTED datafact (cv-builder never authors), so the paper shows real,
+// traceable content — or an honest absent/pending/failed state.
+function CVDraftPaper({ caseData, running, actions }) {
+  const draft = caseData && caseData.cvDraft;
+  const status = draft ? draft.status : 'absent';
+
+  if (!caseData || status === 'absent') {
+    return (
+      <div className="cvpaper" style={{ display: 'grid', placeItems: 'center', minHeight: 420, textAlign: 'center', gap: 10 }}>
+        <div>
+          <Clover size={38} color="#2B6CF0" />
+          <h2 style={{ marginTop: 12 }}>Inget CV-utkast ännu</h2>
+          <p className="muted" style={{ maxWidth: 380, margin: '8px auto 14px' }}>
+            CV-utkastet byggs från din matchanalys. Kör en analys på ett accepterat jobb så väljer Lilly de datafakta som passar rollen.
+          </p>
+          <a className="btn btn--primary btn--sm" href="#match"><Icon name="target" size={16} />Till Matchanalys</a>
+        </div>
+      </div>
+    );
+  }
+
+  if (status === 'pending' || running.generate) {
+    return (
+      <div className="cvpaper" style={{ display: 'grid', placeItems: 'center', minHeight: 420, textAlign: 'center', gap: 10 }}>
+        <div>
+          <VoiceWave bars={14} />
+          <h2 style={{ marginTop: 12 }}>Lilly bygger utkastet</h2>
+          <p className="muted" style={{ maxWidth: 380, margin: '8px auto 0' }}>
+            Väljer datafakta per sektion utifrån de avkodade kraven för {caseData.meta.role} hos {caseData.meta.company}.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (status === 'failed') {
+    return (
+      <div className="cvpaper" style={{ display: 'grid', placeItems: 'center', minHeight: 420, textAlign: 'center', gap: 10 }}>
+        <div>
+          <Icon name="doc" size={30} />
+          <h2 style={{ marginTop: 12 }}>Utkastet kunde inte byggas</h2>
+          <p className="muted" style={{ maxWidth: 380, margin: '8px auto 14px' }}>{draft.error || 'Okänt fel.'}</p>
+          <Button variant="secondary" size="sm" icon="target" onClick={() => actions.generate().catch(() => {})}>Försök igen</Button>
+        </div>
+      </div>
+    );
+  }
+
+  const sections = (draft.data && draft.data.sections) || [];
+  return (
+    <div className="cvpaper">
+      <div className="cvpaper__photo">
+        <Photo tone="ph--sky" clover person label="CV-bild" />
+      </div>
+      {/* Single-user product: the pool is Daniel's real CV (meta.owner = 'self'). */}
+      <h2>Daniel Oskarsson</h2>
+      <div className="cv-role">{caseData.meta.role} · {caseData.meta.company}</div>
+      {sections.map((sec) => (
+        <div className="cv-sec" key={sec.key || sec.heading}>
+          <h3>{sec.heading}</h3>
+          {sec.items.map((it) => (
+            <p key={it.datafactRef ? it.datafactRef.id : it.text} style={{ marginTop: 8 }}>{it.text}</p>
+          ))}
+        </div>
+      ))}
+      {sections.length === 0 && <p className="muted" style={{ marginTop: 12 }}>Inga sektioner kunde fyllas från datafakta-poolen.</p>}
+    </div>
+  );
+}
+
 function CVBuilder() {
   const [uploadedTemplates, setUploadedTemplates] = React.useState([]);
+  const { caseData, running, actions } = useActiveCase();
 
   const onTemplateUpload = (event) => {
     const files = Array.from(event.target.files || []).map((file) => ({
@@ -75,7 +149,7 @@ function CVBuilder() {
               <Avatar name="Sara Lind" size="md" tone="av-c3" clover />
               <div>
                 <div className="intake__title">Vi bygger ditt CV från case record</div>
-                <div className="cap">En fråga i taget - kopplat till {PIPELINE_RUN.company}-analysen</div>
+                <div className="cap">En fråga i taget - kopplat till {(caseData && caseData.meta.company) || PIPELINE_RUN.company}-analysen</div>
               </div>
               <span className="intake__prog">60% klart</span>
             </div>
@@ -172,64 +246,18 @@ function CVBuilder() {
             </div>
           </section>
 
-          {/* live preview */}
+          {/* live preview — the real cvDraft for the active case */}
           <section className="cvframe">
             <div style={{ width:'100%', maxWidth:560 }}>
               <div className="between" style={{ marginBottom:14 }}>
-                  <span className="tag tag--green" style={{ gap:6 }}><Icon name="sparkle" size={14} />Pipeline-kopplat</span>
-                <span className="cap" style={{ fontWeight:700 }}>Förhandsvisning · ansökningsklar</span>
+                {caseData && caseData.cvDraft.status === 'ready'
+                  ? <span className="tag tag--green" style={{ gap:6 }}><Icon name="sparkle" size={14} />Byggt från din matchanalys</span>
+                  : <span className="tag tag--ghost" style={{ gap:6 }}><Icon name="doc" size={14} />Väntar på analys</span>}
+                <span className="cap" style={{ fontWeight:700 }}>
+                  {caseData ? `Förhandsvisning · ${caseData.meta.company}` : 'Förhandsvisning'}
+                </span>
               </div>
-              <div className="cvpaper">
-                <div className="cvpaper__photo">
-                  <Photo tone="ph--sky" clover person label="CV-bild" />
-                </div>
-                <h2>{CASE_PROFILE.person}</h2>
-                <div className="cv-role">Lager &amp; logistik · Truckförare</div>
-                <div className="cv-contact">
-                  <span>📍 Västerås</span><span>✉ amir.hassan@mail.se</span><span>✆ 070-123 45 67</span>
-                </div>
-
-                <div className="cv-sec">
-                  <h3>Profil</h3>
-                  <p style={{ marginTop:8 }}>Pålitlig lager- och logistikmedarbetare med praktik från PostNord, truck A1 och vana vid scanning, plockning och inleverans. Söker en roll där noggrannhet, tempo och ansvar räknas.</p>
-                </div>
-
-                <div className="cv-sec">
-                  <h3>Erfarenhet</h3>
-                  <div className="cv-item">
-                    <div className="r"><span className="t">Lagerpraktik</span><span className="d">2025</span></div>
-                    <div className="c">PostNord, Västerås</div>
-                    <p>Plockning, packning, scanning och inleverans. Körde truck A1 och fick beröm för noggrannhet och punktlighet.</p>
-                  </div>
-                  <div className="cv-item">
-                    <div className="r"><span className="t">Butiksbiträde</span><span className="d">2021–2023</span></div>
-                    <div className="c">ICA Maxi, Västerås</div>
-                    <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:4 }}><span className="cv-typing" style={{ fontSize:13 }}>Sara skriver klart den här raden åt dig</span><VoiceWave bars={10} /></div>
-                  </div>
-                </div>
-
-                <div className="cv-sec">
-                  <h3>Kompetenser</h3>
-                  <div className="cv-skills">
-                    <span className="cv-skill">Truck A1</span>
-                    <span className="cv-skill">Lagerhantering</span>
-                    <span className="cv-skill">Noggrann</span>
-                    <span className="cv-skill">Lagspelare</span>
-                    <span className="cv-skill">Handdator/scanning</span>
-                    <span className="cv-skill" style={{ background:'var(--ll-blue-tint-2)', color:'var(--ll-ink-mute)', border:'1px dashed var(--ll-border-strong)' }}>+ truckkort B som nästa steg</span>
-                  </div>
-                </div>
-
-                <div className="cv-sec">
-                  <h3>Språk</h3>
-                  <div style={{ marginTop:10, display:'flex', flexDirection:'column', gap:8 }}>
-                    <div className="between" style={{ fontSize:12.5 }}><span>Svenska</span><span className="muted">Flytande</span></div>
-                    <div className="cv-fillbar"><span style={{ width:'85%' }} /></div>
-                    <div className="between" style={{ fontSize:12.5 }}><span>Arabiska</span><span className="muted">Modersmål</span></div>
-                    <div className="cv-fillbar"><span style={{ width:'100%' }} /></div>
-                  </div>
-                </div>
-              </div>
+              <CVDraftPaper caseData={caseData} running={running} actions={actions} />
             </div>
           </section>
         </div>
