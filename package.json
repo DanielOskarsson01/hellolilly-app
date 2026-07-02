@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "dev": "node server/dev-server.cjs",
+    "dev": "node --env-file-if-exists=.env server/dev-server.cjs",
     "dev:vite": "vite",
     "build": "vite build",
     "preview": "vite preview",

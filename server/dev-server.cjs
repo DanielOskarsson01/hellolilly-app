@@ -8,6 +8,7 @@ const {
   sourceLabel,
 } = require('./job-search-config.cjs');
 const { createHost } = require('./skeleton/host.cjs');
+const { createPersistentStore } = require('./skeleton/store/persistence.cjs');
 const { seedDatafacts } = require('../scripts/seed-datafacts.cjs');
 const { createAnthropicClient } = require('./skeleton/clients/anthropic.cjs');
 const { applyAnswer } = require('./skeleton/fill-gap/bullet-judge.cjs');
@@ -71,7 +72,37 @@ function createApiHandler(host, { preferencesPath, llm } = {}) {
   }
 
   return async function handle(req, res) {
-    const m = req.url.match(/^\/api\/case\/([^/]+)(\/analyze|\/generate|\/gap\/([^/]+)\/answer)?$/);
+    // Case lifecycle (Stream 2): create + list. These make the UI able to start a case
+    // over HTTP — before this, cases could only be born inside a script's own process.
+    if (req.method === 'POST' && req.url === '/api/case') {
+      try {
+        const body = await readJson(req);
+        const company = String(body.company || '').trim();
+        const role = String(body.role || '').trim();
+        if (!company || !role) {
+          sendJson(res, 400, { ok: false, error: 'company and role are required' });
+          return true;
+        }
+        const c = host.store.createCase({ company, role, sourceInput: body.sourceInput || null });
+        sendJson(res, 201, { ok: true, case: c });
+      } catch (err) {
+        sendJson(res, 500, { ok: false, error: err.message });
+      }
+      return true;
+    }
+
+    if (req.method === 'GET' && req.url === '/api/cases') {
+      const cases = host.store.listCases().map((c) => ({
+        meta: c.meta,
+        parts: Object.fromEntries(
+          ['dossiers', 'decodedRole', 'fit', 'gaps', 'cvDraft', 'coverLetter'].map((p) => [p, c[p].status]),
+        ),
+      }));
+      sendJson(res, 200, { ok: true, cases });
+      return true;
+    }
+
+    const m = req.url.match(/^\/api\/case\/([^/]+)(\/analyze|\/generate|\/research|\/gap\/([^/]+)\/answer)?$/);
     if (!m) return false;
     const caseId = decodeURIComponent(m[1]);
     const action = m[2];
@@ -81,6 +112,23 @@ function createApiHandler(host, { preferencesPath, llm } = {}) {
       if (!c) { sendJson(res, 404, { ok: false, error: 'no such case' }); return true; }
       const { meta, decodedRole, fit, gaps, cvDraft, coverLetter } = c;
       sendJson(res, 200, { ok: true, case: { meta, decodedRole, fit, gaps, cvDraft, coverLetter } });
+      return true;
+    }
+
+    if (req.method === 'POST' && action === '/research') {
+      if (!host.store.getCase(caseId)) {
+        sendJson(res, 404, { ok: false, error: 'no such case' });
+        return true;
+      }
+      try {
+        // researcher writes the four dossiers, then summons the decoder through the
+        // broker (decodedRole). A partial run (dossiers ok, decoder failed) surfaces
+        // as 207, never as a silent success.
+        const { result } = await host.invoke('researcher', { caseId });
+        sendJson(res, result.ok ? 200 : 207, result.ok ? { ok: true, ...result } : { ok: false, ...result });
+      } catch (err) {
+        sendJson(res, 500, { ok: false, error: err.message });
+      }
       return true;
     }
 
@@ -305,12 +353,27 @@ async function start() {
   const llm = process.env.ANTHROPIC_API_KEY
     ? createAnthropicClient({ apiKey: process.env.ANTHROPIC_API_KEY })
     : null;
-  const host = createHost({ llm });
-  try {
-    const facts = seedDatafacts(host.store);
-    console.log(`[api] seeded ${facts.length} datafacts into the case store`);
-  } catch (err) {
-    console.warn(`[api] datafact seed skipped: ${err.message}`);
+  // Persistent store (Stream 2): cases/datafacts/collections survive a restart via a
+  // JSON snapshot on disk. server/data/ is gitignored local state.
+  const storePath = process.env.STORE_PATH || path.resolve(__dirname, 'data/store.json');
+  const store = createPersistentStore({ path: storePath });
+  const host = createHost({ llm, store });
+  if (host.store.listDatafacts().length > 0) {
+    console.log(`[api] store restored from ${storePath} (${host.store.listCases().length} cases, ${host.store.listDatafacts().length} datafacts)`);
+  } else {
+    try {
+      const facts = seedDatafacts(host.store);
+      console.log(`[api] seeded ${facts.length} datafacts into the case store`);
+    } catch (err) {
+      console.warn(`[api] datafact seed skipped: ${err.message}`);
+    }
+  }
+  // Flush the snapshot on shutdown so the debounce window can't drop the last writes.
+  for (const sig of ['SIGINT', 'SIGTERM']) {
+    process.on(sig, () => {
+      try { host.store.flush(); } catch (err) { console.error(`[store] flush on ${sig} failed: ${err.message}`); }
+      process.exit(0);
+    });
   }
   const preferencesPath = path.resolve(__dirname, '../docs/candidate_preferences.json');
   const handleCaseApi = createApiHandler(host, { preferencesPath, llm });

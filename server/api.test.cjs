@@ -125,6 +125,93 @@ test('POST /generate runs cv-builder + writer and returns both parts ready', asy
   assert.ok(res._body.coverLetter.paragraphs.length >= 4);
 });
 
+// --- Stream 2 case lifecycle routes (create / list / research) ---
+
+const researchSearch = {
+  grounded: async ({ query }) => ({ text: 'Grounded facts re: ' + String(query).slice(0, 30), citations: ['https://example.com/source'] }),
+};
+
+function researchLlm(override) {
+  return {
+    complete: async () => 'ok',
+    completeJSON: async ({ prompt }) => {
+      if (override) { const r = override(prompt); if (r !== undefined) return r; }
+      if (/dossier as JSON/i.test(prompt)) return { summary: 'A short summary.', paragraphs: [{ text: 'Plain researched facts.' }] };
+      if (/decoded role as JSON/i.test(prompt)) return { narrative: 'What the job really is.', requirements: [{ requirement: 'Own growth end to end', rationale: 'From the signals.', weight: 4 }] };
+      return {};
+    },
+  };
+}
+
+test('POST /api/case creates a case (201); missing company/role is 400', async () => {
+  const host = createHost({ llm: null, search: null });
+  const handle = createApiHandler(host, { preferencesPath: null, llm: null });
+
+  let res = mockRes();
+  assert.equal(await handle(makeReq('POST', '/api/case', { company: 'Curoflow', role: 'Head of Marketing', sourceInput: 'The ad text.' }), res), true);
+  assert.equal(res._status, 201);
+  assert.equal(res._body.ok, true);
+  assert.equal(res._body.case.meta.company, 'Curoflow');
+  assert.equal(res._body.case.meta.sourceInput, 'The ad text.');
+  assert.ok(res._body.case.meta.id.startsWith('case_'));
+  assert.equal(host.store.getCase(res._body.case.meta.id).meta.role, 'Head of Marketing');
+
+  res = mockRes();
+  await handle(makeReq('POST', '/api/case', { company: '  ', role: 'X' }), res);
+  assert.equal(res._status, 400);
+  assert.equal(res._body.ok, false);
+});
+
+test('GET /api/cases lists case metas with part statuses', async () => {
+  const host = createHost({ llm: null, search: null });
+  const handle = createApiHandler(host, { preferencesPath: null, llm: null });
+  const c = host.store.createCase({ company: 'Acme', role: 'PM' });
+  host.store.writePart(c.meta.id, 'decodedRole', { narrative: '', requirements: [] });
+
+  const res = mockRes();
+  assert.equal(await handle(makeReq('GET', '/api/cases'), res), true);
+  assert.equal(res._status, 200);
+  assert.equal(res._body.cases.length, 1);
+  assert.equal(res._body.cases[0].meta.company, 'Acme');
+  assert.equal(res._body.cases[0].parts.decodedRole, 'ready');
+  assert.equal(res._body.cases[0].parts.fit, 'absent');
+});
+
+test('POST /api/case/:id/research runs researcher + brokered decoder', async () => {
+  const host = createHost({ llm: researchLlm(), search: researchSearch });
+  const handle = createApiHandler(host, { preferencesPath: null, llm: researchLlm() });
+  const c = host.store.createCase({ company: 'Curoflow', role: 'Head of Marketing', sourceInput: 'Ad.' });
+
+  const res = mockRes();
+  assert.equal(await handle(makeReq('POST', `/api/case/${c.meta.id}/research`), res), true);
+  assert.equal(res._status, 200);
+  assert.equal(res._body.ok, true);
+  const updated = host.store.getCase(c.meta.id);
+  assert.equal(updated.dossiers.status, 'ready');
+  assert.equal(updated.decodedRole.status, 'ready');
+});
+
+test('POST research on an unknown case is 404; a partial (decoder failed) run is 207', async () => {
+  const failingDecoder = researchLlm((prompt) => {
+    if (/decoded role as JSON/i.test(prompt)) throw new Error('decoder llm boom');
+    return undefined;
+  });
+  const host = createHost({ llm: failingDecoder, search: researchSearch });
+  const handle = createApiHandler(host, { preferencesPath: null, llm: failingDecoder });
+
+  let res = mockRes();
+  await handle(makeReq('POST', '/api/case/nope/research'), res);
+  assert.equal(res._status, 404);
+
+  const c = host.store.createCase({ company: 'Acme', role: 'PM' });
+  res = mockRes();
+  await handle(makeReq('POST', `/api/case/${c.meta.id}/research`), res);
+  assert.equal(res._status, 207);
+  assert.equal(res._body.ok, false);
+  assert.equal(res._body.partial, true);
+  assert.match(res._body.decoderError, /decoder llm boom/);
+});
+
 test('POST /generate is 207 with a per-generator error when one fails', async () => {
   // writer emits a banned phrase -> the writing-rules gate fails the coverLetter part.
   const llm = { completeJSON: async ({ prompt }) => {
