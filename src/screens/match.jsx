@@ -73,16 +73,18 @@ function JobMatchReview() {
                     <div className="accepted-job__body">
                       <div className="accepted-job__top">
                         <h2>{job.t}</h2>
-                        <span className="matchbadge"><span className="n">{job.match || 76}%</span><span className="l">signal</span></span>
+                        {/* Search-signal score from Jobbsök — the real match % comes from the analysis. */}
+                        <span className="matchbadge"><span className="n">{job.match ? `${job.match}%` : '—'}</span><span className="l">signal</span></span>
                       </div>
                       <div className="jobrow__sub">{job.co}<span className="sep" />{job.city}<span className="sep" />{job.type}</div>
                       {job.snippet && <p>{job.snippet}</p>}
                       <div className="jobrow__tags">
+                        {job.caseId && <Tag variant="tag--green">Analyserad</Tag>}
                         {(job.tags || []).slice(0, 4).map((tag) => <Tag key={tag} variant="tag--ghost">{tag}</Tag>)}
                       </div>
                     </div>
                     <div className="accepted-job__actions">
-                      <Button variant="primary" size="sm" icon="target" onClick={() => openAnalysis(job)}>Analysera</Button>
+                      <Button variant="primary" size="sm" icon="target" onClick={() => openAnalysis(job)}>{job.caseId ? 'Öppna analys' : 'Analysera'}</Button>
                       <Button variant="ghost" size="sm" icon="plus" onClick={() => removeJob(job)}>Ta bort</Button>
                       {job.url && (
                         <a className="btn btn--secondary btn--sm" href={job.url} target="_blank" rel="noreferrer">

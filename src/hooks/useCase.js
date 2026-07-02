@@ -50,13 +50,16 @@ export function useCase(caseId) {
     return () => window.removeEventListener('ll:case:changed', refresh);
   }, [refresh]);
 
-  // Poll while any part is being produced server-side.
+  // Poll while any part is being produced server-side, or while one of our own POSTs
+  // is still in flight (research/analyze respond only when finished — polling is what
+  // lets the part statuses animate meanwhile).
+  const anyRunning = Object.values(running).some(Boolean);
   const anyPending = Boolean(caseData) && PARTS.some((p) => caseData[p] && caseData[p].status === 'pending');
   React.useEffect(() => {
-    if (!anyPending) return undefined;
+    if (!anyPending && !anyRunning) return undefined;
     const t = setInterval(refresh, POLL_MS);
     return () => clearInterval(t);
-  }, [anyPending, refresh]);
+  }, [anyPending, anyRunning, refresh]);
 
   const actions = React.useMemo(() => {
     const wrap = (name, fn) => async (...args) => {

@@ -323,7 +323,9 @@ async function start() {
     console.log(`[api] store restored from ${storePath} (${host.store.listCases().length} cases, ${host.store.listDatafacts().length} datafacts)`);
   } else {
     try {
-      const facts = seedDatafacts(host.store);
+      // CV_DATA_PATH overrides the sibling-repo default (needed e.g. in git worktrees,
+      // where the relative ../../JobSearch path does not resolve).
+      const facts = seedDatafacts(host.store, process.env.CV_DATA_PATH ? { jsonPath: process.env.CV_DATA_PATH } : undefined);
       console.log(`[api] seeded ${facts.length} datafacts into the case store`);
     } catch (err) {
       console.warn(`[api] datafact seed skipped: ${err.message}`);
