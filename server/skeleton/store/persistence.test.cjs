@@ -7,7 +7,17 @@
 
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const { setTimeout: delay } = require('node:timers/promises');
 const { createStore } = require('./index.cjs');
+const { createPersistentStore } = require('./persistence.cjs');
+const { createHost } = require('../host.cjs');
+
+function tmpSnapshotPath() {
+  return path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'll-store-')), 'store.json');
+}
 
 function seedStore(store) {
   const c = store.createCase({ company: 'Acme', role: 'PM' });
@@ -63,4 +73,47 @@ test('hydrate detaches: mutating the snapshot afterwards does not reach the stor
 test('hydrate rejects an unversioned snapshot', () => {
   const b = createStore();
   assert.throws(() => b.hydrate({ cases: [] }), /snapshot/);
+});
+
+// --- the JSON-file wrapper ---
+
+test('a persistent store survives a "restart" (same path, new instance)', () => {
+  const p = tmpSnapshotPath();
+  const a = createPersistentStore({ path: p, debounceMs: 0 });
+  const caseId = seedStore(a);
+  a.flush();
+
+  const b = createPersistentStore({ path: p });
+  assert.equal(b.getCase(caseId).meta.company, 'Acme');
+  assert.equal(b.getCase(caseId).decodedRole.status, 'ready');
+  assert.equal(b.getDatafact('datafact_1').text, 'Led a team of five.');
+  assert.equal(b.getRecord('jobs', 'job_1').title, 'Head of Product');
+});
+
+test('mutations trigger a debounced save without an explicit flush', async () => {
+  const p = tmpSnapshotPath();
+  const a = createPersistentStore({ path: p, debounceMs: 1 });
+  a.putRecord('jobs', { id: 'job_auto', title: 'Auto-saved' });
+  await delay(40);
+  const snap = JSON.parse(fs.readFileSync(p, 'utf8'));
+  const b = createStore();
+  b.hydrate(snap);
+  assert.equal(b.getRecord('jobs', 'job_auto').title, 'Auto-saved');
+});
+
+test('a corrupt snapshot file starts empty (no throw) and is kept as .corrupt', () => {
+  const p = tmpSnapshotPath();
+  fs.writeFileSync(p, '{not json');
+  const a = createPersistentStore({ path: p });
+  assert.deepEqual(a.listCases(), []);
+  assert.ok(fs.existsSync(`${p}.corrupt`));
+});
+
+test('createHost accepts an injected store', () => {
+  const mine = createStore();
+  const host = createHost({ llm: null, search: null, store: mine });
+  assert.equal(host.store, mine);
+  // and the host actually uses it
+  const c = host.store.createCase({ company: 'X', role: 'Y' });
+  assert.equal(mine.getCase(c.meta.id).meta.company, 'X');
 });

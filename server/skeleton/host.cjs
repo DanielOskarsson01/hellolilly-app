@@ -63,8 +63,10 @@ function loadSubmodules(registry, dir) {
   return ids;
 }
 
-function createHost({ http, llm, search, submodulesDir, limits } = {}) {
-  const store = createStore();
+function createHost({ http, llm, search, submodulesDir, limits, store: injectedStore } = {}) {
+  // An injected store lets the caller supply a persistent one (store/persistence.cjs);
+  // default stays the plain in-memory store.
+  const store = injectedStore || createStore();
   const registry = createRegistry();
   const broker = createBroker({
     registry,
