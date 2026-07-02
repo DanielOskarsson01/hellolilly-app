@@ -115,8 +115,8 @@ function createApiHandler(host, { preferencesPath, llm } = {}) {
     if (req.method === 'GET' && !action) {
       const c = host.store.getCase(caseId);
       if (!c) { sendJson(res, 404, { ok: false, error: 'no such case' }); return true; }
-      const { meta, decodedRole, fit, gaps, cvDraft, coverLetter } = c;
-      sendJson(res, 200, { ok: true, case: { meta, decodedRole, fit, gaps, cvDraft, coverLetter } });
+      const { meta, dossiers, decodedRole, fit, gaps, cvDraft, coverLetter } = c;
+      sendJson(res, 200, { ok: true, case: { meta, dossiers, decodedRole, fit, gaps, cvDraft, coverLetter } });
       return true;
     }
 

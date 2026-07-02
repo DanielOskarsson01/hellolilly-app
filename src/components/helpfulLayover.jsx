@@ -309,7 +309,7 @@ function JobAnalysisContent({ job }) {
   // 2. Drive the pipeline forward off the real part statuses.
   React.useEffect(() => {
     if (!caseData) return;
-    const s = (p) => caseData[p] && caseData[p].status;
+    const s = (p) => (caseData[p] && caseData[p].status) || 'absent';
     if (s('dossiers') === 'absent' && s('decodedRole') === 'absent' && !started.current.research) {
       started.current.research = true;
       actions.research().catch(() => { /* surfaced via part status on refresh */ });
@@ -334,12 +334,14 @@ function JobAnalysisContent({ job }) {
     if (!caseData) return 'absent';
     return (caseData[p] && caseData[p].status) || 'absent';
   };
+  const firstNotReady = ANALYSIS_STEPS.find((s) => partStatus(s.part) !== 'ready');
   const stepState = (p) => {
     const st = partStatus(p);
     if (st === 'ready') return 'is-done';
     if (st === 'failed') return 'is-failed';
-    // 'pending' server-side, or currently being requested
-    if (st === 'pending' || running.research || running.analyze) return 'is-now';
+    if (st === 'pending') return 'is-now';
+    // While a request is in flight, light only the first step that is not done yet.
+    if ((running.research || running.analyze) && firstNotReady && firstNotReady.part === p) return 'is-now';
     return '';
   };
 

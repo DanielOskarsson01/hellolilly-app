@@ -36,6 +36,7 @@ test('GET /api/case/:id returns the case parts; analyze writes fit+gaps', async 
   assert.equal(res._status, 200);
   assert.equal(res._body.case.meta.company, 'Acme');
   assert.equal(res._body.case.decodedRole.status, 'ready');
+  assert.equal(res._body.case.dossiers.status, 'absent', 'dossiers envelope IS served (the analysis stepper reads it)');
 
   res = mockRes();
   await handle(makeReq('POST', `/api/case/${c.meta.id}/analyze`), res);
