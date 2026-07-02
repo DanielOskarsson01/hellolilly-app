@@ -5,6 +5,7 @@ const KEYS = {
   acceptedJobs: 'hellolilly:accepted-jobs',
   removedJobs: 'hellolilly:removed-jobs',
   latestSearch: 'hellolilly:latest-job-search',
+  activeCase: 'hellolilly:active-case',
 };
 
 function canStore() {
@@ -44,6 +45,7 @@ function compactJob(job = {}) {
     logo: job.logo || '#2B6CF0',
     hot: Boolean(job.hot),
     acceptedAt: job.acceptedAt,
+    caseId: job.caseId || null, // the backend case this job's analysis lives in
   };
 }
 
@@ -131,6 +133,25 @@ function saveLatestJobSearch(query, payload) {
   return next;
 }
 
+// --- the job <-> backend-case linkage (Stream 2 bridge) ---
+
+// Attach a backend caseId to an accepted job, so Matchanalys re-opens the same
+// case instead of creating a new one per click.
+function setJobCase(jobOrId, caseId) {
+  const id = typeof jobOrId === 'string' ? jobOrId : jobKey(jobOrId);
+  writeJson(KEYS.acceptedJobs, getAcceptedJobs().map((job) => (jobKey(job) === id ? { ...job, caseId } : job)));
+}
+
+// The case the CV / cover-letter / home screens render. Set when an analysis starts.
+function getActiveCaseId() {
+  return readJson(KEYS.activeCase, null);
+}
+
+function setActiveCaseId(caseId) {
+  writeJson(KEYS.activeCase, caseId || null);
+  if (canStore()) window.dispatchEvent(new CustomEvent('ll:case:changed'));
+}
+
 function removeJob(job) {
   const id = jobKey(job);
   const removed = new Set(getRemovedJobIds());
@@ -146,6 +167,7 @@ function isJobRemoved(job) {
 export {
   acceptJob,
   getAcceptedJobs,
+  getActiveCaseId,
   getLatestJobSearch,
   getRemovedJobIds,
   getSavedSearches,
@@ -156,4 +178,6 @@ export {
   removeSavedSearch,
   saveLatestJobSearch,
   saveSearch,
+  setActiveCaseId,
+  setJobCase,
 };
