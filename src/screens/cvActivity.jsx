@@ -1,7 +1,7 @@
 import React from 'react';
 import { Icon, Clover, Avatar, AvatarStack, Photo, Tag, Chip, Button, Rating, SectionHeader } from '../components/primitives.jsx';
 import { Sidebar } from '../components/shell.jsx';
-import { CASE_PROFILE, CASE_RECORD, PIPELINE_RUN } from '../data/strategyData.js';
+import { CASE_PROFILE, PIPELINE_RUN } from '../data/strategyData.js';
 import { useActiveCase, useCase } from '../hooks/useCase.js';
 import { listCases } from '../api/caseApi.js';
 
@@ -277,9 +277,60 @@ function WeekRing({ pct = 72 }) {
   );
 }
 
-const ACTIVITY = CASE_RECORD.timeline;
+// The honest activity strip: literally a render of the case parts' status envelopes
+// across all cases (there is no separate activity log in the backend — this IS the
+// real system state, with real timestamps).
+const PART_ACTIVITY = {
+  dossiers: { label: 'Research klar', m: 'Företag, produkt, människor och nisch researchade.', ic: 'search', tint: 'ic-blue' },
+  decodedRole: { label: 'Rollen avkodad', m: 'Det verkliga jobbet bakom annonsen, med viktade krav.', ic: 'target', tint: 'ic-lilac' },
+  fit: { label: 'Matchanalys körd', m: 'Ärlig fit per krav, varje match citerar en datafakta.', ic: 'sparkle', tint: 'ic-green' },
+  gaps: { label: 'Luckor namngivna', m: 'Luckorna och deras bryggor är på plats.', ic: 'bulb', tint: 'ic-amber' },
+  cvDraft: { label: 'CV-utkast byggt', m: 'Sektioner valda ur datafakta-poolen.', ic: 'cv', tint: 'ic-blue' },
+  coverLetter: { label: 'Personligt brev skrivet', m: 'Brevet med ärlig bridge-paragraf.', ic: 'letter', tint: 'ic-lilac' },
+};
+
+function useActivityRows() {
+  const [cases, setCases] = React.useState(null);
+  React.useEffect(() => {
+    let alive = true;
+    const load = () => listCases().then((cs) => { if (alive) setCases(cs); }).catch(() => { if (alive) setCases([]); });
+    load();
+    window.addEventListener('ll:case:changed', load);
+    return () => { alive = false; window.removeEventListener('ll:case:changed', load); };
+  }, []);
+
+  if (cases === null) return { loading: true, days: [], readyCount: 0, caseCount: 0 };
+  const rows = [];
+  for (const c of cases) {
+    for (const [part, info] of Object.entries(PART_ACTIVITY)) {
+      const p = c.parts[part];
+      if (!p || p.status === 'absent') continue;
+      rows.push({
+        part, ...info,
+        status: p.status,
+        t: p.status === 'ready' ? info.label : p.status === 'pending' ? `${info.label.split(' ')[0]} pågår…` : `${info.label} misslyckades`,
+        company: c.meta.company, role: c.meta.role,
+        at: p.updatedAt,
+      });
+    }
+  }
+  rows.sort((a, b) => new Date(b.at) - new Date(a.at));
+  const byDay = new Map();
+  for (const r of rows) {
+    const day = new Date(r.at).toLocaleDateString('sv-SE', { weekday: 'long', day: 'numeric', month: 'long' });
+    if (!byDay.has(day)) byDay.set(day, []);
+    byDay.get(day).push(r);
+  }
+  return {
+    loading: false,
+    days: [...byDay.entries()].map(([day, items]) => ({ day, items })),
+    readyCount: rows.filter((r) => r.status === 'ready').length,
+    caseCount: cases.length,
+  };
+}
 
 function ActivityTracker() {
+  const { loading, days, readyCount, caseCount } = useActivityRows();
   return (
     <div className="ll app app--warm" data-screen-label="Min aktivitet">
       <Sidebar active="activity" />
@@ -312,19 +363,28 @@ function ActivityTracker() {
               </div>
 
               <div className="atimeline">
-                {ACTIVITY.map((g, gi) => (
-                  <div className="aday" key={gi}>
-                    <div className="aday__label">{g.day}<span className="pill">{g.pill}</span></div>
-                    {g.items.map((a, ai) => (
-                      <div className="aitem" key={ai}>
+                {loading && <p className="muted">Hämtar aktivitet…</p>}
+                {!loading && days.length === 0 && (
+                  <div className="card card--pad" style={{ textAlign: 'center' }}>
+                    <Icon name="target" size={26} />
+                    <h3 style={{ marginTop: 8 }}>Ingen aktivitet än</h3>
+                    <p className="muted" style={{ marginTop: 6 }}>Aktiviteten fylls på när du kör en matchanalys — varje steg loggas automatiskt från systemets verkliga tillstånd.</p>
+                    <a className="btn btn--primary btn--sm" style={{ marginTop: 12 }} href="#match"><Icon name="target" size={16} />Till Matchanalys</a>
+                  </div>
+                )}
+                {days.map((g) => (
+                  <div className="aday" key={g.day}>
+                    <div className="aday__label" style={{ textTransform: 'capitalize' }}>{g.day}<span className="pill">{g.items.length} {g.items.length === 1 ? 'aktivitet' : 'aktiviteter'}</span></div>
+                    {g.items.map((a) => (
+                      <div className="aitem" key={`${a.company}-${a.part}`}>
                         <div className="aitem__rail"><div className={`aitem__ic ${a.tint}`}><Icon name={a.ic} size={20} /></div></div>
                         <div className="aitem__card">
                           <div className="aitem__top">
                             <span className="aitem__t">{a.t}</span>
-                            <span className="aitem__time">{a.time}</span>
+                            <span className="aitem__time">{new Date(a.at).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}</span>
                           </div>
-                          <p className="aitem__m">{a.m}</p>
-                          {a.auto && <div style={{ marginTop:10 }}><span className="aitem__auto"><Icon name="sparkle" size={12} />Loggades automatiskt</span></div>}
+                          <p className="aitem__m">{a.company} · {a.role}{a.status === 'ready' ? ` — ${a.m}` : ''}</p>
+                          <div style={{ marginTop:10 }}><span className="aitem__auto"><Icon name="sparkle" size={12} />Loggades automatiskt</span></div>
                         </div>
                       </div>
                     ))}
@@ -338,12 +398,12 @@ function ActivityTracker() {
               <div className="card card--pad" style={{ textAlign:'center' }}>
                 <h3 style={{ fontFamily:'var(--font-display)', fontSize:16, fontWeight:800, marginBottom:14 }}>Din vecka i siffror</h3>
                 <div style={{ position:'relative', width:86, height:86, margin:'0 auto 8px' }}>
-                  <WeekRing pct={72} />
+                  <WeekRing pct={Math.min(100, readyCount * 10)} />
                   <div style={{ position:'absolute', inset:0, display:'grid', placeItems:'center' }}>
-                    <div><div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:22, lineHeight:1 }}>{CASE_RECORD.activityCount}</div><div className="cap" style={{ fontSize:11 }}>aktiviteter</div></div>
+                    <div><div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:22, lineHeight:1 }}>{readyCount}</div><div className="cap" style={{ fontSize:11 }}>klara delar</div></div>
                   </div>
                 </div>
-                <p className="muted" style={{ fontSize:13.5 }}>Du har varit aktiv <b style={{ color:'var(--ll-ink)' }}>{CASE_RECORD.activeDays}</b>. Nästa steg: {CASE_RECORD.nextStep}.</p>
+                <p className="muted" style={{ fontSize:13.5 }}>{caseCount === 0 ? 'Inga ärenden än — allt börjar med ett accepterat jobb.' : <><b style={{ color:'var(--ll-ink)' }}>{caseCount}</b> {caseCount === 1 ? 'ärende' : 'ärenden'} med <b style={{ color:'var(--ll-ink)' }}>{readyCount}</b> klara delar. Varje del är systemets verkliga tillstånd, inte en uppskattning.</>}</p>
               </div>
 
               <div className="card card--pad">
@@ -351,7 +411,7 @@ function ActivityTracker() {
                   <Clover size={24} color="#2B6CF0" />
                   <strong style={{ fontFamily:'var(--font-display)', fontSize:15 }}>Det här räknas</strong>
                 </div>
-                <p style={{ fontSize:13.5, color:'var(--ll-ink-soft)' }}>Den här vyn finns för att <b>visa hur långt du kommit</b> - inte för att kontrollera dig. Saras notering: {CASE_RECORD.coachNote}</p>
+                <p style={{ fontSize:13.5, color:'var(--ll-ink-soft)' }}>Den här vyn finns för att <b>visa hur långt du kommit</b> - inte för att kontrollera dig. Allt här loggas automatiskt av verktygen själva.</p>
               </div>
             </div>
           </div>

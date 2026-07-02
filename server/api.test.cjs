@@ -218,8 +218,9 @@ test('GET /api/cases lists case metas with part statuses', async () => {
   assert.equal(res._status, 200);
   assert.equal(res._body.cases.length, 1);
   assert.equal(res._body.cases[0].meta.company, 'Acme');
-  assert.equal(res._body.cases[0].parts.decodedRole, 'ready');
-  assert.equal(res._body.cases[0].parts.fit, 'absent');
+  assert.equal(res._body.cases[0].parts.decodedRole.status, 'ready');
+  assert.ok(res._body.cases[0].parts.decodedRole.updatedAt, 'part carries updatedAt for activity derivation');
+  assert.equal(res._body.cases[0].parts.fit.status, 'absent');
 });
 
 test('POST /api/case/:id/research runs researcher + brokered decoder', async () => {

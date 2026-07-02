@@ -99,7 +99,8 @@ function createApiHandler(host, { preferencesPath, llm } = {}) {
       const cases = host.store.listCases().map((c) => ({
         meta: c.meta,
         parts: Object.fromEntries(
-          ['dossiers', 'decodedRole', 'fit', 'gaps', 'cvDraft', 'coverLetter'].map((p) => [p, c[p].status]),
+          ['dossiers', 'decodedRole', 'fit', 'gaps', 'cvDraft', 'coverLetter']
+            .map((p) => [p, { status: c[p].status, updatedAt: c[p].updatedAt }]),
         ),
       }));
       sendJson(res, 200, { ok: true, cases });
