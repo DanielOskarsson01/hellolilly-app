@@ -8,8 +8,7 @@ const {
   sourceLabel,
 } = require('./job-search-config.cjs');
 const { createHost } = require('./skeleton/host.cjs');
-const { createPersistentStore } = require('./skeleton/store/persistence.cjs');
-const { seedDatafacts } = require('../scripts/seed-datafacts.cjs');
+const { bootstrapStore, seedDatafactsIfEmpty } = require('./store-bootstrap.cjs');
 const { createAnthropicClient } = require('./skeleton/clients/anthropic.cjs');
 const { applyAnswer } = require('./skeleton/fill-gap/bullet-judge.cjs');
 
@@ -317,27 +316,35 @@ async function start() {
   const llm = process.env.ANTHROPIC_API_KEY
     ? createAnthropicClient({ apiKey: process.env.ANTHROPIC_API_KEY })
     : null;
-  // Persistent store (Stream 2): cases/datafacts/collections survive a restart via a
-  // JSON snapshot on disk. server/data/ is gitignored local state.
-  const storePath = process.env.STORE_PATH || path.resolve(__dirname, 'data/store.json');
-  const store = createPersistentStore({ path: storePath });
+  // Durable store (D1): SQLite by default (STORE_ADAPTER=json|memory to override),
+  // with a one-time migration from the Stream 2 JSON snapshot. server/data/ is
+  // gitignored local state.
+  const boot = bootstrapStore();
+  const store = boot.store;
   const host = createHost({ llm, store });
+  if (boot.migrated) {
+    console.log(`[store] migrated legacy JSON snapshot into ${boot.path}`);
+  }
   if (host.store.listDatafacts().length > 0) {
-    console.log(`[api] store restored from ${storePath} (${host.store.listCases().length} cases, ${host.store.listDatafacts().length} datafacts)`);
+    console.log(`[store] ${boot.adapter} store at ${boot.path} (${host.store.listCases().length} cases, ${host.store.listDatafacts().length} datafacts)`);
   } else {
     try {
-      // CV_DATA_PATH overrides the sibling-repo default (needed e.g. in git worktrees,
-      // where the relative ../../JobSearch path does not resolve).
-      const facts = seedDatafacts(host.store, process.env.CV_DATA_PATH ? { jsonPath: process.env.CV_DATA_PATH } : undefined);
-      console.log(`[api] seeded ${facts.length} datafacts into the case store`);
+      // CV_DATA_PATH overrides the seed source (see scripts/seed-datafacts.cjs).
+      const r = seedDatafactsIfEmpty(host.store, process.env.CV_DATA_PATH ? { jsonPath: process.env.CV_DATA_PATH } : undefined);
+      console.log(`[api] seeded ${r.seeded} datafacts into the ${boot.adapter} store`);
     } catch (err) {
       console.warn(`[api] datafact seed skipped: ${err.message}`);
     }
   }
-  // Flush the snapshot on shutdown so the debounce window can't drop the last writes.
+  // Shutdown: flush the JSON wrapper's debounce window / close the sqlite handle.
   for (const sig of ['SIGINT', 'SIGTERM']) {
     process.on(sig, () => {
-      try { host.store.flush(); } catch (err) { console.error(`[store] flush on ${sig} failed: ${err.message}`); }
+      try {
+        if (typeof host.store.flush === 'function') host.store.flush();
+        if (typeof host.store.close === 'function') host.store.close();
+      } catch (err) {
+        console.error(`[store] shutdown persist on ${sig} failed: ${err.message}`);
+      }
       process.exit(0);
     });
   }
@@ -346,7 +353,18 @@ async function start() {
 
   const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && req.url === '/api/health') {
-      return sendJson(res, 200, { ok: true, service: 'hello-lilly-dev-server' });
+      // "Is it durable?" is checkable here, not assumed.
+      return sendJson(res, 200, {
+        ok: true,
+        service: 'hello-lilly-dev-server',
+        store: {
+          adapter: boot.adapter,
+          path: boot.path,
+          durable: boot.adapter !== 'memory',
+          cases: host.store.listCases().length,
+          datafacts: host.store.listDatafacts().length,
+        },
+      });
     }
 
     if (await handleCaseApi(req, res)) return;

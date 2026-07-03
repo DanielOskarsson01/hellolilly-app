@@ -1,5 +1,13 @@
 # HelloLilly - Project Inventory (factual state of the code)
 
+> **ERRATA (2026-07-03):** this is a dated stocktaking; the codebase has moved since.
+> Superseded by later merges — do not treat these as current:
+> - **Seam A ("frontend does not use its own backend") is closed** for six surfaces; the `useCase()` bridge exists. See `docs/STREAM2_BRIDGE.md`.
+> - **The OnlyiGaming sibling route is deleted** (`PIPELINE_MODULES_DIR` / lazy `api-search` require, §The API layer + seam B5): `/api/jobs/search` now runs the in-repo `job-discovery` submodule.
+> - **The store is no longer memory-only** (§The store "PERSISTENCE REALITY"): D1 added a durable SQLite adapter (default) behind the same signatures.
+> - **The JobSearch-sibling seed path is gone** (§Seeds and scripts): the canonical `cv_data.json` lives in-repo at `data/cv_data.json` (gitignored).
+> For what changed and how, read `docs/STREAM2_BRIDGE.md` and the D1+D2 build report in `docs/verification/`.
+
 **Date:** 2026-07-02
 **Repo:** `hello lily - app` (github.com/DanielOskarsson01/hellolilly-app), current `main` (origin/main `16a0451`; working tree verified identical for `server/`, `src/`, `scripts/`).
 **What this is:** A stocktaking of what the code IS and DOES today - not what was intended. No fixes, no priorities, no opinions. Where a fact could not be confirmed from the code it is marked **UNVERIFIED** rather than guessed.

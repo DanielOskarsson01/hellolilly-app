@@ -18,9 +18,9 @@ test('seedDatafacts ingests datafacts from a json file into a store', () => {
   fs.unlinkSync(tmp);
 });
 
-// Real-shape contract test. JobSearch is a sibling tree, not in this repo's git, so it may be
-// absent in CI — skip when missing rather than fail. Locally it asserts the mapper matches the
-// REAL cv_data.json (guards against the shape drift the review flagged).
+// Real-shape contract test. data/cv_data.json is gitignored personal data, so it is
+// absent in CI / fresh clones — skip when missing rather than fail. Locally it asserts
+// the mapper matches the REAL cv_data.json (guards against shape drift).
 test('seedDatafacts on the REAL canonical cv_data.json yields a substantial, typed pool', { skip: !fs.existsSync(DEFAULT_JSON) }, () => {
   const store = createStore();
   const facts = seedDatafacts(store);

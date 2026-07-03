@@ -7,3 +7,6 @@ dist/
 
 # Store snapshot (local state, never commit)
 server/data/
+
+# Candidate evidence pool (D2): personal data, in-repo but never committed
+data/cv_data.json
