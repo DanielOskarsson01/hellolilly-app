@@ -1,5 +1,5 @@
 import React from 'react';
-import { Icon, Clover, Avatar, AvatarStack, Photo, Tag, Chip, Button, Rating, SectionHeader } from '../components/primitives.jsx';
+import { Icon, Clover, Avatar, AvatarStack, Photo, Tag, Chip, Button, Rating, SectionHeader, DemoBar } from '../components/primitives.jsx';
 import { Sidebar } from '../components/shell.jsx';
 import { CASE_PROFILE, PIPELINE_RUN } from '../data/strategyData.js';
 import { useActiveCase, useCase } from '../hooks/useCase.js';
@@ -143,8 +143,9 @@ function CVBuilder() {
         </ToolHeader>
 
         <div className="cvbuilder-grid">
-          {/* intake */}
+          {/* intake — fixture conversation (labelled demo until the Stream 1 design pass wires it) */}
           <section className="intake" style={{ borderRight:'1px solid var(--ll-border)' }}>
+            <DemoBar />
             <div className="intake__head">
               <Avatar name="Sara Lind" size="md" tone="av-c3" clover />
               <div>

@@ -215,7 +215,7 @@ function ComingSoon({ routeKey }) {
   );
 }
 
-function Topbar({ name = 'Amir' }) {
+function Topbar({ name = 'Daniel Oskarsson' }) {
   return (
     <header className="topbar">
       <div className="topbar__search">

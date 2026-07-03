@@ -1,5 +1,5 @@
 import React from 'react';
-import { Icon, Clover, Avatar, AvatarStack, Photo, Tag, Button, Rating, SectionHeader } from '../components/primitives.jsx';
+import { Icon, Clover, Avatar, AvatarStack, Photo, Tag, Button, Rating, SectionHeader, DemoBar } from '../components/primitives.jsx';
 import { JobResultsList } from '../components/jobResultsList.jsx';
 import { Sidebar, Topbar, CoachCard, MilestonePath, Stats, Todo, ToolGrid, CourseFeed } from '../components/shell.jsx';
 import {
@@ -194,6 +194,7 @@ function HomeExpanded() {
               </div>
 
               <div className="impcard">
+                <DemoBar />
                 <div className="impcard__head"><div className="impcard__ic ic-coral"><Icon name="mic" size={20} /></div><div className="impcard__t">Intervjuträning</div><span style={{ marginLeft:'auto' }}><Tag variant="tag--coral">40%</Tag></span></div>
                 <div className="impbar"><span style={{ width:'40%', background:'var(--ll-coral)' }} /></div>
                 <div className="impcard__list">
@@ -222,6 +223,7 @@ function HomeExpanded() {
           {/* ---------- FOUNDATION SYSTEM ---------- */}
           <section>
             <SectionHeader title="Grundsystemet som gör jobbet med dig" sub="Sex första moduler från strategin, kopplade till samma case och samma kunskap" seeAll={null} />
+            <DemoBar />
             <div className="quickact">
               {FOUNDATION_TOOLS.map((tool) => (
                 <a key={tool.id} href={`#${tool.id}`} className="qact">
@@ -248,6 +250,7 @@ function HomeExpanded() {
           {/* ---------- TRIO: discussions / videos / news ---------- */}
           <section>
             <SectionHeader title="För dig just nu" sub="Samtal, korta videor och nyheter som kan hjälpa dig" seeAll={null} />
+            <DemoBar />
             <div className="trio">
               <div className="panel">
                 <div className="panel__head"><div className="panel__ic ic-lilac"><Icon name="users" size={18} /></div><h3>Nya diskussioner</h3><a className="seeall" href="#">Forum</a></div>
@@ -290,6 +293,7 @@ function HomeExpanded() {
           {/* ---------- LEARN (fearless) ---------- */}
           <section>
             <SectionHeader title="Lär dig något nytt" sub="I din egen takt" seeAll="Bibliotek" />
+            <DemoBar />
             <div className="learn-rs"><Clover size={18} color="#8E7CF0" />Du kan inte göra fel här — allt går att ångra, och ingen ser något du inte vill dela.</div>
             <div className="learn">
               {LEARN.map((l,i) => (
@@ -306,6 +310,7 @@ function HomeExpanded() {
           {/* ---------- COACHING COLD OUTREACH ---------- */}
           <section>
             <SectionHeader title="Våga höra av dig först" sub="Det här är ofta så de bästa jobben hittas" seeAll={null} />
+            <DemoBar />
             <div className="outreach">
               <div className="outreach__l">
                 <h2>Ett vänligt mejl kan öppna en dörr</h2>
@@ -328,6 +333,7 @@ function HomeExpanded() {
           {/* ---------- COMMUNITY ---------- */}
           <section>
             <SectionHeader title="Tillsammans i Lilly" sub="Du är inte ensam i det här" seeAll={null} />
+            <DemoBar />
             <div className="commwrap">
               <div className="commstats">
                 <div className="commstat"><div className="stat__ic ic-green" style={{ width:44, height:44, marginBottom:0 }}><Icon name="briefcase" size={20} /></div><div><div className="big" style={{ color:'#1c7a48' }}>4</div><div className="lab">fick jobb den här veckan 🎉</div></div></div>
