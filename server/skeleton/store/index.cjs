@@ -162,17 +162,21 @@ function createStore() {
   }
 
   // IMPORTED-FACTS path. Exempt from the writing-rules gate by design (real CV text is
-  // evidence, kept verbatim). Host-level only — not on tools.store.
+  // evidence, kept verbatim). Host-level only — not on tools.store. Detached at the
+  // boundary like cases/collections: a caller mutating a fact object after ingest (or a
+  // read copy) cannot change the stored evidence — which also means the ref-scoped gate
+  // exemption always compares against the text as INGESTED, and (now that the store is
+  // durable) in-session reads and post-restart reads can never diverge.
   function ingestDatafact(df) {
     if (!df || !df.id) throw new Error('ingestDatafact: a datafact with an id is required');
-    datafacts.set(df.id, df);
-    return df;
+    datafacts.set(df.id, detach(df));
+    return detach(df);
   }
   function getDatafact(id) {
-    return datafacts.get(id) || null;
+    return detach(datafacts.get(id) || null);
   }
   function listDatafacts() {
-    return [...datafacts.values()];
+    return [...datafacts.values()].map(detach);
   }
 
   return {
