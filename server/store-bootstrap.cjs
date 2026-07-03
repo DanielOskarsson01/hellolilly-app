@@ -32,17 +32,33 @@ function bootstrapStore({
   if (adapter === 'sqlite') {
     const p = storePath || path.join(dataDir, 'store.db');
     const legacyJson = path.join(dataDir, 'store.json');
-    const dbExisted = fs.existsSync(p);
     const store = createSqliteStore({ path: p });
     let migrated = false;
-    // One-time migration: a fresh db next to a Stream 2 JSON snapshot inherits it.
-    // Once the db exists the snapshot is never consulted again (no re-migration).
-    if (!dbExisted && fs.existsSync(legacyJson)) {
+    // One-time migration: an EMPTY db next to a Stream 2 JSON snapshot inherits it.
+    // Emptiness (not file existence) is the guard, so a crash between db creation
+    // and hydrate cannot silently suppress the migration on the next boot; a
+    // populated db is never re-migrated.
+    const snap = store.snapshot();
+    const dbEmpty = snap.cases.length === 0 && snap.datafacts.length === 0 && snap.collections.length === 0;
+    if (dbEmpty && fs.existsSync(legacyJson)) {
+      let legacySnap = null;
       try {
-        store.hydrate(JSON.parse(fs.readFileSync(legacyJson, 'utf8')));
-        migrated = true;
+        legacySnap = JSON.parse(fs.readFileSync(legacyJson, 'utf8'));
       } catch (err) {
+        // Unreadable snapshot: memory and disk are BOTH empty — consistent, warn and go on.
         console.warn(`[store] legacy snapshot at ${legacyJson} unreadable (${err.message}) — starting empty`);
+      }
+      if (legacySnap) {
+        // hydrate() loads memory then rewrites the db transactionally. If the disk
+        // write fails we must NOT serve legacy data that will not persist — fail the
+        // boot loudly instead (store.json is untouched on disk; a retry is safe).
+        try {
+          store.hydrate(legacySnap);
+          migrated = true;
+        } catch (err) {
+          store.close();
+          throw new Error(`[store] migration of ${legacyJson} into ${p} failed mid-write: ${err.message} — boot aborted (legacy snapshot preserved; retry after fixing disk state)`);
+        }
       }
     }
     return { store, adapter: 'sqlite', path: p, migrated };

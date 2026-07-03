@@ -63,8 +63,39 @@ test('one-time migration: a legacy JSON snapshot is loaded into the new sqlite d
   again.store.close();
 });
 
+test('migration also runs into an EMPTY pre-existing db (crash-window recovery)', () => {
+  const dir = tmpDir();
+  // simulate a first boot that crashed after creating the db but before migrating:
+  // an empty database file already exists next to the legacy snapshot
+  const empty = bootstrapStore({ adapter: 'sqlite', dataDir: dir });
+  empty.store.close();
+
+  const legacy = createStore();
+  const c = legacy.createCase({ company: 'Acme', role: 'PM' });
+  fs.writeFileSync(path.join(dir, 'store.json'), JSON.stringify(legacy.snapshot()));
+
+  const boot = bootstrapStore({ adapter: 'sqlite', dataDir: dir });
+  assert.equal(boot.migrated, true, 'an empty db does not suppress the migration');
+  assert.equal(boot.store.getCase(c.meta.id).meta.company, 'Acme');
+  boot.store.close();
+});
+
+test('a corrupt legacy snapshot warns and starts empty; memory and disk stay consistent', () => {
+  const dir = tmpDir();
+  fs.writeFileSync(path.join(dir, 'store.json'), '{not json');
+  const boot = bootstrapStore({ adapter: 'sqlite', dataDir: dir });
+  assert.equal(boot.migrated, false);
+  assert.deepEqual(boot.store.listCases(), []);
+  boot.store.close();
+  // and the next boot is equally empty — nothing half-loaded anywhere
+  const again = bootstrapStore({ adapter: 'sqlite', dataDir: dir });
+  assert.deepEqual(again.store.listCases(), []);
+  again.store.close();
+});
+
 test('adapter selection: sqlite (default), json, memory — each self-describes', () => {
   const dir = tmpDir();
+  delete process.env.STORE_ADAPTER; // the default must not depend on the test runner's env
   const s = bootstrapStore({ dataDir: dir });
   assert.equal(s.adapter, 'sqlite');
   assert.equal(s.path, path.join(dir, 'store.db'));
