@@ -50,7 +50,11 @@ const RICH_CONTENT = {
 
 function HelpfulLayoverContent({ item }) {
   if (item && item.kind === 'job') return <JobDescriptionContent job={item} />;
-  if (item && item.kind === 'job-analysis') return <JobAnalysisContent job={item.job || item} />;
+  if (item && item.kind === 'job-analysis') {
+    const job = item.job || item;
+    // Keyed by job so switching items never reuses another job's caseId/pipeline state.
+    return <JobAnalysisContent key={jobKey(job)} job={job} />;
+  }
 
   const rich = item && item.id && RICH_CONTENT[item.id];
   if (!rich) {
@@ -289,6 +293,7 @@ const ANALYSIS_STEPS = [
 function JobAnalysisContent({ job }) {
   const [caseId, setCaseId] = React.useState(job.caseId || null);
   const [setupError, setSetupError] = React.useState(null);
+  const [runError, setRunError] = React.useState(null);
   const started = React.useRef({});
   const { caseData, error, running, actions } = useCase(caseId);
 
@@ -312,10 +317,10 @@ function JobAnalysisContent({ job }) {
     const s = (p) => (caseData[p] && caseData[p].status) || 'absent';
     if (s('dossiers') === 'absent' && s('decodedRole') === 'absent' && !started.current.research) {
       started.current.research = true;
-      actions.research().catch(() => { /* surfaced via part status on refresh */ });
+      actions.research().catch((err) => setRunError(err.message)); // part status also flips to failed
     } else if (s('decodedRole') === 'ready' && s('fit') === 'absent' && !started.current.analyze) {
       started.current.analyze = true;
-      actions.analyze().catch(() => { /* surfaced via part status on refresh */ });
+      actions.analyze().catch((err) => setRunError(err.message));
     } else if (s('fit') === 'ready' && s('cvDraft') === 'absent' && !started.current.generate) {
       started.current.generate = true; // background CV + cover letter
       actions.generate().catch(() => { /* surfaced on the CV / letter screens */ });
@@ -323,10 +328,11 @@ function JobAnalysisContent({ job }) {
   }, [caseData, actions]);
 
   const retry = (name) => {
+    setRunError(null);
     started.current[name] = false;
     started.current.analyze = name === 'research' ? false : started.current.analyze;
-    if (name === 'research') actions.research().catch(() => {});
-    else actions.analyze().catch(() => {});
+    if (name === 'research') actions.research().catch((err) => setRunError(err.message));
+    else actions.analyze().catch((err) => setRunError(err.message));
   };
 
   const partStatus = (p) => {
@@ -352,6 +358,7 @@ function JobAnalysisContent({ job }) {
   const failedStep = ANALYSIS_STEPS.find((s) => partStatus(s.part) === 'failed');
   const failureText = setupError
     || (failedStep && caseData && caseData[failedStep.part] && caseData[failedStep.part].error)
+    || runError
     || error;
 
   return (
@@ -368,7 +375,7 @@ function JobAnalysisContent({ job }) {
           </div>
         ))}
       </div>
-      {failedStep || setupError ? (
+      {failedStep || setupError || runError ? (
         <div className="lay-analysis-error" style={{ marginTop: 16, textAlign: 'center' }}>
           <p style={{ color: 'var(--ll-coral)', fontWeight: 600 }}>
             Steget misslyckades{failureText ? `: ${failureText}` : '.'}

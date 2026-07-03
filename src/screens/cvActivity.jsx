@@ -291,15 +291,19 @@ const PART_ACTIVITY = {
 
 function useActivityRows() {
   const [cases, setCases] = React.useState(null);
+  const [fetchError, setFetchError] = React.useState(null);
   React.useEffect(() => {
     let alive = true;
-    const load = () => listCases().then((cs) => { if (alive) setCases(cs); }).catch(() => { if (alive) setCases([]); });
+    const load = () => listCases()
+      .then((cs) => { if (alive) { setCases(cs); setFetchError(null); } })
+      // A failed fetch must not masquerade as "no activity" — that would hide a failure.
+      .catch((err) => { if (alive) { setCases([]); setFetchError(err.message); } });
     load();
     window.addEventListener('ll:case:changed', load);
     return () => { alive = false; window.removeEventListener('ll:case:changed', load); };
   }, []);
 
-  if (cases === null) return { loading: true, days: [], readyCount: 0, caseCount: 0 };
+  if (cases === null) return { loading: true, days: [], readyCount: 0, caseCount: 0, fetchError: null };
   const rows = [];
   for (const c of cases) {
     for (const [part, info] of Object.entries(PART_ACTIVITY)) {
@@ -307,6 +311,7 @@ function useActivityRows() {
       if (!p || p.status === 'absent') continue;
       rows.push({
         part, ...info,
+        caseId: c.meta.id,
         status: p.status,
         t: p.status === 'ready' ? info.label : p.status === 'pending' ? `${info.label.split(' ')[0]} pågår…` : `${info.label} misslyckades`,
         company: c.meta.company, role: c.meta.role,
@@ -326,11 +331,12 @@ function useActivityRows() {
     days: [...byDay.entries()].map(([day, items]) => ({ day, items })),
     readyCount: rows.filter((r) => r.status === 'ready').length,
     caseCount: cases.length,
+    fetchError,
   };
 }
 
 function ActivityTracker() {
-  const { loading, days, readyCount, caseCount } = useActivityRows();
+  const { loading, days, readyCount, caseCount, fetchError } = useActivityRows();
   return (
     <div className="ll app app--warm" data-screen-label="Min aktivitet">
       <Sidebar active="activity" />
@@ -364,7 +370,13 @@ function ActivityTracker() {
 
               <div className="atimeline">
                 {loading && <p className="muted">Hämtar aktivitet…</p>}
-                {!loading && days.length === 0 && (
+                {!loading && fetchError && (
+                  <div className="feedbackline" style={{ marginBottom: 12 }}>
+                    <Icon name="lock" size={18} style={{ color: 'var(--ll-coral)' }} />
+                    Kunde inte hämta aktiviteten: {fetchError}
+                  </div>
+                )}
+                {!loading && !fetchError && days.length === 0 && (
                   <div className="card card--pad" style={{ textAlign: 'center' }}>
                     <Icon name="target" size={26} />
                     <h3 style={{ marginTop: 8 }}>Ingen aktivitet än</h3>
@@ -376,7 +388,7 @@ function ActivityTracker() {
                   <div className="aday" key={g.day}>
                     <div className="aday__label" style={{ textTransform: 'capitalize' }}>{g.day}<span className="pill">{g.items.length} {g.items.length === 1 ? 'aktivitet' : 'aktiviteter'}</span></div>
                     {g.items.map((a) => (
-                      <div className="aitem" key={`${a.company}-${a.part}`}>
+                      <div className="aitem" key={`${a.caseId}-${a.part}`}>
                         <div className="aitem__rail"><div className={`aitem__ic ${a.tint}`}><Icon name={a.ic} size={20} /></div></div>
                         <div className="aitem__card">
                           <div className="aitem__top">

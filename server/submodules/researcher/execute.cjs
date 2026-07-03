@@ -168,12 +168,20 @@ module.exports = async function execute(input, options, tools) {
   tools.store.setPartStatus(caseId, 'dossiers', 'pending');
   if (tools.logger) tools.logger.info(`researching ${meta.company} (${FRONTS.length} fronts)`);
 
-  // four fronts in parallel
-  const results = await Promise.all(FRONTS.map((f) => researchFront(f, meta, options, tools)));
-  const dossiers = {};
-  FRONTS.forEach((f, i) => { dossiers[f.key] = results[i]; });
+  // A crashed run must never strand the part in 'pending' (the API polls that status):
+  // mark it failed and rethrow — same contract as gap-analyzer and decoder.
+  let dossiers;
+  try {
+    // four fronts in parallel
+    const results = await Promise.all(FRONTS.map((f) => researchFront(f, meta, options, tools)));
+    dossiers = {};
+    FRONTS.forEach((f, i) => { dossiers[f.key] = results[i]; });
 
-  await writeDossiersGated(caseId, dossiers, options, tools);
+    await writeDossiersGated(caseId, dossiers, options, tools);
+  } catch (err) {
+    tools.store.setPartStatus(caseId, 'dossiers', 'failed', err.message);
+    throw err;
+  }
 
   // summon the decoder THROUGH the skeleton (never a direct import). A failed or refused
   // summon is SURFACED, not swallowed: dossiers succeeded (partial), but the run is NOT ok,

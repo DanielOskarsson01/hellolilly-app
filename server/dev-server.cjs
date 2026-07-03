@@ -285,8 +285,10 @@ async function runJobSearch(host, body) {
     providers: sources,
     maxResults,
     municipality,
-    // Exclude terms flag (down-rank), never hide — the store philosophy.
-    rejectTitleTerms: [...new Set([...(existing.rejectTitleTerms || []), ...excludeKeywords])],
+    // Exclude terms flag (down-rank), never hide — the store philosophy. THIS request's
+    // terms only: merging with the record's own previous value would accumulate every
+    // exclude ever sent into the persistent filterSet with no way to clear it.
+    rejectTitleTerms: excludeKeywords,
   });
 
   const { result } = await host.invoke('job-discovery', {});

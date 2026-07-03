@@ -102,6 +102,21 @@ test('researcher self-corrects a writing-rule violation, then writes clean', asy
   assert.ok(!JSON.stringify(dossiers.data).toLowerCase().includes('robust'), 'banned word removed');
 });
 
+test('a failed research run marks dossiers FAILED (never a stuck pending)', async () => {
+  const llm = makeMockLlm((prompt) => {
+    if (/dossier as JSON/i.test(prompt)) throw new Error('front llm boom');
+    return undefined;
+  });
+  const host = createHost({ llm, search: mockSearch });
+  const c = host.store.createCase(META);
+
+  await assert.rejects(() => host.invoke('researcher', { caseId: c.meta.id }), /front llm boom/);
+
+  const dossiers = host.store.getCase(c.meta.id).dossiers;
+  assert.equal(dossiers.status, 'failed', 'a crashed run is failed, not pending forever');
+  assert.match(dossiers.error, /front llm boom/);
+});
+
 test('a failed decoder summon SURFACES (ok:false), is not swallowed as ok:true', async () => {
   const llm = makeMockLlm((prompt) => {
     if (/decoded role as JSON/i.test(prompt)) throw new Error('decoder llm boom');
