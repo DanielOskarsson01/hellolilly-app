@@ -46,4 +46,6 @@ screen -> useCase()/useActiveCase() (src/hooks/useCase.js)
 - **Hem** hero/next-step/CV/letter cards → derived from the active case's part statuses; honest zero state.
 - **Min aktivitet** → literally a render of part envelopes across `GET /api/cases` with real timestamps.
 
-**Still fixture** (Stream 1/Stream 3 surfaces, unchanged): interview, library, review, studio, community, calendar, coach, the intake-chat columns in CV/letter, Helpful Now rail content.
+**Still fixture** (Stream 1/Stream 3 surfaces, unchanged): interview, library, review, studio, community, calendar, coach, the intake-chat columns in CV/letter (fixture-Amir chat beside the real preview pane), Helpful Now rail content, and on **home** the outreach mail preview / community / wins / metrics panes (fixture-Amir) plus the `Topbar` avatar default ("Amir", `shell.jsx`).
+
+> **D3 caveat (open, Daniel's call):** the wired CV/letter/home screens are therefore HALF-converted — real data panes and fixture-Amir panes share a viewport with no in-UI "Demo — exempeldata" label. Either the fixture panes get the demo banner, or they convert in the Stream 1 design pass.
