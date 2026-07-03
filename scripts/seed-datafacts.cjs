@@ -9,15 +9,21 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { cvDataToDatafacts } = require('../server/skeleton/datafacts/ingest-cv.cjs');
 
-// Canonical source — resolved in the plan's pre-flight (cv-source/en is content-identical to
-// the top-level copy, newer, and language-partitioned for the deferred Swedish step).
-// scripts/ -> hello lily - app -> Projects -> JobSearch (TWO levels up, verified).
-const DEFAULT_JSON = path.resolve(
-  __dirname,
-  '../../JobSearch/CVs/cv-source/en/cv_data.json',
-);
+// Canonical source — IN-REPO since D2 (2026-07-03): data/cv_data.json, gitignored
+// (personal data stays out of git, but the file lives inside the project boundary).
+// Copied from JobSearch/CVs/cv-source/en/cv_data.json, verified a strict superset of
+// the older top-level copy (structural diff in the D1+D2 build report). The sibling
+// JobSearch folder is no longer a runtime dependency of this repo.
+const DEFAULT_JSON = path.resolve(__dirname, '../data/cv_data.json');
 
 function seedDatafacts(store, { jsonPath = DEFAULT_JSON, language = 'en' } = {}) {
+  if (!fs.existsSync(jsonPath)) {
+    throw new Error(
+      `Candidate CV data not found at ${jsonPath}. ` +
+      'Copy your cv_data.json to data/cv_data.json (personal data, gitignored — see data/README.md), ' +
+      'or pass { jsonPath } / set CV_DATA_PATH.',
+    );
+  }
   const cv = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
   const facts = cvDataToDatafacts(cv, language);
   for (const f of facts) store.ingestDatafact(f);
