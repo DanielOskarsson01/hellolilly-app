@@ -22,6 +22,10 @@ Branch `claude/d1d2-durable-store` off main @ `243124b`. Everything sits below t
 - **Health route:** `GET /api/health` → `{ ok, service, store: { adapter, path, durable, cases, datafacts } }` — "is it durable?" is checkable, not assumed. Long-lived start remains the documented `npm run dev` (API + frontend, one process, durable store injected).
 - CI-after-push: checkable at merge time (the welded test+publish workflow republishes the frontend — accepted in the brief).
 
+## Independent review outcome
+
+A fresh adversarial review verified all seven brief items with evidence and reproduced both test-count claims independently (156/0/0 with the evidence file; 155/0/1 fresh-clone). Its two migration-edge findings were fixed on the branch (`68ec791`): the migration guard is now db **emptiness**, not file existence (a crash between db creation and hydrate can no longer silently suppress migration), and a mid-write hydrate failure aborts the boot loudly with the legacy snapshot preserved instead of serving data that would never persist. Post-fix suite: **158 pass / 0 fail / 0 skip**. Logged as a known pre-existing gap (not this branch's change, made observable by durability): the base store's `ingestDatafact`/`getDatafact` don't detach, so post-ingest mutation of a datafact object diverges memory from disk — candidate for the next store pass.
+
 ## Fold-in
 
 `docs/PROJECT_INVENTORY.md` got a dated errata block at the top (seam A closed for six surfaces, OnlyiGaming route deleted, store no longer memory-only, sibling seed path gone) pointing at `docs/STREAM2_BRIDGE.md` and this report. The stocktake body is untouched.
