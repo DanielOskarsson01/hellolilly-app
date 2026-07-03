@@ -104,6 +104,46 @@ test('hydrate() rewrites the database (the JSON-snapshot migration path)', () =>
   b.close();
 });
 
+test('detachment across ALL ingest paths, proven against the durable store: in-session truth == post-restart truth', () => {
+  const p = tmpDbPath();
+  const a = createSqliteStore({ path: p });
+
+  // path 1: ingestDatafact — post-ingest mutation must reach neither memory nor disk
+  const df = { id: 'datafact_z', kind: 'datafact', type: 'cv', text: 'Exact evidence.', tags: [], language: 'en' };
+  a.ingestDatafact(df);
+  df.text = 'MUTATED';
+  // path 2: createCase — mutating the returned case must not persist
+  const c = a.createCase({ company: 'Acme', role: 'PM' });
+  c.meta.company = 'MUTATED';
+  // path 3: writePart — mutating the written data afterwards must not persist
+  const decoded = { narrative: 'Plain words.', requirements: [] };
+  a.writePart(c.meta.id, 'decodedRole', decoded);
+  decoded.narrative = 'MUTATED';
+  // path 4: putRecord — mutating the record afterwards must not persist
+  const rec = { id: 'job_z', title: 'Original title' };
+  a.putRecord('jobs', rec);
+  rec.title = 'MUTATED';
+
+  const inSession = {
+    fact: a.getDatafact('datafact_z').text,
+    company: a.getCase(c.meta.id).meta.company,
+    narrative: a.getCase(c.meta.id).decodedRole.data.narrative,
+    title: a.getRecord('jobs', 'job_z').title,
+  };
+  assert.deepEqual(inSession, { fact: 'Exact evidence.', company: 'Acme', narrative: 'Plain words.', title: 'Original title' });
+  a.close();
+
+  const b = createSqliteStore({ path: p });
+  const postRestart = {
+    fact: b.getDatafact('datafact_z').text,
+    company: b.getCase(c.meta.id).meta.company,
+    narrative: b.getCase(c.meta.id).decodedRole.data.narrative,
+    title: b.getRecord('jobs', 'job_z').title,
+  };
+  assert.deepEqual(postRestart, inSession, 'restart changes nothing a mutation could not change in-session');
+  b.close();
+});
+
 test('adapter self-describes for the health route', () => {
   const p = tmpDbPath();
   const store = createSqliteStore({ path: p });
