@@ -175,4 +175,15 @@ function SectionHeader({ title, sub, seeAll = 'Visa alla' }) {
   );
 }
 
-export { Icon, Clover, CloverDefs, Logo, PersonGlyph, Photo, Avatar, AvatarStack, Tag, Chip, Button, Rating, SectionHeader, ICONS };
+/* ---------- Demo marker ---------- */
+// Pane-level label for fixture/sample content. The D3 rule: a pane is either
+// wired-real or labelled-demo, never silently in between. Amber, uppercase.
+function DemoBar() {
+  return (
+    <span className="demobar" role="note" aria-label="Demo, exempeldata">
+      <Icon name="bulb" size={12} />DEMO — EXEMPELDATA
+    </span>
+  );
+}
+
+export { Icon, Clover, CloverDefs, Logo, PersonGlyph, Photo, Avatar, AvatarStack, Tag, Chip, Button, Rating, SectionHeader, DemoBar, ICONS };

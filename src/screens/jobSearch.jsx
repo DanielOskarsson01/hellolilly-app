@@ -173,7 +173,7 @@ function JobSearch() {
                 {status === 'error'
                   ? error
                   : summary?.description || 'Live API-resultat laddas från de valda jobbkällorna.'}
-                {meta && <span className="cap">{meta.api_calls || 0} API-anrop · {meta.sources?.join(', ')}</span>}
+                {meta && <span className="cap">Via HelloLilly-backend · {meta.sources?.join(', ')}</span>}
               </div>
 
               <SectionHeader title="Live-resultat" sub="Klicka på ett jobb för att läsa annonsen" seeAll={null} />

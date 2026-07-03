@@ -1,5 +1,5 @@
 import React from 'react';
-import { Icon, Clover, Avatar, AvatarStack, Photo, Tag, Button, Rating, SectionHeader } from '../components/primitives.jsx';
+import { Icon, Clover, Avatar, AvatarStack, Photo, Tag, Button, Rating, SectionHeader, DemoBar } from '../components/primitives.jsx';
 import { JobResultsList } from '../components/jobResultsList.jsx';
 import { Sidebar, Topbar, CoachCard, MilestonePath, Stats, Todo, ToolGrid, CourseFeed } from '../components/shell.jsx';
 import {
@@ -13,6 +13,7 @@ import {
   OUTCOME_METRICS,
 } from '../data/strategyData.js';
 import { useLiveJobSearch } from '../hooks/useLiveJobSearch.js';
+import { useActiveCase } from '../hooks/useCase.js';
 
 // HelloLilly — Hem · Allt samlat (expanded "command center" home)
 // Warm motivation on top, then auto job search, community pulse, improvements,
@@ -34,8 +35,57 @@ const CONGRATS = COMMUNITY_WINS;
 /* Small, scannable "next actions" — compact entry points to existing tools. */
 const QUICK_ACTIONS = NEXT_ACTIONS;
 
+// Derive the "where am I" read from the active case's real part statuses.
+// No case -> honest zero state; otherwise the next concrete step in the loop.
+function deriveCaseState(caseData) {
+  if (!caseData) {
+    return {
+      heroLine: <>Inget aktivt ärende ännu. Börja i <b style={{ color:'var(--ll-blue-deep)' }}>Jobbsök</b>: acceptera ett jobb och kör en matchanalys, så byggs allt härifrån.</>,
+      next: { href: '#jobbsok', title: 'Sök och acceptera ett jobb', body: 'Matchanalysen, CV-utkastet och brevet byggs från ett accepterat jobb.' },
+      matchPct: null,
+      openGaps: null,
+    };
+  }
+  const s = (p) => caseData[p].status;
+  const company = caseData.meta.company;
+  const rows = s('fit') === 'ready' ? caseData.fit.data.capability.requirements : [];
+  const matchPct = rows.length ? Math.round((rows.filter((r) => r.status === 'match').length / rows.length) * 100) : null;
+  const fitByReq = new Map(rows.map((r) => [r.requirementRef.id, r.status]));
+  const openGaps = s('gaps') === 'ready'
+    ? caseData.gaps.data.filter((g) => !g.requirementRef || fitByReq.get(g.requirementRef.id) !== 'match').length
+    : null;
+
+  if (s('fit') !== 'ready') {
+    return {
+      heroLine: <>Ärendet för <b style={{ color:'var(--ll-blue-deep)' }}>{company}</b> är igång men inte analyserat än.</>,
+      next: { href: '#match', title: `Analysera ${company}`, body: 'Kör matchanalysen så får du ärlig fit, luckor och bryggor.' },
+      matchPct, openGaps,
+    };
+  }
+  const heroLine = <>Lilly har analyserat <b style={{ color:'var(--ll-blue-deep)' }}>{company}</b>: {matchPct}% match{openGaps ? `, ${openGaps} ${openGaps === 1 ? 'lucka' : 'luckor'} kvar att fylla` : ', inga öppna luckor'}.</>;
+  if (openGaps) {
+    return { heroLine, next: { href: '#match', title: `Fyll ${openGaps} ${openGaps === 1 ? 'lucka' : 'luckor'} för ${company}`, body: 'Varje ärligt svar blir en datafakta och lyfter matchningen.' }, matchPct, openGaps };
+  }
+  if (s('cvDraft') === 'ready' && s('coverLetter') === 'ready') {
+    return { heroLine, next: { href: '#cv', title: 'Granska CV-utkastet och brevet', body: 'Båda är byggda från analysen. Läs igenom innan du skickar.' }, matchPct, openGaps };
+  }
+  return { heroLine, next: { href: '#match', title: 'Generera CV och brev', body: 'Analysen är klar. Öppna den och låt Lilly bygga utkasten.' }, matchPct, openGaps };
+}
+
+const PART_TAG = {
+  absent: { label: 'Saknas', variant: 'tag--lilac', width: '8%' },
+  pending: { label: 'Byggs…', variant: 'tag', width: '50%' },
+  ready: { label: 'Klart', variant: 'tag--green', width: '100%' },
+  failed: { label: 'Misslyckades', variant: 'tag--coral', width: '30%' },
+};
+
 function HomeExpanded() {
   const { jobs: liveJobs, status: jobStatus, error: jobError, meta: jobMeta } = useLiveJobSearch();
+  const { caseData } = useActiveCase();
+  const derived = deriveCaseState(caseData);
+  const cvTag = PART_TAG[caseData ? caseData.cvDraft.status : 'absent'];
+  const letterTag = PART_TAG[caseData ? caseData.coverLetter.status : 'absent'];
+  const todayLabel = new Date().toLocaleDateString('sv-SE', { weekday: 'long', day: 'numeric', month: 'long' });
 
   return (
     <div className="ll app app--lively" data-screen-label="Hem · Allt samlat">
@@ -48,23 +98,24 @@ function HomeExpanded() {
           <section>
             <div className="hero-greet">
               <div>
-                <h1>Heja {CASE_PROFILE.person.split(' ')[0]}! <span className="wave">👋</span></h1>
-                <p className="muted" style={{ fontSize:15.5, marginTop:6 }}>Skönt att se dig. Lilly har kört en riktig ansökningskoll för <b style={{ color:'var(--ll-blue-deep)' }}>{PIPELINE_RUN.company}</b>: {PIPELINE_RUN.score}% nu, {PIPELINE_RUN.improvedScore}% när tre små luckor är fyllda.</p>
+                <h1>Heja Daniel! <span className="wave">👋</span></h1>
+                <p className="muted" style={{ fontSize:15.5, marginTop:6 }}>Skönt att se dig. {derived.heroLine}</p>
               </div>
-              <span className="date">Tisdag 3 juni</span>
+              <span className="date" style={{ textTransform:'capitalize' }}>{todayLabel}</span>
             </div>
             <div className="grid herorow">
               <div className="nudge nudge--coral">
                 <span className="nudge__eyebrow"><Icon name="sparkle" size={15} />Ditt nästa steg</span>
-                <h2>{PIPELINE_RUN.gaps[1].cta}: gör ansökan starkare</h2>
-                <p>Inte mer allmänna råd. Dagens minsta steg är kopplat till annonsen, ditt CV och Saras case record.</p>
+                <h2>{derived.next.title}</h2>
+                <p>{derived.next.body}</p>
                 <div className="nudge__actions">
-                  <Button variant="primary" icon="play">Börja öva</Button>
-                  <Button variant="secondary" icon="clock">Påminn ikväll</Button>
+                  <a className="btn btn--primary" href={derived.next.href}><Icon name="play" size={18} />Gör det nu</a>
                 </div>
                 <Clover className="nudge__art" color="rgba(255,255,255,.18)" size={220} />
               </div>
-              <CoachCard message={`${CASE_PROFILE.person.split(' ')[0]}, Lilly hittade tre konkreta luckor i PostNord-ansokan. Jag tycker vi fixar dem forst och skickar sedan. Det ar ett litet steg, inte ett stort projekt.`} />
+              <CoachCard message={caseData
+                ? `Daniel, ärendet för ${caseData.meta.company} ligger i Matchanalys. Ta nästa steg när det passar — det är ett litet steg, inte ett stort projekt.`
+                : 'Daniel, när du accepterat ett jobb i Jobbsök kör vi analysen tillsammans. Ett litet steg i taget.'} />
             </div>
           </section>
 
@@ -130,18 +181,20 @@ function HomeExpanded() {
             <SectionHeader title="Gör dig ännu starkare" sub="Små förbättringar som lyfter dina chanser — inget måste" seeAll={null} />
             <div className="improve">
               <div className="impcard">
-                <div className="impcard__head"><div className="impcard__ic ic-blue"><Icon name="cv" size={20} /></div><div className="impcard__t">Ditt CV</div><span style={{ marginLeft:'auto' }}><Tag variant="tag">60%</Tag></span></div>
-                <div className="impbar"><span style={{ width:'60%' }} /></div>
+                <div className="impcard__head"><div className="impcard__ic ic-blue"><Icon name="cv" size={20} /></div><div className="impcard__t">CV-utkast</div><span style={{ marginLeft:'auto' }}><Tag variant={cvTag.variant}>{cvTag.label}</Tag></span></div>
+                <div className="impbar"><span style={{ width: cvTag.width }} /></div>
                 <div className="impcard__list">
-                  <div className="impchk impchk--done"><span className="box"><Icon name="check" size={13} sw={3} /></span>Erfarenhet tillagd</div>
-                  <div className="impchk"><span className="box" />Lägg till truckkort B</div>
-                  <div className="impchk"><span className="box" />En kort sammanfattning</div>
-                  <div className="impchk"><span className="box" />En referens</div>
+                  {caseData && caseData.cvDraft.status === 'ready' ? (
+                    <div className="impchk impchk--done"><span className="box"><Icon name="check" size={13} sw={3} /></span>{caseData.cvDraft.data.sections.length} sektioner byggda från dina datafakta</div>
+                  ) : (
+                    <div className="impchk"><span className="box" />Byggs automatiskt när matchanalysen är klar</div>
+                  )}
                 </div>
-                <Button variant="secondary" size="sm" icon="pen" block>Förbättra CV</Button>
+                <a className="btn btn--secondary btn--sm btn--block" href="#cv"><Icon name="pen" size={15} />Öppna CV-byggaren</a>
               </div>
 
               <div className="impcard">
+                <DemoBar />
                 <div className="impcard__head"><div className="impcard__ic ic-coral"><Icon name="mic" size={20} /></div><div className="impcard__t">Intervjuträning</div><span style={{ marginLeft:'auto' }}><Tag variant="tag--coral">40%</Tag></span></div>
                 <div className="impbar"><span style={{ width:'40%', background:'var(--ll-coral)' }} /></div>
                 <div className="impcard__list">
@@ -153,14 +206,16 @@ function HomeExpanded() {
               </div>
 
               <div className="impcard">
-                <div className="impcard__head"><div className="impcard__ic ic-lilac"><Icon name="letter" size={20} /></div><div className="impcard__t">Personligt brev</div><span style={{ marginLeft:'auto' }}><Tag variant="tag--lilac">Saknas</Tag></span></div>
-                <div className="impbar"><span style={{ width:'8%', background:'var(--ll-lilac)' }} /></div>
+                <div className="impcard__head"><div className="impcard__ic ic-lilac"><Icon name="letter" size={20} /></div><div className="impcard__t">Personligt brev</div><span style={{ marginLeft:'auto' }}><Tag variant={letterTag.variant}>{letterTag.label}</Tag></span></div>
+                <div className="impbar"><span style={{ width: letterTag.width, background:'var(--ll-lilac)' }} /></div>
                 <div className="impcard__list">
-                  <div className="impchk"><span className="box" />Inget brev för logistik än</div>
-                  <div className="impchk"><span className="box" />Vänd ditt glapp till en styrka</div>
-                  <div className="impchk"><span className="box" />Skräddarsy för PostNord</div>
+                  {caseData && caseData.coverLetter.status === 'ready' ? (
+                    <div className="impchk impchk--done"><span className="box"><Icon name="check" size={13} sw={3} /></span>Skrivet för {caseData.meta.company} — granska innan du skickar</div>
+                  ) : (
+                    <div className="impchk"><span className="box" />Skrivs automatiskt från matchanalysen{caseData ? ` för ${caseData.meta.company}` : ''}</div>
+                  )}
                 </div>
-                <Button variant="primary" size="sm" icon="plus" block>Skapa brev</Button>
+                <a className="btn btn--primary btn--sm btn--block" href="#letter"><Icon name="letter" size={15} />Öppna brevet</a>
               </div>
             </div>
           </section>
@@ -168,6 +223,7 @@ function HomeExpanded() {
           {/* ---------- FOUNDATION SYSTEM ---------- */}
           <section>
             <SectionHeader title="Grundsystemet som gör jobbet med dig" sub="Sex första moduler från strategin, kopplade till samma case och samma kunskap" seeAll={null} />
+            <DemoBar />
             <div className="quickact">
               {FOUNDATION_TOOLS.map((tool) => (
                 <a key={tool.id} href={`#${tool.id}`} className="qact">
@@ -194,6 +250,7 @@ function HomeExpanded() {
           {/* ---------- TRIO: discussions / videos / news ---------- */}
           <section>
             <SectionHeader title="För dig just nu" sub="Samtal, korta videor och nyheter som kan hjälpa dig" seeAll={null} />
+            <DemoBar />
             <div className="trio">
               <div className="panel">
                 <div className="panel__head"><div className="panel__ic ic-lilac"><Icon name="users" size={18} /></div><h3>Nya diskussioner</h3><a className="seeall" href="#">Forum</a></div>
@@ -236,6 +293,7 @@ function HomeExpanded() {
           {/* ---------- LEARN (fearless) ---------- */}
           <section>
             <SectionHeader title="Lär dig något nytt" sub="I din egen takt" seeAll="Bibliotek" />
+            <DemoBar />
             <div className="learn-rs"><Clover size={18} color="#8E7CF0" />Du kan inte göra fel här — allt går att ångra, och ingen ser något du inte vill dela.</div>
             <div className="learn">
               {LEARN.map((l,i) => (
@@ -252,6 +310,7 @@ function HomeExpanded() {
           {/* ---------- COACHING COLD OUTREACH ---------- */}
           <section>
             <SectionHeader title="Våga höra av dig först" sub="Det här är ofta så de bästa jobben hittas" seeAll={null} />
+            <DemoBar />
             <div className="outreach">
               <div className="outreach__l">
                 <h2>Ett vänligt mejl kan öppna en dörr</h2>
@@ -274,6 +333,7 @@ function HomeExpanded() {
           {/* ---------- COMMUNITY ---------- */}
           <section>
             <SectionHeader title="Tillsammans i Lilly" sub="Du är inte ensam i det här" seeAll={null} />
+            <DemoBar />
             <div className="commwrap">
               <div className="commstats">
                 <div className="commstat"><div className="stat__ic ic-green" style={{ width:44, height:44, marginBottom:0 }}><Icon name="briefcase" size={20} /></div><div><div className="big" style={{ color:'#1c7a48' }}>4</div><div className="lab">fick jobb den här veckan 🎉</div></div></div>

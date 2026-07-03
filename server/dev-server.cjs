@@ -8,18 +8,12 @@ const {
   sourceLabel,
 } = require('./job-search-config.cjs');
 const { createHost } = require('./skeleton/host.cjs');
+const { createPersistentStore } = require('./skeleton/store/persistence.cjs');
 const { seedDatafacts } = require('../scripts/seed-datafacts.cjs');
 const { createAnthropicClient } = require('./skeleton/clients/anthropic.cjs');
 const { applyAnswer } = require('./skeleton/fill-gap/bullet-judge.cjs');
 
 const PORT = Number(process.env.PORT || 5173);
-const PIPELINE_MODULES_DIR = process.env.PIPELINE_MODULES_DIR
-  || path.resolve(__dirname, '../../OnlyiGaming/content-pipeline-modules-v2');
-// NOTE: the api-search module lives in a SIBLING repo that is not present in CI (or when
-// only the case API is imported for tests). Loaded lazily inside runJobSearch so that
-// `require('./dev-server.cjs')` (e.g. server/api.test.cjs importing createApiHandler) does
-// not fail with MODULE_NOT_FOUND in a clean checkout. The live job-search path loads it on
-// first /api/jobs/search call, where the sibling repo is present.
 
 function readJson(req) {
   return new Promise((resolve, reject) => {
@@ -71,7 +65,49 @@ function createApiHandler(host, { preferencesPath, llm } = {}) {
   }
 
   return async function handle(req, res) {
-    const m = req.url.match(/^\/api\/case\/([^/]+)(\/analyze|\/generate|\/gap\/([^/]+)\/answer)?$/);
+    // Job search — in-repo job-discovery through the host broker (Stream 2 rewire).
+    if (req.method === 'POST' && req.url === '/api/jobs/search') {
+      try {
+        const body = await readJson(req);
+        sendJson(res, 200, await runJobSearch(host, body));
+      } catch (err) {
+        sendJson(res, 500, { ok: false, error: err.message || 'Job search failed' });
+      }
+      return true;
+    }
+
+    // Case lifecycle (Stream 2): create + list. These make the UI able to start a case
+    // over HTTP — before this, cases could only be born inside a script's own process.
+    if (req.method === 'POST' && req.url === '/api/case') {
+      try {
+        const body = await readJson(req);
+        const company = String(body.company || '').trim();
+        const role = String(body.role || '').trim();
+        if (!company || !role) {
+          sendJson(res, 400, { ok: false, error: 'company and role are required' });
+          return true;
+        }
+        const c = host.store.createCase({ company, role, sourceInput: body.sourceInput || null });
+        sendJson(res, 201, { ok: true, case: c });
+      } catch (err) {
+        sendJson(res, 500, { ok: false, error: err.message });
+      }
+      return true;
+    }
+
+    if (req.method === 'GET' && req.url === '/api/cases') {
+      const cases = host.store.listCases().map((c) => ({
+        meta: c.meta,
+        parts: Object.fromEntries(
+          ['dossiers', 'decodedRole', 'fit', 'gaps', 'cvDraft', 'coverLetter']
+            .map((p) => [p, { status: c[p].status, updatedAt: c[p].updatedAt }]),
+        ),
+      }));
+      sendJson(res, 200, { ok: true, cases });
+      return true;
+    }
+
+    const m = req.url.match(/^\/api\/case\/([^/]+)(\/analyze|\/generate|\/research|\/gap\/([^/]+)\/answer)?$/);
     if (!m) return false;
     const caseId = decodeURIComponent(m[1]);
     const action = m[2];
@@ -79,8 +115,25 @@ function createApiHandler(host, { preferencesPath, llm } = {}) {
     if (req.method === 'GET' && !action) {
       const c = host.store.getCase(caseId);
       if (!c) { sendJson(res, 404, { ok: false, error: 'no such case' }); return true; }
-      const { meta, decodedRole, fit, gaps, cvDraft, coverLetter } = c;
-      sendJson(res, 200, { ok: true, case: { meta, decodedRole, fit, gaps, cvDraft, coverLetter } });
+      const { meta, dossiers, decodedRole, fit, gaps, cvDraft, coverLetter } = c;
+      sendJson(res, 200, { ok: true, case: { meta, dossiers, decodedRole, fit, gaps, cvDraft, coverLetter } });
+      return true;
+    }
+
+    if (req.method === 'POST' && action === '/research') {
+      if (!host.store.getCase(caseId)) {
+        sendJson(res, 404, { ok: false, error: 'no such case' });
+        return true;
+      }
+      try {
+        // researcher writes the four dossiers, then summons the decoder through the
+        // broker (decodedRole). A partial run (dossiers ok, decoder failed) surfaces
+        // as 207, never as a silent success.
+        const { result } = await host.invoke('researcher', { caseId });
+        sendJson(res, result.ok ? 200 : 207, result.ok ? { ok: true, ...result } : { ok: false, ...result });
+      } catch (err) {
+        sendJson(res, 500, { ok: false, error: err.message });
+      }
       return true;
     }
 
@@ -179,8 +232,10 @@ function normalizeJob(item, keywords) {
     const haystack = `${title} ${item.snippet || ''}`.toLowerCase();
     return haystack.includes(keyword.toLowerCase());
   });
-  const score = Math.min(96, Math.max(64, 76 + (item._score || 0) * 4 + matched.length * 2));
-  const tags = [source, ...matched.slice(0, 2), item._signal === 'high' ? 'Hög signal' : null].filter(Boolean);
+  // Store-flagged (signal 'low' from reject/location rules) is down-ranked, never hidden.
+  const flagged = item.signal === 'low';
+  const score = Math.min(96, Math.max(64, 76 + (item._score || 0) * 4 + matched.length * 2 - (flagged ? 8 : 0)));
+  const tags = [source, ...matched.slice(0, 2), flagged ? 'Nedtonad' : null].filter(Boolean);
 
   return {
     id: item.externalId || item.url || `${company}-${title}`,
@@ -199,97 +254,54 @@ function normalizeJob(item, keywords) {
   };
 }
 
-function makeLogger(logs) {
-  return {
-    info: (message) => logs.push({ level: 'info', message }),
-    warn: (message) => logs.push({ level: 'warn', message }),
-    error: (message) => logs.push({ level: 'error', message }),
-  };
-}
-
-async function runJobSearch(body) {
-  // Lazy cross-repo load (see PIPELINE_MODULES_DIR note above): required here, not at module
-  // top, so importing this file for the case API doesn't fail when the sibling repo is absent.
-  const executeApiSearch = require(path.join(
-    PIPELINE_MODULES_DIR,
-    'modules/step-1-discovery/api-search/execute.js'
-  ));
+// Job search through the in-repo `job-discovery` submodule (no sibling-repo dependency —
+// the OnlyiGaming api-search coupling is gone). The UI's search parameters become the
+// store-backed filterSet (searchTerms/providers/maxResults/municipality); any reject rules
+// already seeded on filterSet/active (from candidate preferences) are preserved. Discovery
+// writes canonical records into the persistent `jobs` collection and returns the items it
+// saw this run — new AND already-known — which we map to the UI job shape.
+async function runJobSearch(host, body) {
   const keywords = cleanList(body.keywords, DEFAULT_JOB_SEARCH.keywords, 8);
   const excludeKeywords = cleanList(body.excludeKeywords, DEFAULT_JOB_SEARCH.excludeKeywords, 20);
-  const sources = cleanList(body.sources, DEFAULT_JOB_SEARCH.sources, 5);
+  const sources = cleanList(body.sources, DEFAULT_JOB_SEARCH.sources, 5)
+    .filter((s) => JOB_SEARCH_PROVIDERS.some((p) => p.id === s));
   const maxResults = Math.max(5, Math.min(Number(body.maxResults || DEFAULT_JOB_SEARCH.maxResults), 50));
   const municipality = String(body.municipality || DEFAULT_JOB_SEARCH.municipality).trim();
-  const providers = JOB_SEARCH_PROVIDERS.filter((provider) => sources.includes(provider.id));
-  const logs = [];
 
-  if (providers.length === 0) {
+  if (sources.length === 0) {
     return {
       ok: true,
       jobs: [],
       summary: { total_items: 0, description: 'No providers selected', errors: [] },
-      meta: { keywords, sources, providerCalls: 0 },
-      logs,
+      meta: { keywords, sources, municipality, providerCalls: 0 },
     };
   }
 
-  const tools = {
-    logger: makeLogger(logs),
-    progress: { update: (current, total, message) => logs.push({ level: 'progress', message, current, total }) },
-    http: {
-      get: async (url, opts = {}) => {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), opts.timeout || 15000);
-        try {
-          const res = await fetch(url, {
-            headers: {
-              accept: 'application/json',
-              'user-agent': 'HelloLilly job-search prototype',
-              ...(opts.headers || {}),
-            },
-            signal: controller.signal,
-          });
-          const responseBody = await res.text();
-          return { status: res.status, body: responseBody };
-        } finally {
-          clearTimeout(timeout);
-        }
-      },
-    },
-  };
+  const existing = host.store.getRecord('filterSet', 'active') || {};
+  host.store.putRecord('filterSet', {
+    ...existing,
+    id: 'active',
+    searchTerms: keywords,
+    providers: sources,
+    maxResults,
+    municipality,
+    // Exclude terms flag (down-rank), never hide — the store philosophy. THIS request's
+    // terms only: merging with the record's own previous value would accumulate every
+    // exclude ever sent into the persistent filterSet with no way to clear it.
+    rejectTitleTerms: excludeKeywords,
+  });
 
-  const output = await executeApiSearch(
-    { entities: [{ name: 'HelloLilly live job search' }] },
-    {
-      search_input: 'keywords',
-      keywords,
-      exclude_keywords: excludeKeywords,
-      max_results: maxResults,
-      providers,
-      provider_params: municipality ? { jobtech: { municipality } } : {},
-      requests_per_minute: 120,
-      score_rules: [
-        { field: 'title', patterns: keywords, score: 2, label: 'Search term' },
-        { field: 'location', patterns: ['vasteras', 'västerås', 'remote', 'sverige'], score: 1, label: 'Location' },
-      ],
-    },
-    tools
-  );
-
-  const rawItems = output.results?.[0]?.items || [];
-  const jobs = rawItems.map((item) => normalizeJob(item, keywords)).slice(0, 40);
-  const meta = output.results?.[0]?.meta || {};
+  const { result } = await host.invoke('job-discovery', {});
+  const jobs = (result.items || [])
+    .map((item) => normalizeJob(item, keywords))
+    .sort((a, b) => b.match - a.match)
+    .slice(0, 40);
 
   return {
     ok: true,
     jobs,
-    summary: output.summary,
-    meta: {
-      ...meta,
-      keywords,
-      sources: providers.map((provider) => provider.id),
-      municipality,
-    },
-    logs,
+    summary: { total_items: result.found, added: result.added, errors: result.errors },
+    meta: { keywords, sources, municipality, perProvider: result.perProvider },
   };
 }
 
@@ -305,12 +317,29 @@ async function start() {
   const llm = process.env.ANTHROPIC_API_KEY
     ? createAnthropicClient({ apiKey: process.env.ANTHROPIC_API_KEY })
     : null;
-  const host = createHost({ llm });
-  try {
-    const facts = seedDatafacts(host.store);
-    console.log(`[api] seeded ${facts.length} datafacts into the case store`);
-  } catch (err) {
-    console.warn(`[api] datafact seed skipped: ${err.message}`);
+  // Persistent store (Stream 2): cases/datafacts/collections survive a restart via a
+  // JSON snapshot on disk. server/data/ is gitignored local state.
+  const storePath = process.env.STORE_PATH || path.resolve(__dirname, 'data/store.json');
+  const store = createPersistentStore({ path: storePath });
+  const host = createHost({ llm, store });
+  if (host.store.listDatafacts().length > 0) {
+    console.log(`[api] store restored from ${storePath} (${host.store.listCases().length} cases, ${host.store.listDatafacts().length} datafacts)`);
+  } else {
+    try {
+      // CV_DATA_PATH overrides the sibling-repo default (needed e.g. in git worktrees,
+      // where the relative ../../JobSearch path does not resolve).
+      const facts = seedDatafacts(host.store, process.env.CV_DATA_PATH ? { jsonPath: process.env.CV_DATA_PATH } : undefined);
+      console.log(`[api] seeded ${facts.length} datafacts into the case store`);
+    } catch (err) {
+      console.warn(`[api] datafact seed skipped: ${err.message}`);
+    }
+  }
+  // Flush the snapshot on shutdown so the debounce window can't drop the last writes.
+  for (const sig of ['SIGINT', 'SIGTERM']) {
+    process.on(sig, () => {
+      try { host.store.flush(); } catch (err) { console.error(`[store] flush on ${sig} failed: ${err.message}`); }
+      process.exit(0);
+    });
   }
   const preferencesPath = path.resolve(__dirname, '../docs/candidate_preferences.json');
   const handleCaseApi = createApiHandler(host, { preferencesPath, llm });
@@ -318,19 +347,6 @@ async function start() {
   const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && req.url === '/api/health') {
       return sendJson(res, 200, { ok: true, service: 'hello-lilly-dev-server' });
-    }
-
-    if (req.method === 'POST' && req.url === '/api/jobs/search') {
-      try {
-        const body = await readJson(req);
-        const result = await runJobSearch(body);
-        return sendJson(res, 200, result);
-      } catch (err) {
-        return sendJson(res, 500, {
-          ok: false,
-          error: err.message || 'Job search failed',
-        });
-      }
     }
 
     if (await handleCaseApi(req, res)) return;

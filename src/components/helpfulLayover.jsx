@@ -1,6 +1,8 @@
 import React from 'react';
 import { Icon, Clover, Photo, Avatar, Button, Tag, SectionHeader } from './primitives.jsx';
-import { acceptJob, getAcceptedJobs, jobKey, removeJob } from '../utils/jobStore.js';
+import { acceptJob, getAcceptedJobs, jobKey, removeJob, setJobCase, setActiveCaseId } from '../utils/jobStore.js';
+import { createCase } from '../api/caseApi.js';
+import { useCase } from '../hooks/useCase.js';
 
 // HelloLilly — Helpful Now layover
 // Opens when a Helpful Now item is clicked (custom event `ll:helpful:open`).
@@ -48,7 +50,11 @@ const RICH_CONTENT = {
 
 function HelpfulLayoverContent({ item }) {
   if (item && item.kind === 'job') return <JobDescriptionContent job={item} />;
-  if (item && item.kind === 'job-analysis') return <JobAnalysisContent job={item.job || item} />;
+  if (item && item.kind === 'job-analysis') {
+    const job = item.job || item;
+    // Keyed by job so switching items never reuses another job's caseId/pipeline state.
+    return <JobAnalysisContent key={jobKey(job)} job={job} />;
+  }
 
   const rich = item && item.id && RICH_CONTENT[item.id];
   if (!rich) {
@@ -273,73 +279,203 @@ function JobDescriptionContent({ job }) {
   );
 }
 
+// The real analysis pipeline, driven by CASE PART STATUSES — not a timed animation.
+// create case -> POST /research (dossiers + decodedRole) -> POST /analyze (fit + gaps)
+// -> render the honest fit. CV + cover letter generation kicks off in the background
+// once analysis is ready (the reconciled A2 design: background generation, no screen).
 const ANALYSIS_STEPS = [
-  'Hämtar annonsen',
-  'Läser krav och signalord',
-  'Jämför mot CV-sektionerna',
-  'Bygger konkreta nästa steg',
+  { part: 'case', label: 'Skapar ärende' },
+  { part: 'dossiers', label: 'Research: företag, produkt, människor, nisch' },
+  { part: 'decodedRole', label: 'Avkodar det verkliga jobbet bakom annonsen' },
+  { part: 'fit', label: 'Analyserar matchning mot dina datafakta' },
 ];
 
 function JobAnalysisContent({ job }) {
-  const [step, setStep] = React.useState(0);
+  const [caseId, setCaseId] = React.useState(job.caseId || null);
+  const [setupError, setSetupError] = React.useState(null);
+  const [runError, setRunError] = React.useState(null);
+  const started = React.useRef({});
+  const { caseData, error, running, actions } = useCase(caseId);
 
+  // 1. Ensure the accepted job has a backend case (created once, then remembered on the job).
   React.useEffect(() => {
-    const timers = ANALYSIS_STEPS.map((_, index) => window.setTimeout(() => setStep(index + 1), 520 + index * 520));
-    return () => timers.forEach((timer) => window.clearTimeout(timer));
-  }, [job]);
+    if (caseId || started.current.create) return;
+    started.current.create = true;
+    const sourceInput = [job.snippet, job.url ? `Annons: ${job.url}` : ''].filter(Boolean).join('\n\n');
+    createCase({ company: job.co, role: job.t, sourceInput })
+      .then((c) => {
+        setJobCase(job, c.meta.id);
+        setActiveCaseId(c.meta.id); // CV / brev / hem follows this case from now on
+        setCaseId(c.meta.id);
+      })
+      .catch((err) => setSetupError(err.message));
+  }, [caseId, job]);
 
-  if (step < ANALYSIS_STEPS.length) {
-    return (
-      <div className="lay-analysis-loading">
-        <Clover size={44} color="#2B6CF0" />
-        <span className="helpitem__kind">Matchanalys</span>
-        <h1>{job.t}</h1>
-        <p>Lilly startar analysflödet för den sparade annonsen och jämför den mot CV-byggarens innehåll.</p>
-        <div className="analysis-steps">
-          {ANALYSIS_STEPS.map((label, index) => (
-            <div key={label} className={`analysis-step ${index < step ? 'is-done' : index === step ? 'is-now' : ''}`}>
-              <span>{index < step ? <Icon name="check" size={14} sw={3} /> : index + 1}</span>
-              <b>{label}</b>
-            </div>
-          ))}
+  // 2. Drive the pipeline forward off the real part statuses.
+  React.useEffect(() => {
+    if (!caseData) return;
+    const s = (p) => (caseData[p] && caseData[p].status) || 'absent';
+    if (s('dossiers') === 'absent' && s('decodedRole') === 'absent' && !started.current.research) {
+      started.current.research = true;
+      actions.research().catch((err) => setRunError(err.message)); // part status also flips to failed
+    } else if (s('decodedRole') === 'ready' && s('fit') === 'absent' && !started.current.analyze) {
+      started.current.analyze = true;
+      actions.analyze().catch((err) => setRunError(err.message));
+    } else if (s('fit') === 'ready' && s('cvDraft') === 'absent' && !started.current.generate) {
+      started.current.generate = true; // background CV + cover letter
+      actions.generate().catch(() => { /* surfaced on the CV / letter screens */ });
+    }
+  }, [caseData, actions]);
+
+  const retry = (name) => {
+    setRunError(null);
+    started.current[name] = false;
+    started.current.analyze = name === 'research' ? false : started.current.analyze;
+    if (name === 'research') actions.research().catch((err) => setRunError(err.message));
+    else actions.analyze().catch((err) => setRunError(err.message));
+  };
+
+  const partStatus = (p) => {
+    if (p === 'case') return caseId ? 'ready' : setupError ? 'failed' : 'pending';
+    if (!caseData) return 'absent';
+    return (caseData[p] && caseData[p].status) || 'absent';
+  };
+  const firstNotReady = ANALYSIS_STEPS.find((s) => partStatus(s.part) !== 'ready');
+  const stepState = (p) => {
+    const st = partStatus(p);
+    if (st === 'ready') return 'is-done';
+    if (st === 'failed') return 'is-failed';
+    if (st === 'pending') return 'is-now';
+    // While a request is in flight, light only the first step that is not done yet.
+    if ((running.research || running.analyze) && firstNotReady && firstNotReady.part === p) return 'is-now';
+    return '';
+  };
+
+  if (partStatus('fit') === 'ready' && caseData) {
+    return <MatchAnalysisContent job={job} caseData={caseData} actions={actions} running={running} />;
+  }
+
+  const failedStep = ANALYSIS_STEPS.find((s) => partStatus(s.part) === 'failed');
+  const failureText = setupError
+    || (failedStep && caseData && caseData[failedStep.part] && caseData[failedStep.part].error)
+    || runError
+    || error;
+
+  return (
+    <div className="lay-analysis-loading">
+      <Clover size={44} color="#2B6CF0" />
+      <span className="helpitem__kind">Matchanalys</span>
+      <h1>{job.t}</h1>
+      <p>Lilly kör den riktiga analysen: research om {job.co || 'företaget'}, avkodning av det verkliga jobbet och en ärlig matchning mot dina datafakta. Research-steget tar ett par minuter.</p>
+      <div className="analysis-steps">
+        {ANALYSIS_STEPS.map((s, index) => (
+          <div key={s.part} className={`analysis-step ${stepState(s.part)}`}>
+            <span>{partStatus(s.part) === 'ready' ? <Icon name="check" size={14} sw={3} /> : index + 1}</span>
+            <b>{s.label}</b>
+          </div>
+        ))}
+      </div>
+      {failedStep || setupError || runError ? (
+        <div className="lay-analysis-error" style={{ marginTop: 16, textAlign: 'center' }}>
+          <p style={{ color: 'var(--ll-coral)', fontWeight: 600 }}>
+            Steget misslyckades{failureText ? `: ${failureText}` : '.'}
+          </p>
+          <Button
+            variant="secondary"
+            size="sm"
+            icon="target"
+            onClick={() => retry(failedStep && failedStep.part === 'fit' ? 'analyze' : 'research')}
+          >
+            Försök igen
+          </Button>
         </div>
+      ) : null}
+    </div>
+  );
+}
+
+const BRIDGE_KIND_LABEL = {
+  reframe: 'Omformulering',
+  'adjacent-proof': 'Angränsande bevis',
+  'honest-ramp': 'Ärlig upplärningskurva',
+};
+
+// The fill-gap loop, per gap: the bridge suggestion + an answer box. The bullet-judge
+// decides — accepted mints a datafact and flips the requirement to match; otherwise the
+// gap STAYS a gap and the honest reason is shown. Both outcomes are first-class.
+function GapFillForm({ gap, actions, running }) {
+  const [answer, setAnswer] = React.useState('');
+  const [result, setResult] = React.useState(null);
+  const [submitError, setSubmitError] = React.useState(null);
+  const canAnswer = Boolean(gap.requirementRef && gap.requirementRef.id);
+
+  if (!canAnswer) return null;
+  if (result && result.outcome === 'accepted') {
+    return (
+      <div className="lay-match__item-sug" style={{ color: 'var(--ll-green)' }}>
+        <Icon name="check" size={13} sw={3} />
+        Sparat som datafakta — kravet är nu uppdaterat till match.
       </div>
     );
   }
 
-  return <MatchAnalysisContent job={job} />;
+  const submit = async () => {
+    setSubmitError(null);
+    try {
+      const out = await actions.answerGap(gap.id, { answer, requirementId: gap.requirementRef.id });
+      setResult(out);
+    } catch (err) {
+      setSubmitError(err.message);
+    }
+  };
+
+  return (
+    <div className="lay-match__gapform" style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <textarea
+        value={answer}
+        onChange={(e) => setAnswer(e.target.value)}
+        placeholder="Beskriv din faktiska erfarenhet av det här — Lilly bedömer om det ärligt kan bli en CV-punkt."
+        rows={2}
+        style={{ width: '100%', font: 'inherit', padding: 8, borderRadius: 8, border: '1px solid var(--ll-line, #dcdfe6)' }}
+      />
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <Button variant="secondary" size="sm" icon="check" onClick={submit} disabled={!answer.trim() || running.answerGap}>
+          {running.answerGap ? 'Bedömer…' : 'Skicka svar'}
+        </Button>
+        {result && result.outcome === 'stays_gap' && (
+          <span className="cap" style={{ color: 'var(--ll-coral)' }}>
+            Kvarstår som lucka{result.reason ? ` — ${result.reason}` : ''}. Ingen fabricering: bara ärliga svar blir CV-punkter.
+          </span>
+        )}
+        {submitError && <span className="cap" style={{ color: 'var(--ll-coral)' }}>Fel: {submitError}</span>}
+      </div>
+    </div>
+  );
 }
 
-const MATCH_DETAILS = {
-  matches: [
-    { t:'Truckkort A1',                 m:'Du tog det under praktik på PostNord.', sc:'Från ditt CV · Erfarenhet' },
-    { t:'Lagererfarenhet, 6+ månader',  m:'Din praktik räcker som meriterande erfarenhet.', sc:'Från ditt CV · Praktik' },
-    { t:'Skiftarbete',                  m:'Du jobbade tvåskift hos PostNord.', sc:'Från ditt CV' },
-    { t:'Svenska, flytande',            m:'Anges i ditt CV under språk.', sc:'Från ditt CV · Språk' },
-  ],
-  gaps: [
-    { t:'Truckkort B',            m:'Tjänsten önskar B-behörighet utöver A1.',
-      sug:'HelloLilly har en kort kurs (4 dgr). Lägg in i kalender?', cta:'Visa kursen' },
-    { t:'Erfarenhet av WMS-system', m:'Jobbet nämner SAP EWM eller liknande lagersystem.',
-      sug:'Beskriv handdator-arbete från praktiken — det räknas.', cta:'Lägg till i CV' },
-    { t:'Referens från tidigare chef', m:'Annonsen ber om minst en referens.',
-      sug:'Be Lena (din handledare på PostNord) — Sara kan hjälpa.', cta:'Skriv till Sara' },
-  ],
-};
+function MatchAnalysisContent({ job, caseData, actions, running }) {
+  const fit = (caseData.fit && caseData.fit.data) || { capability: { requirements: [], overall: '' }, preference: { narrative: '' } };
+  const gaps = (caseData.gaps && caseData.gaps.data) || [];
+  const decodedReqs = (caseData.decodedRole && caseData.decodedRole.data && caseData.decodedRole.data.requirements) || [];
+  const reqText = new Map(decodedReqs.map((r) => [r.id, r.requirement]));
 
-function MatchAnalysisContent({ job }) {
-  const score = job.match || 78;
+  const rows = fit.capability.requirements || [];
+  const matches = rows.filter((r) => r.status === 'match');
+  const partials = rows.filter((r) => r.status === 'partial');
+  const score = rows.length ? Math.round((matches.length / rows.length) * 100) : 0;
+  const analyzedAt = caseData.fit && caseData.fit.updatedAt
+    ? new Date(caseData.fit.updatedAt).toLocaleString('sv-SE', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+    : '';
+
   const R = 42, C = 2 * Math.PI * R, off = C * (1 - score / 100);
   const verdictHi = score >= 90;
-  const verdictMid = score >= 75 && score < 90;
+  const verdictMid = score >= 60 && score < 90;
   const verdictHeadline = verdictHi
-    ? 'Stark match — gå för det.'
+    ? 'Stark match.'
     : verdictMid
-      ? 'Bra match — med några små luckor att fylla'
-      : 'Värd att överväga — några luckor att titta på';
-  const verdictBody = verdictHi
-    ? `Du uppfyller det viktigaste och annonsen passar din profil. Sara kan hjälpa dig skicka ansökan idag.`
-    : `Du uppfyller det viktigaste — fyll luckorna nedan så hamnar du runt ${Math.min(score + 14, 96)}%.`;
+      ? 'Bra match, med luckor att fylla'
+      : 'Tydliga luckor. Se dem nedan innan du bestämmer dig';
+  const verdictBody = fit.capability.overall || 'Analysen är klar. Varje match nedan citerar en verklig datafakta ur din pool.';
 
   return (
     <React.Fragment>
@@ -364,53 +500,102 @@ function MatchAnalysisContent({ job }) {
           </div>
           <div className="lay-match__verdict">
             <b>{verdictHeadline}</b><br />
-            Lilly har läst annonsen och jämfört den mot ditt CV. {verdictBody}
-            <div className="lay-match__by"><Icon name="sparkle" size={13} />Granskad av Lilly · för 2 min sedan</div>
+            {verdictBody}
+            <div className="lay-match__by"><Icon name="sparkle" size={13} />Analyserad av Lilly{analyzedAt ? ` · ${analyzedAt}` : ''}</div>
           </div>
         </div>
       </div>
 
       {/* Quick actions */}
       <div className="lay-match__actions">
-        <Button variant="primary" size="sm" icon="check">Ansök ändå</Button>
-        <Button variant="secondary" size="sm" icon="pen">Fyll luckorna först</Button>
+        {job.url && (
+          <a className="btn btn--primary btn--sm" href={job.url} target="_blank" rel="noreferrer">
+            <Icon name="check" size={16} />
+            Ansök ändå
+          </a>
+        )}
+        <a className="btn btn--secondary btn--sm" href="#gap-list" onClick={(e) => { e.preventDefault(); const el = document.querySelector('.lay-match__sec--gaps'); if (el) el.scrollIntoView({ behavior: 'smooth' }); }}>
+          <Icon name="pen" size={16} />
+          Fyll luckorna först
+        </a>
       </div>
 
-      {/* Det du har */}
+      {/* Hard-filter fit (preference) read */}
+      {fit.preference && fit.preference.narrative ? (
+        <div className="lay-match__sec">
+          <div className="lay-match__sec-h">
+            <Icon name="target" size={18} style={{ color: 'var(--ll-blue)' }} />
+            <h3>Passar rollen dina villkor?</h3>
+          </div>
+          <p className="lay-match__item-m" style={{ margin: 0 }}>{fit.preference.narrative}</p>
+        </div>
+      ) : null}
+
+      {/* Det du har — every match cites a real datafact */}
       <div className="lay-match__sec">
         <div className="lay-match__sec-h">
           <Icon name="check" size={18} sw={2.6} style={{ color:'var(--ll-green)' }} />
           <h3>Det du har</h3>
-          <span className="lay-match__pill lay-match__pill--ok">{MATCH_DETAILS.matches.length} av {MATCH_DETAILS.matches.length} krav</span>
+          <span className="lay-match__pill lay-match__pill--ok">{matches.length} av {rows.length} krav</span>
         </div>
-        {MATCH_DETAILS.matches.map((m, i) => (
-          <div className="lay-match__item" key={i}>
+        {matches.length === 0 && <p className="lay-match__item-m" style={{ margin: 0 }}>Inget krav har fullt stöd i din datafakta-pool ännu.</p>}
+        {matches.map((m) => (
+          <div className="lay-match__item" key={m.requirementRef.id}>
             <div className="lay-match__item-ic lay-match__item-ic--ok"><Icon name="check" size={14} sw={3} /></div>
             <div className="lay-match__item-b">
-              <div className="lay-match__item-t">{m.t}</div>
-              <div className="lay-match__item-m">{m.m}</div>
-              <div className="cap" style={{ marginTop:5, fontSize:11.5 }}><Icon name="doc" size={11} sw={2.4} style={{ display:'inline', verticalAlign:'-1px', marginRight:4 }} />{m.sc}</div>
+              <div className="lay-match__item-t">{reqText.get(m.requirementRef.id) || m.requirementRef.id}</div>
+              <div className="lay-match__item-m">{m.evidence}</div>
+              <div className="cap" style={{ marginTop:5, fontSize:11.5 }}>
+                <Icon name="doc" size={11} sw={2.4} style={{ display:'inline', verticalAlign:'-1px', marginRight:4 }} />
+                {m.evidenceRef ? `Citerad datafakta · ${m.evidenceRef.id}` : 'Ur din datafakta-pool'}
+              </div>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Luckor */}
-      <div className="lay-match__sec">
+      {/* Delvis täckt */}
+      {partials.length > 0 && (
+        <div className="lay-match__sec">
+          <div className="lay-match__sec-h">
+            <Icon name="doc" size={18} style={{ color:'var(--ll-amber, #F39A1E)' }} />
+            <h3>Delvis täckt</h3>
+            <span className="lay-match__pill lay-match__pill--gap">{partials.length} krav</span>
+          </div>
+          {partials.map((p) => (
+            <div className="lay-match__item" key={p.requirementRef.id}>
+              <div className="lay-match__item-ic lay-match__item-ic--gap"><Icon name="doc" size={13} sw={2.6} /></div>
+              <div className="lay-match__item-b">
+                <div className="lay-match__item-t">{reqText.get(p.requirementRef.id) || p.requirementRef.id}</div>
+                <div className="lay-match__item-m">{p.evidence || 'Delvis stöd — inget fullt belägg i poolen.'}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Luckor + the fill-gap loop */}
+      <div className="lay-match__sec lay-match__sec--gaps">
         <div className="lay-match__sec-h">
           <Icon name="bulb" size={18} style={{ color:'var(--ll-coral)' }} />
           <h3>Luckor att fylla</h3>
-          <span className="lay-match__pill lay-match__pill--gap">{MATCH_DETAILS.gaps.length} förbättringar</span>
+          <span className="lay-match__pill lay-match__pill--gap">{gaps.length} {gaps.length === 1 ? 'lucka' : 'luckor'}</span>
         </div>
-        {MATCH_DETAILS.gaps.map((g, i) => (
-          <div className="lay-match__item" key={i}>
+        {gaps.length === 0 && <p className="lay-match__item-m" style={{ margin: 0 }}>Inga luckor namngavs i analysen.</p>}
+        {gaps.map((g) => (
+          <div className="lay-match__item" key={g.id}>
             <div className="lay-match__item-ic lay-match__item-ic--gap"><Icon name="plus" size={13} sw={3} /></div>
             <div className="lay-match__item-b">
-              <div className="lay-match__item-t">{g.t}</div>
-              <div className="lay-match__item-m">{g.m}</div>
-              <div className="lay-match__item-sug"><Icon name="sparkle" size={13} />{g.sug}</div>
+              <div className="lay-match__item-t">{g.what}</div>
+              <div className="lay-match__item-m">{g.why}</div>
+              {g.bridge && (g.bridge.oneLiner || g.bridge.body) ? (
+                <div className="lay-match__item-sug">
+                  <Icon name="sparkle" size={13} />
+                  {BRIDGE_KIND_LABEL[g.bridge.kind] || 'Brygga'}: {g.bridge.oneLiner || g.bridge.body}
+                </div>
+              ) : null}
+              <GapFillForm gap={g} actions={actions} running={running} />
             </div>
-            <button className="lay-match__item-cta">{g.cta}</button>
           </div>
         ))}
       </div>

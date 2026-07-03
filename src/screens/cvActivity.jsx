@@ -1,7 +1,9 @@
 import React from 'react';
-import { Icon, Clover, Avatar, AvatarStack, Photo, Tag, Chip, Button, Rating, SectionHeader } from '../components/primitives.jsx';
+import { Icon, Clover, Avatar, AvatarStack, Photo, Tag, Chip, Button, Rating, SectionHeader, DemoBar } from '../components/primitives.jsx';
 import { Sidebar } from '../components/shell.jsx';
-import { CASE_PROFILE, CASE_RECORD, PIPELINE_RUN } from '../data/strategyData.js';
+import { CASE_PROFILE, PIPELINE_RUN } from '../data/strategyData.js';
+import { useActiveCase, useCase } from '../hooks/useCase.js';
+import { listCases } from '../api/caseApi.js';
 
 // HelloLilly — CV builder & Activity tracker
 
@@ -41,8 +43,80 @@ const CV_SECTIONS = [
   { title:'Referenser', body:'Referenser lämnas på begäran. Lilly hjälper till att formulera frågan till handledare eller tidigare chef.' },
 ];
 
+// The live preview pane, bound to the active case's cvDraft envelope. Every rendered
+// text is a SELECTED datafact (cv-builder never authors), so the paper shows real,
+// traceable content — or an honest absent/pending/failed state.
+function CVDraftPaper({ caseData, running, actions }) {
+  const draft = caseData && caseData.cvDraft;
+  const status = draft ? draft.status : 'absent';
+
+  if (!caseData || status === 'absent') {
+    return (
+      <div className="cvpaper" style={{ display: 'grid', placeItems: 'center', minHeight: 420, textAlign: 'center', gap: 10 }}>
+        <div>
+          <Clover size={38} color="#2B6CF0" />
+          <h2 style={{ marginTop: 12 }}>Inget CV-utkast ännu</h2>
+          <p className="muted" style={{ maxWidth: 380, margin: '8px auto 14px' }}>
+            CV-utkastet byggs från din matchanalys. Kör en analys på ett accepterat jobb så väljer Lilly de datafakta som passar rollen.
+          </p>
+          <a className="btn btn--primary btn--sm" href="#match"><Icon name="target" size={16} />Till Matchanalys</a>
+        </div>
+      </div>
+    );
+  }
+
+  if (status === 'pending' || running.generate) {
+    return (
+      <div className="cvpaper" style={{ display: 'grid', placeItems: 'center', minHeight: 420, textAlign: 'center', gap: 10 }}>
+        <div>
+          <VoiceWave bars={14} />
+          <h2 style={{ marginTop: 12 }}>Lilly bygger utkastet</h2>
+          <p className="muted" style={{ maxWidth: 380, margin: '8px auto 0' }}>
+            Väljer datafakta per sektion utifrån de avkodade kraven för {caseData.meta.role} hos {caseData.meta.company}.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (status === 'failed') {
+    return (
+      <div className="cvpaper" style={{ display: 'grid', placeItems: 'center', minHeight: 420, textAlign: 'center', gap: 10 }}>
+        <div>
+          <Icon name="doc" size={30} />
+          <h2 style={{ marginTop: 12 }}>Utkastet kunde inte byggas</h2>
+          <p className="muted" style={{ maxWidth: 380, margin: '8px auto 14px' }}>{draft.error || 'Okänt fel.'}</p>
+          <Button variant="secondary" size="sm" icon="target" onClick={() => actions.generate().catch(() => {})}>Försök igen</Button>
+        </div>
+      </div>
+    );
+  }
+
+  const sections = (draft.data && draft.data.sections) || [];
+  return (
+    <div className="cvpaper">
+      <div className="cvpaper__photo">
+        <Photo tone="ph--sky" clover person label="CV-bild" />
+      </div>
+      {/* Single-user product: the pool is Daniel's real CV (meta.owner = 'self'). */}
+      <h2>Daniel Oskarsson</h2>
+      <div className="cv-role">{caseData.meta.role} · {caseData.meta.company}</div>
+      {sections.map((sec) => (
+        <div className="cv-sec" key={sec.key || sec.heading}>
+          <h3>{sec.heading}</h3>
+          {sec.items.map((it) => (
+            <p key={it.datafactRef ? it.datafactRef.id : it.text} style={{ marginTop: 8 }}>{it.text}</p>
+          ))}
+        </div>
+      ))}
+      {sections.length === 0 && <p className="muted" style={{ marginTop: 12 }}>Inga sektioner kunde fyllas från datafakta-poolen.</p>}
+    </div>
+  );
+}
+
 function CVBuilder() {
   const [uploadedTemplates, setUploadedTemplates] = React.useState([]);
+  const { caseData, running, actions } = useActiveCase();
 
   const onTemplateUpload = (event) => {
     const files = Array.from(event.target.files || []).map((file) => ({
@@ -69,13 +143,14 @@ function CVBuilder() {
         </ToolHeader>
 
         <div className="cvbuilder-grid">
-          {/* intake */}
+          {/* intake — fixture conversation (labelled demo until the Stream 1 design pass wires it) */}
           <section className="intake" style={{ borderRight:'1px solid var(--ll-border)' }}>
+            <DemoBar />
             <div className="intake__head">
               <Avatar name="Sara Lind" size="md" tone="av-c3" clover />
               <div>
                 <div className="intake__title">Vi bygger ditt CV från case record</div>
-                <div className="cap">En fråga i taget - kopplat till {PIPELINE_RUN.company}-analysen</div>
+                <div className="cap">En fråga i taget - kopplat till {(caseData && caseData.meta.company) || PIPELINE_RUN.company}-analysen</div>
               </div>
               <span className="intake__prog">60% klart</span>
             </div>
@@ -172,64 +247,18 @@ function CVBuilder() {
             </div>
           </section>
 
-          {/* live preview */}
+          {/* live preview — the real cvDraft for the active case */}
           <section className="cvframe">
             <div style={{ width:'100%', maxWidth:560 }}>
               <div className="between" style={{ marginBottom:14 }}>
-                  <span className="tag tag--green" style={{ gap:6 }}><Icon name="sparkle" size={14} />Pipeline-kopplat</span>
-                <span className="cap" style={{ fontWeight:700 }}>Förhandsvisning · ansökningsklar</span>
+                {caseData && caseData.cvDraft.status === 'ready'
+                  ? <span className="tag tag--green" style={{ gap:6 }}><Icon name="sparkle" size={14} />Byggt från din matchanalys</span>
+                  : <span className="tag tag--ghost" style={{ gap:6 }}><Icon name="doc" size={14} />Väntar på analys</span>}
+                <span className="cap" style={{ fontWeight:700 }}>
+                  {caseData ? `Förhandsvisning · ${caseData.meta.company}` : 'Förhandsvisning'}
+                </span>
               </div>
-              <div className="cvpaper">
-                <div className="cvpaper__photo">
-                  <Photo tone="ph--sky" clover person label="CV-bild" />
-                </div>
-                <h2>{CASE_PROFILE.person}</h2>
-                <div className="cv-role">Lager &amp; logistik · Truckförare</div>
-                <div className="cv-contact">
-                  <span>📍 Västerås</span><span>✉ amir.hassan@mail.se</span><span>✆ 070-123 45 67</span>
-                </div>
-
-                <div className="cv-sec">
-                  <h3>Profil</h3>
-                  <p style={{ marginTop:8 }}>Pålitlig lager- och logistikmedarbetare med praktik från PostNord, truck A1 och vana vid scanning, plockning och inleverans. Söker en roll där noggrannhet, tempo och ansvar räknas.</p>
-                </div>
-
-                <div className="cv-sec">
-                  <h3>Erfarenhet</h3>
-                  <div className="cv-item">
-                    <div className="r"><span className="t">Lagerpraktik</span><span className="d">2025</span></div>
-                    <div className="c">PostNord, Västerås</div>
-                    <p>Plockning, packning, scanning och inleverans. Körde truck A1 och fick beröm för noggrannhet och punktlighet.</p>
-                  </div>
-                  <div className="cv-item">
-                    <div className="r"><span className="t">Butiksbiträde</span><span className="d">2021–2023</span></div>
-                    <div className="c">ICA Maxi, Västerås</div>
-                    <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:4 }}><span className="cv-typing" style={{ fontSize:13 }}>Sara skriver klart den här raden åt dig</span><VoiceWave bars={10} /></div>
-                  </div>
-                </div>
-
-                <div className="cv-sec">
-                  <h3>Kompetenser</h3>
-                  <div className="cv-skills">
-                    <span className="cv-skill">Truck A1</span>
-                    <span className="cv-skill">Lagerhantering</span>
-                    <span className="cv-skill">Noggrann</span>
-                    <span className="cv-skill">Lagspelare</span>
-                    <span className="cv-skill">Handdator/scanning</span>
-                    <span className="cv-skill" style={{ background:'var(--ll-blue-tint-2)', color:'var(--ll-ink-mute)', border:'1px dashed var(--ll-border-strong)' }}>+ truckkort B som nästa steg</span>
-                  </div>
-                </div>
-
-                <div className="cv-sec">
-                  <h3>Språk</h3>
-                  <div style={{ marginTop:10, display:'flex', flexDirection:'column', gap:8 }}>
-                    <div className="between" style={{ fontSize:12.5 }}><span>Svenska</span><span className="muted">Flytande</span></div>
-                    <div className="cv-fillbar"><span style={{ width:'85%' }} /></div>
-                    <div className="between" style={{ fontSize:12.5 }}><span>Arabiska</span><span className="muted">Modersmål</span></div>
-                    <div className="cv-fillbar"><span style={{ width:'100%' }} /></div>
-                  </div>
-                </div>
-              </div>
+              <CVDraftPaper caseData={caseData} running={running} actions={actions} />
             </div>
           </section>
         </div>
@@ -249,9 +278,66 @@ function WeekRing({ pct = 72 }) {
   );
 }
 
-const ACTIVITY = CASE_RECORD.timeline;
+// The honest activity strip: literally a render of the case parts' status envelopes
+// across all cases (there is no separate activity log in the backend — this IS the
+// real system state, with real timestamps).
+const PART_ACTIVITY = {
+  dossiers: { label: 'Research klar', m: 'Företag, produkt, människor och nisch researchade.', ic: 'search', tint: 'ic-blue' },
+  decodedRole: { label: 'Rollen avkodad', m: 'Det verkliga jobbet bakom annonsen, med viktade krav.', ic: 'target', tint: 'ic-lilac' },
+  fit: { label: 'Matchanalys körd', m: 'Ärlig fit per krav, varje match citerar en datafakta.', ic: 'sparkle', tint: 'ic-green' },
+  gaps: { label: 'Luckor namngivna', m: 'Luckorna och deras bryggor är på plats.', ic: 'bulb', tint: 'ic-amber' },
+  cvDraft: { label: 'CV-utkast byggt', m: 'Sektioner valda ur datafakta-poolen.', ic: 'cv', tint: 'ic-blue' },
+  coverLetter: { label: 'Personligt brev skrivet', m: 'Brevet med ärlig bridge-paragraf.', ic: 'letter', tint: 'ic-lilac' },
+};
+
+function useActivityRows() {
+  const [cases, setCases] = React.useState(null);
+  const [fetchError, setFetchError] = React.useState(null);
+  React.useEffect(() => {
+    let alive = true;
+    const load = () => listCases()
+      .then((cs) => { if (alive) { setCases(cs); setFetchError(null); } })
+      // A failed fetch must not masquerade as "no activity" — that would hide a failure.
+      .catch((err) => { if (alive) { setCases([]); setFetchError(err.message); } });
+    load();
+    window.addEventListener('ll:case:changed', load);
+    return () => { alive = false; window.removeEventListener('ll:case:changed', load); };
+  }, []);
+
+  if (cases === null) return { loading: true, days: [], readyCount: 0, caseCount: 0, fetchError: null };
+  const rows = [];
+  for (const c of cases) {
+    for (const [part, info] of Object.entries(PART_ACTIVITY)) {
+      const p = c.parts[part];
+      if (!p || p.status === 'absent') continue;
+      rows.push({
+        part, ...info,
+        caseId: c.meta.id,
+        status: p.status,
+        t: p.status === 'ready' ? info.label : p.status === 'pending' ? `${info.label.split(' ')[0]} pågår…` : `${info.label} misslyckades`,
+        company: c.meta.company, role: c.meta.role,
+        at: p.updatedAt,
+      });
+    }
+  }
+  rows.sort((a, b) => new Date(b.at) - new Date(a.at));
+  const byDay = new Map();
+  for (const r of rows) {
+    const day = new Date(r.at).toLocaleDateString('sv-SE', { weekday: 'long', day: 'numeric', month: 'long' });
+    if (!byDay.has(day)) byDay.set(day, []);
+    byDay.get(day).push(r);
+  }
+  return {
+    loading: false,
+    days: [...byDay.entries()].map(([day, items]) => ({ day, items })),
+    readyCount: rows.filter((r) => r.status === 'ready').length,
+    caseCount: cases.length,
+    fetchError,
+  };
+}
 
 function ActivityTracker() {
+  const { loading, days, readyCount, caseCount, fetchError } = useActivityRows();
   return (
     <div className="ll app app--warm" data-screen-label="Min aktivitet">
       <Sidebar active="activity" />
@@ -284,19 +370,34 @@ function ActivityTracker() {
               </div>
 
               <div className="atimeline">
-                {ACTIVITY.map((g, gi) => (
-                  <div className="aday" key={gi}>
-                    <div className="aday__label">{g.day}<span className="pill">{g.pill}</span></div>
-                    {g.items.map((a, ai) => (
-                      <div className="aitem" key={ai}>
+                {loading && <p className="muted">Hämtar aktivitet…</p>}
+                {!loading && fetchError && (
+                  <div className="feedbackline" style={{ marginBottom: 12 }}>
+                    <Icon name="lock" size={18} style={{ color: 'var(--ll-coral)' }} />
+                    Kunde inte hämta aktiviteten: {fetchError}
+                  </div>
+                )}
+                {!loading && !fetchError && days.length === 0 && (
+                  <div className="card card--pad" style={{ textAlign: 'center' }}>
+                    <Icon name="target" size={26} />
+                    <h3 style={{ marginTop: 8 }}>Ingen aktivitet än</h3>
+                    <p className="muted" style={{ marginTop: 6 }}>Aktiviteten fylls på när du kör en matchanalys — varje steg loggas automatiskt från systemets verkliga tillstånd.</p>
+                    <a className="btn btn--primary btn--sm" style={{ marginTop: 12 }} href="#match"><Icon name="target" size={16} />Till Matchanalys</a>
+                  </div>
+                )}
+                {days.map((g) => (
+                  <div className="aday" key={g.day}>
+                    <div className="aday__label" style={{ textTransform: 'capitalize' }}>{g.day}<span className="pill">{g.items.length} {g.items.length === 1 ? 'aktivitet' : 'aktiviteter'}</span></div>
+                    {g.items.map((a) => (
+                      <div className="aitem" key={`${a.caseId}-${a.part}`}>
                         <div className="aitem__rail"><div className={`aitem__ic ${a.tint}`}><Icon name={a.ic} size={20} /></div></div>
                         <div className="aitem__card">
                           <div className="aitem__top">
                             <span className="aitem__t">{a.t}</span>
-                            <span className="aitem__time">{a.time}</span>
+                            <span className="aitem__time">{new Date(a.at).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}</span>
                           </div>
-                          <p className="aitem__m">{a.m}</p>
-                          {a.auto && <div style={{ marginTop:10 }}><span className="aitem__auto"><Icon name="sparkle" size={12} />Loggades automatiskt</span></div>}
+                          <p className="aitem__m">{a.company} · {a.role}{a.status === 'ready' ? ` — ${a.m}` : ''}</p>
+                          <div style={{ marginTop:10 }}><span className="aitem__auto"><Icon name="sparkle" size={12} />Loggades automatiskt</span></div>
                         </div>
                       </div>
                     ))}
@@ -310,12 +411,12 @@ function ActivityTracker() {
               <div className="card card--pad" style={{ textAlign:'center' }}>
                 <h3 style={{ fontFamily:'var(--font-display)', fontSize:16, fontWeight:800, marginBottom:14 }}>Din vecka i siffror</h3>
                 <div style={{ position:'relative', width:86, height:86, margin:'0 auto 8px' }}>
-                  <WeekRing pct={72} />
+                  <WeekRing pct={Math.min(100, readyCount * 10)} />
                   <div style={{ position:'absolute', inset:0, display:'grid', placeItems:'center' }}>
-                    <div><div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:22, lineHeight:1 }}>{CASE_RECORD.activityCount}</div><div className="cap" style={{ fontSize:11 }}>aktiviteter</div></div>
+                    <div><div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:22, lineHeight:1 }}>{readyCount}</div><div className="cap" style={{ fontSize:11 }}>klara delar</div></div>
                   </div>
                 </div>
-                <p className="muted" style={{ fontSize:13.5 }}>Du har varit aktiv <b style={{ color:'var(--ll-ink)' }}>{CASE_RECORD.activeDays}</b>. Nästa steg: {CASE_RECORD.nextStep}.</p>
+                <p className="muted" style={{ fontSize:13.5 }}>{caseCount === 0 ? 'Inga ärenden än — allt börjar med ett accepterat jobb.' : <><b style={{ color:'var(--ll-ink)' }}>{caseCount}</b> {caseCount === 1 ? 'ärende' : 'ärenden'} med <b style={{ color:'var(--ll-ink)' }}>{readyCount}</b> klara delar. Varje del är systemets verkliga tillstånd, inte en uppskattning.</>}</p>
               </div>
 
               <div className="card card--pad">
@@ -323,7 +424,7 @@ function ActivityTracker() {
                   <Clover size={24} color="#2B6CF0" />
                   <strong style={{ fontFamily:'var(--font-display)', fontSize:15 }}>Det här räknas</strong>
                 </div>
-                <p style={{ fontSize:13.5, color:'var(--ll-ink-soft)' }}>Den här vyn finns för att <b>visa hur långt du kommit</b> - inte för att kontrollera dig. Saras notering: {CASE_RECORD.coachNote}</p>
+                <p style={{ fontSize:13.5, color:'var(--ll-ink-soft)' }}>Den här vyn finns för att <b>visa hur långt du kommit</b> - inte för att kontrollera dig. Allt här loggas automatiskt av verktygen själva.</p>
               </div>
             </div>
           </div>

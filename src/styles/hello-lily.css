@@ -3312,3 +3312,13 @@ body.ll-site { background: var(--ll-blue-tint); }
 .hero__body { color: rgba(255,255,255,.9); font-size: var(--fs-md); margin-top: var(--sp-2); max-width: 70%; }
 .hero__actions { display: flex; gap: var(--sp-3); margin-top: var(--sp-5); flex-wrap: wrap; }
 .hero__clover { position: absolute; right: -28px; bottom: -44px; opacity: .9; color: rgba(255,255,255,.18); pointer-events: none; }
+
+/* ---------- Demo marker (D3): pane-level label for fixture/sample content ---------- */
+.demobar {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--ll-amber-soft); color: #9a6611;
+  border: 1px solid var(--ll-amber);
+  border-radius: 8px; padding: 3px 10px;
+  font-size: 11px; font-weight: 800; letter-spacing: .06em;
+  width: fit-content; margin-bottom: 10px;
+}

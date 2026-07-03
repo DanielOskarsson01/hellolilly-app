@@ -1,6 +1,7 @@
-# Interview Prep - Data Contract (v0.3, draft)
+# Interview Prep - Data Contract (v0.4, draft)
 
-**Date:** 2026-06-29 (v0.3) · 2026-06-25 (v0.2) · 2026-06-15 (v0.1)
+**Date:** 2026-07-03 (v0.4) · 2026-06-29 (v0.3) · 2026-06-25 (v0.2) · 2026-06-15 (v0.1)
+**v0.4 diff:** one additive field — a gap MAY carry `requirementRef` (§gaps), shipped by the Stream 2 gap-analyzer for the fill-gap loop.
 **Purpose:** The shared handshake between the backend skeleton (which serves this data) and the frontend `useCase()` layer (which consumes it). Both sides build to this so the shape is defined once, not invented twice. This is a planning artifact describing WHAT the data is, not HOW either side implements it.
 **Status:** Draft for review. v0.2 resolves the buildability gaps that blocked Phase A0; the structure is the point. Refine before either side builds on top of it.
 **Companions:** INTERVIEW_PREP_CONCEPT_FINAL.md (what the system does), DEVELOPMENT_PLAN.md (the build phases).
@@ -103,7 +104,8 @@ A structured profile of the **real** requirements beneath the ad: the ad read ag
 - **preference** — the role against the candidate's own wishes: direction, deal-breakers, comp philosophy, culture signals, growth. A "do you want it, on what terms" read, not a score.
 
 ### gaps — `data` shape
-A list. Each gap `{ id, what, why, bridge, provenance }`:
+A list. Each gap `{ id, requirementRef?, what, why, bridge, provenance }`:
+- **requirementRef** — OPTIONAL `{ kind:'decodedRequirement', id }`: the requirement this gap blocks — the target a fill-gap answer flips to `match`. Present only when the analyzer's cited requirement id resolves against `decodedRole.requirements` (same honesty rule as datafact cites: an unresolvable id is dropped, never trusted). Added v0.4.
 - **bridge** `{ id, kind: 'reframe' | 'adjacent-proof' | 'honest-ramp', body, oneLiner, material: [ { source: 'cv' | 'coop-dialogue', ref? } ] }`. `oneLiner` is the compressed form used by deterministic compression and the live cards. `material` is **required** (possibly one item) so origin is always known.
 - **provenance** — `required`: how the gap surfaced. Co-op dialogue answers attach here and append to `bridge.material`.
 

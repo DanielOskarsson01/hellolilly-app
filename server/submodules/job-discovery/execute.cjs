@@ -16,7 +16,7 @@ const PROVIDERS = {
   jobtech: {
     id: 'jobtech', mode: 'search',
     url: 'https://jobsearch.api.jobtechdev.se/search',
-    keyword_param: 'q', limit_param: 'limit', results_path: 'hits',
+    keyword_param: 'q', limit_param: 'limit', municipality_param: 'municipality', results_path: 'hits',
     filter_fields: [],
     field_map: {
       url: ['webpage_url', 'application_details.url'], title: 'headline', company: 'employer.name',
@@ -140,7 +140,11 @@ async function searchProvider(provider, filterSet, tools) {
 
   if (provider.mode === 'search') {
     for (const term of terms) {
-      const url = `${provider.url}?${provider.keyword_param}=${encodeURIComponent(term)}&${provider.limit_param}=${limit}`;
+      let url = `${provider.url}?${provider.keyword_param}=${encodeURIComponent(term)}&${provider.limit_param}=${limit}`;
+      // Geography is filter-set DATA like everything else (e.g. jobtech municipality code).
+      if (provider.municipality_param && filterSet.municipality) {
+        url += `&${provider.municipality_param}=${encodeURIComponent(filterSet.municipality)}`;
+      }
       const res = await tools.http.get(url, { timeout: 15000 });
       if (res.status !== 200) { if (tools.logger) tools.logger.warn(`${provider.id} ${res.status} for "${term}"`); continue; }
       items.push(...extractResults(tools.utils.parseJSON(res.body) || {}, provider));
@@ -162,12 +166,16 @@ module.exports = async function execute(input, options, tools) {
 
   const nowIso = new Date().toISOString();
   const providerIds = (filterSet.providers && filterSet.providers.length) ? filterSet.providers : Object.keys(PROVIDERS);
-  const seenExternalIds = new Set(tools.store.listRecords('jobs').map((j) => j.externalId));
+  // Map (not just a Set): a dedup hit surfaces the EXISTING record — with its decision —
+  // in items[], so a caller rendering this run's results shows the stored truth.
+  const existingByExternalId = new Map(tools.store.listRecords('jobs').map((j) => [j.externalId, j]));
 
   let found = 0;
   let added = 0;
   const perProvider = {};
   const errors = [];
+  const items = []; // every record this run saw (new + already-known), in discovery order
+  const inItems = new Set(); // one entry per externalId, even when several terms return it
 
   for (const pid of providerIds) {
     const provider = PROVIDERS[pid];
@@ -186,12 +194,18 @@ module.exports = async function execute(input, options, tools) {
     for (const item of raw) {
       const canonical = toCanonical(item, provider, tools, nowIso);
       if (!canonical.externalId || canonical.externalId.endsWith('-undefined')) continue;
-      if (seenExternalIds.has(canonical.externalId)) continue; // dedup; never clobber an existing decision
+      const existing = existingByExternalId.get(canonical.externalId);
+      if (existing) { // dedup; never clobber an existing decision
+        if (!inItems.has(canonical.externalId)) { inItems.add(canonical.externalId); items.push(existing); }
+        continue;
+      }
       const { signal, matchedRules } = stage1Signal(canonical, filterSet);
       canonical.signal = signal;
       canonical.matchedRules = matchedRules;
       tools.store.putRecord('jobs', canonical);
-      seenExternalIds.add(canonical.externalId);
+      existingByExternalId.set(canonical.externalId, canonical);
+      inItems.add(canonical.externalId);
+      items.push(canonical);
       added += 1;
       // checkpoint partial progress so a long multi-provider run doesn't lose everything on a later error
       if (tools._partialItems) tools._partialItems.push(canonical);
@@ -199,5 +213,5 @@ module.exports = async function execute(input, options, tools) {
   }
 
   if (tools.logger) tools.logger.info(`discovery: ${found} found, ${added} new across ${providerIds.join(', ')}`);
-  return { ok: errors.length === 0, found, added, perProvider, errors };
+  return { ok: errors.length === 0, found, added, perProvider, errors, items };
 };

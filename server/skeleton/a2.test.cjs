@@ -35,7 +35,9 @@ test('gap-analyzer writes honest fit + gaps citing datafacts', async () => {
       },
       preference: { narrative: 'Clears deal-breakers; within fit constraints.' },
       gaps: [
-        { what: 'No hands-on ML platform engineering', why: 'Role expects deep ML infra', bridgeKind: 'honest-ramp', bridgeBody: 'Has led ML-adjacent teams; can ramp on infra.', bridgeOneLiner: 'Led ML-adjacent delivery.', material: [{ source: 'cv' }] },
+        { requirementId: 'decodedRequirement_2', what: 'No hands-on ML platform engineering', why: 'Role expects deep ML infra', bridgeKind: 'honest-ramp', bridgeBody: 'Has led ML-adjacent teams; can ramp on infra.', bridgeOneLiner: 'Led ML-adjacent delivery.', material: [{ source: 'cv' }] },
+        // a hallucinated requirementId must NOT become a requirementRef
+        { requirementId: 'decodedRequirement_nope', what: 'A second gap', why: 'y', bridgeKind: 'reframe', bridgeBody: 'b', bridgeOneLiner: 'o', material: [{ source: 'cv' }] },
       ],
     },
   });
@@ -63,6 +65,9 @@ test('gap-analyzer writes honest fit + gaps citing datafacts', async () => {
   assert.ok(updated.gaps.data[0].id.startsWith('gap_'));
   assert.ok(updated.gaps.data[0].bridge.id.startsWith('bridge_'));
   assert.ok(updated.gaps.data[0].bridge.material.length >= 1, 'bridge has material');
+  // the gap -> requirement link the fill-gap loop answers against
+  assert.deepEqual(updated.gaps.data[0].requirementRef, { kind: 'decodedRequirement', id: 'decodedRequirement_2' });
+  assert.ok(!updated.gaps.data[1].requirementRef, 'a hallucinated requirementId does not become a ref');
 });
 
 test('gap-analyzer regenerates once when its authored prose trips the writing gate', async () => {

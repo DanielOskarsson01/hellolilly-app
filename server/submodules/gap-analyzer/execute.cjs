@@ -38,6 +38,7 @@ const SYSTEM =
   '  "preference": { "narrative": "<hard-filter fit read only — deal-breakers + credible-meet assessment>" },\n' +
   '  "gaps": [\n' +
   '    {\n' +
+  '      "requirementId": "<id from input of the requirement this gap blocks, or null>",\n' +
   '      "what": "<the specific gap>",\n' +
   '      "why": "<why the role demands it>",\n' +
   '      "bridgeKind": "reframe"|"adjacent-proof"|"honest-ramp",\n' +
@@ -132,6 +133,12 @@ module.exports = async function execute(input, options, tools) {
     (result && Array.isArray(result.gaps) ? result.gaps : [])
       .map((g) => ({
         id: tools.ids.mintId('gap'),
+        // The requirement this gap blocks — the target a fill-gap answer flips to
+        // 'match'. Same honesty rule as datafact cites: an id that does not resolve
+        // against the decoded requirements is dropped, never trusted.
+        ...(g.requirementId && reqIds.has(g.requirementId)
+          ? { requirementRef: tools.ids.ref('decodedRequirement', g.requirementId) }
+          : {}),
         what: g.what || '',
         why: g.why || '',
         bridge: {

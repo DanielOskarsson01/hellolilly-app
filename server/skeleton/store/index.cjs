@@ -134,6 +134,33 @@ function createStore() {
     return m ? m.delete(id) : false;
   }
 
+  // PERSISTENCE SEAM. snapshot() serializes the three durable regions to a JSON-safe
+  // value; hydrate() replaces them from one. Scratch is deliberately excluded — it is
+  // private per-run working state, not produced content. The file wrapper
+  // (persistence.cjs) builds on exactly these two; the in-memory semantics above are
+  // untouched, keeping the "swap the DB behind the same signatures" promise.
+  function snapshot() {
+    return detach({
+      version: 1,
+      cases: [...cases.entries()],
+      datafacts: [...datafacts.entries()],
+      collections: [...collections.entries()].map(([name, m]) => [name, [...m.entries()]]),
+    });
+  }
+  function hydrate(snap) {
+    if (!snap || snap.version !== 1) throw new Error('hydrate: unsupported or missing snapshot version');
+    cases.clear();
+    datafacts.clear();
+    collections.clear();
+    for (const [id, c] of snap.cases || []) cases.set(id, detach(c));
+    for (const [id, f] of snap.datafacts || []) datafacts.set(id, detach(f));
+    for (const [name, entries] of snap.collections || []) {
+      const m = new Map();
+      for (const [id, r] of entries || []) m.set(id, detach(r));
+      collections.set(name, m);
+    }
+  }
+
   // IMPORTED-FACTS path. Exempt from the writing-rules gate by design (real CV text is
   // evidence, kept verbatim). Host-level only — not on tools.store.
   function ingestDatafact(df) {
@@ -162,6 +189,8 @@ function createStore() {
     ingestDatafact,
     getDatafact,
     listDatafacts,
+    snapshot,
+    hydrate,
   };
 }
 
