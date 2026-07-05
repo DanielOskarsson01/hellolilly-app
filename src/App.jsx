@@ -73,6 +73,18 @@ function App() {
     document.title = 'HelloLilly · ' + title;
   }, [route]);
 
+  // body.ll-site scopes the OLD shell (fixed .side sidebar, blue page wash,
+  // HelpfulNow right-gutter). index.html hard-codes it, but a PageTemplate
+  // screen owns its own chrome via .ll-page — leaving ll-site on makes the
+  // nav float (fixed .side), paints a blue slab, and shoves the page
+  // off-center. Toggle it off on template routes, back on otherwise.
+  React.useEffect(() => {
+    const known = LL_ROUTES[route];
+    const isTpl = !!(known && known.template);
+    document.body.classList.toggle('ll-site', !isTpl);
+    document.body.classList.toggle('ll-template', isTpl);
+  }, [route]);
+
   const known = LL_ROUTES[route];
   const isTemplate = !!(known && known.template);
   const screen = known ? known.c() : <ComingSoon routeKey={route} />;

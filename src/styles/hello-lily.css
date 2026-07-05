@@ -2853,6 +2853,11 @@ body.ll-site { background: var(--ll-blue-tint); }
    itself can be reflowed by @container (an element can't match its own
    container query). Fixed mobile chrome pins to the nearest transformed
    ancestor in the styleguide frames, and to the viewport in the real app. */
+/* Template screens run OUTSIDE the .ll-site shell (App.jsx toggles the body
+   class per route). Fill the whole canvas with the page's cream so the
+   centered .ll-page reads full-bleed — no seam between page and side margins. */
+body.ll-template { background: var(--ll-cream); }
+
 .ll-shell {
   container-type: inline-size;
   container-name: llpage;
