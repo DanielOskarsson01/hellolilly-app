@@ -64,6 +64,12 @@ function createApiHandler(host, { preferencesPath, llm } = {}) {
   }
 
   return async function handle(req, res) {
+    if (req.method === 'GET' && req.url === '/api/jobs') {
+      const jobs = host.store.listRecords('jobs');
+      sendJson(res, 200, { ok: true, jobs });
+      return true;
+    }
+
     // Job search — in-repo job-discovery through the host broker (Stream 2 rewire).
     if (req.method === 'POST' && req.url === '/api/jobs/search') {
       try {

@@ -276,3 +276,18 @@ test('POST /generate is 207 with a per-generator error when one fails', async ()
   assert.equal(host.store.getCase(caseId).coverLetter.status, 'failed', 'writer failed the gate');
   assert.ok(res._body.writer_error, 'the writer error is surfaced');
 });
+
+test('GET /api/jobs returns stored canonical jobs with decision + signal + matchedRules', async () => {
+  const host = createHost({ llm: null });
+  host.store.putRecord('jobs', { id: 'job_1', externalId: 'jobtech-1', title: 'CMO', company: 'Acme', location: 'Stockholm', decision: 'new', signal: 'neutral', matchedRules: [] });
+  host.store.putRecord('jobs', { id: 'job_2', externalId: 'rok-2', title: 'VP US', company: 'Playline', location: 'Remote US', decision: 'new', signal: 'low', matchedRules: [{ rule: 'location_out', term: 'US', stage: 1 }] });
+  const handle = createApiHandler(host, { preferencesPath: null, llm: null });
+  const res = mockRes();
+  assert.equal(await handle(makeReq('GET', '/api/jobs'), res), true);
+  assert.equal(res._status, 200);
+  assert.equal(res._body.ok, true);
+  assert.equal(res._body.jobs.length, 2);
+  const flagged = res._body.jobs.find((j) => j.id === 'job_2');
+  assert.equal(flagged.signal, 'low');
+  assert.equal(flagged.matchedRules[0].stage, 1);
+});
