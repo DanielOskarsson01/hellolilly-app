@@ -6,7 +6,8 @@ the ad layover write the SAME durable store record (keyed on `job.id`) through t
 route; a re-discovery keeps the decision (dedup on `externalId`).
 
 There are two halves. The **API half is pre-verified** below (browser-free, recorded output). The
-**UI half is staged for Daniel to run live** — the browser step is deliberately not automated.
+**UI half was run live by Daniel on 2026-07-05 — PASS** (recorded outcome under Half 2); the browser
+step is deliberately not automated.
 
 ---
 
@@ -52,7 +53,7 @@ existing decision) is covered by the route test `decide survives a re-discovery 
 
 ---
 
-## Half 2 — UI row ⇄ layover reflection + restart (STAGED for Daniel to run live)
+## Half 2 — UI row ⇄ layover reflection + restart (RUN LIVE 2026-07-05 — PASS)
 
 The correctness criterion's UI half — a decision made on the **row** reflects in the **layover** and
 vice-versa (same record), and both survive a restart. Run this in a browser (not automated):
@@ -77,6 +78,35 @@ vice-versa (same record), and both survive a restart. Run this in a browser (not
 **Pass criteria:** a layover decision reflects on the row (and vice-versa) with no page reload; all
 decisions survive the kill+restart; a re-run keeps decisions. This is the single-decision-record contract
 end to end — the reviewer checks it first.
+
+### Recorded live outcome (2026-07-05, Daniel at the browser · Claude verified the store via the API)
+
+Build under test: through `afa61c7` (layout scope fix) on the `jobbsok-unit` branch. Real JobTech
+marketing roles (marknadschef / Head of … / Marketing Manager) — the Daniel Oskarsson iGaming/marketing
+persona, not the warehouse fixture.
+
+1. **Clean slate:** store wiped, server restarted → `/api/health` `durable:true`, `0 jobs`;
+   `POST /api/job/clear` → `{ok:true,cleared:0}` (fixed clear route live).
+2. **Search (real terms):** marketing keywords (not the old `lager/logistik/truck` defaults) → Daniel
+   triaged on the rows to a baseline of **18 jobs — new:10 · approved:3 · rejected:5**.
+3. **Cross-surface reflection:** opened **"Head of Paid Acquisition"** (a `new` job) via its title →
+   **layover** → **Välj bort** → reason → **Spara**. The row immediately moved to **Bortvalda** with its
+   reason (Daniel confirmed). Store: **new:9 · approved:3 · rejected:6**.
+4. **Kill + restart WITHOUT wiping:** `Ctrl+C`, `npm run dev`, `store.db` untouched. (`.env not found`
+   and the CV-seed skip are expected — personal data gitignored; neither touches the jobs store.)
+5. **Persistence:** `/api/health` `durable:true`; `/api/jobs` → **18 jobs — new:9 · approved:3 ·
+   rejected:6** (identical to pre-restart); **Head of Paid Acquisition → `rejected · reason=SENIORITY`**
+   — the *layover* decision survived the restart. Browser refresh on `#jobbsok` matched (Daniel confirmed).
+
+**RESTART-SURVIVAL (UI): PASS** — a decision made in the layover reflected on the row and persisted
+across a full server restart. One job, one durable decision record.
+
+**Bug found + fixed during this run:** `#jobbsok` (first real-app render of `PageTemplate`) inherited the
+old `.ll-site` shell → floating nav, blue slab, off-center page. Root-caused via systematic debugging and
+fixed in `afa61c7` (toggle `ll-site` off + `ll-template` cream background on template routes). Re-verified
+live. No automated DOM test caught it — the project has no jsdom/vitest harness; **adding a vitest+jsdom
+frontend harness is the logged follow-up** so cross-surface reflection and template-scope regressions get
+an automated guard. Suite at verification: **172 pass / 1 skip / 0 fail**.
 
 > Note (Matchanalys seam, by design — Option A): approving here writes the backend `decision` but does
 > NOT populate the legacy `#match` (Matchanalys) queue, which still reads the older localStorage
