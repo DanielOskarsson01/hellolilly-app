@@ -26,7 +26,7 @@ const LL_ROUTES = {
   review: { c: () => <MultiCoachReview />, title: 'Granskning' },
   studio: { c: () => <ImageStudio />, title: 'Bildstudio' },
   coach: { c: () => <CoachWorkspace />, title: 'Coachvy' },
-  jobbsok: { c: () => <JobSearch />, title: 'Jobbsök' },
+  jobbsok: { c: () => <JobSearch />, title: 'Jobbsök', template: true },
   match: { c: () => <JobMatchReview />, title: 'Matchanalys' },
   calendar: { c: () => <CalendarView />, title: 'Kalender' },
   community: { c: () => <Community />, title: 'Community' },
@@ -74,7 +74,21 @@ function App() {
   }, [route]);
 
   const known = LL_ROUTES[route];
+  const isTemplate = !!(known && known.template);
   const screen = known ? known.c() : <ComingSoon routeKey={route} />;
+
+  // PageTemplate-based screens own their full chrome (nav + CrossColumn right rail).
+  // Suppress the global burger, scrims, HelpfulNow toggle, and HelpfulNow panel so
+  // those screens end up with exactly ONE right rail and a correctly-placed nav.
+  if (isTemplate) {
+    return (
+      <React.Fragment>
+        <CloverDefs />
+        {screen}
+        <HelpfulLayover />
+      </React.Fragment>
+    );
+  }
 
   return (
     <React.Fragment>
