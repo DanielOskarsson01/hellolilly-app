@@ -9,7 +9,7 @@ import { searchJobs as apiSearchJobs } from './caseApi.js';
 const FIXED_MUNICIPALITY = '0180';
 
 const DEFAULT_QUERY = {
-  keywords: ['lager', 'logistik', 'truck'],
+  keywords: ['marknadschef', 'head of marketing', 'marketing manager'],
   sources: ['jobtech'],
   municipality: FIXED_MUNICIPALITY,
   maxResults: 20,
