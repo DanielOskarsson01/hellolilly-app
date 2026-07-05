@@ -1,8 +1,9 @@
 import React from 'react';
 import { Icon, Clover, Photo, Avatar, Button, Tag, SectionHeader } from './primitives.jsx';
 import { acceptJob, getAcceptedJobs, jobKey, removeJob, setJobCase, setActiveCaseId } from '../utils/jobStore.js';
-import { createCase } from '../api/caseApi.js';
+import { createCase, decideJob } from '../api/caseApi.js';
 import { useCase } from '../hooks/useCase.js';
+import { REJECT_REASONS } from '../lib/jobTriage.mjs';
 
 // HelloLilly — Helpful Now layover
 // Opens when a Helpful Now item is clicked (custom event `ll:helpful:open`).
@@ -49,6 +50,9 @@ const RICH_CONTENT = {
 };
 
 function HelpfulLayoverContent({ item }) {
+  // A search-result row opens the light preview + decision surface (NOT the full analysis and
+  // NOT an iframe of the posting). Placed before kind:'job' so it never falls through to it.
+  if (item && item.kind === 'jobpreview') return <JobPreviewContent job={item} />;
   if (item && item.kind === 'job') return <JobDescriptionContent job={item} />;
   if (item && item.kind === 'job-analysis') {
     const job = item.job || item;
@@ -224,6 +228,106 @@ function HelpfulLayover() {
    Jobbsök opens a plain job description. Matchanalys opens the
    analysis flow for an accepted job.
    ============================================================ */
+
+// The ad layover as a DECISION surface (kind:'jobpreview'). Shows OUR stored copy of the ad
+// (title/company/location/our snippet — NOT an <iframe>, which job boards block), the honest
+// "no analysis yet" note, and a decision bar: Godkänn / Välj bort (8-reason taxonomy + note) /
+// Till annonsen. Godkänn/Välj bort write the ONE record via caseApi.decideJob(job.id, ...), which
+// dispatches ll:jobs:changed — so the screen row reflects the decision immediately. The picker's
+// open/sel/note are transient UI state only; the decision itself is never held locally.
+function JobPreviewContent({ job }) {
+  const close = () => window.dispatchEvent(new CustomEvent('ll:helpful:close'));
+  const [picking, setPicking] = React.useState(false);
+  const [sel, setSel] = React.useState(job.rejectReason || null);
+  const [note, setNote] = React.useState('');
+  const [busy, setBusy] = React.useState(false);
+  const [err, setErr] = React.useState(null);
+
+  const selIsOther = sel === 'OTHER';
+  const canSaveReject = !!sel && (!selIsOther || note.trim().length >= 3);
+
+  const write = async (fn) => {
+    setBusy(true);
+    setErr(null);
+    try { await fn(); close(); }
+    catch (e) { setErr(e.message || 'Kunde inte spara beslutet'); setBusy(false); }
+  };
+  const approve = () => write(() => decideJob(job.id, { decision: 'approved' }));
+  const saveReject = () => { if (canSaveReject) write(() => decideJob(job.id, { decision: 'rejected', reason: sel, note: note.trim() || null })); };
+
+  const company = job.co || job.company;
+  const city = job.city || job.location;
+  const title = job.t || job.title;
+
+  return (
+    <div className="lay__body">
+      <span className="helpitem__kind helpitem__kind--tips" style={{ alignSelf: 'flex-start' }}>Sökträff</span>
+
+      {/* our stored header copy — company / location / provider / posted */}
+      <div className="lay-match__co" style={{ marginTop: 4 }}>
+        <div className="lay-match__logo" style={{ background: '#fff', color: job.logo || '#2B6CF0' }}>
+          {(company || 'CO').slice(0, 2).toUpperCase()}
+        </div>
+        <div>
+          <div className="lay-match__co-nm">{company}</div>
+          <div className="lay-match__co-meta">
+            {city}{job.source ? ' · ' + job.source : ''}{job.postedAt ? ' · ' + job.postedAt : ''}
+          </div>
+        </div>
+      </div>
+      <h1 className="lay-match__title" style={{ marginTop: 10 }}>{title}</h1>
+
+      {/* our stored ad body (snippet) — NOT an iframe of the posting */}
+      {job.snippet && <p className="lay__summary">{job.snippet}</p>}
+
+      {/* honest: no match analysis yet — that happens after triage + scrape */}
+      <div className="jobprev-note">
+        <Icon name="bulb" size={17} />
+        <div>
+          <b>Ingen analys än</b>
+          <p>Annonsen laddas ner och matchas mot ditt CV först när den gått igenom triage. Då får du full matchanalys med poäng och luckor.</p>
+        </div>
+      </div>
+
+      {/* decision bar: Godkänn / Välj bort (2-col grid) + Till annonsen. Both decisions write the
+          ONE record via decideJob; the reject picker (8-reason taxonomy + note) replaces the bar. */}
+      {!picking ? (
+        <React.Fragment>
+          <div className="lay-match__actions">
+            <Button variant="primary" size="sm" icon="check" disabled={busy} onClick={approve}>Godkänn</Button>
+            <button type="button" className="btn btn--sm btn--reject" disabled={busy}
+              onClick={() => { setSel(job.rejectReason || null); setNote(job.rejectNote || ''); setPicking(true); }}>Välj bort</button>
+          </div>
+          {job.url && (
+            <a className="jobdesc__external" href={job.url} target="_blank" rel="noopener noreferrer">
+              Till annonsen <Icon name="arrow" size={16} />
+            </a>
+          )}
+        </React.Fragment>
+      ) : (
+        <div className="reject-pick" style={{ margin: '4px 28px 20px' }}>
+          <div className="reject-pick__h">Varför passar den inte? (hjälper Lilly lära)</div>
+          <div className="reject-pick__opts">
+            {REJECT_REASONS.map((r) => (
+              <button key={r.code} type="button" className={`reason-chip ${sel === r.code ? 'reason-chip--on' : ''}`} onClick={() => setSel(r.code)}>{r.label.sv}</button>
+            ))}
+          </div>
+          <label className="reject-pick__note">
+            <span>{selIsOther ? 'Beskriv kort varför (krävs)' : 'Beskriv gärna varför (frivilligt)'}</span>
+            <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2}
+              placeholder="T.ex. kräver flytt utomlands, lönen för låg …" />
+          </label>
+          <div className="reject-pick__row">
+            <Button variant="primary" size="sm" icon="check" disabled={!canSaveReject || busy} onClick={saveReject}>Spara — välj bort</Button>
+            <button type="button" className="linkbtn" onClick={() => setPicking(false)}>Avbryt</button>
+          </div>
+        </div>
+      )}
+
+      {err && <p className="cap" style={{ color: 'var(--ll-coral)', margin: '4px 28px 16px' }}>{err}</p>}
+    </div>
+  );
+}
 
 function JobDescriptionContent({ job }) {
   const [accepted, setAccepted] = React.useState(() => getAcceptedJobs().some((item) => jobKey(item) === jobKey(job)));
