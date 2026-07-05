@@ -112,6 +112,23 @@ function createApiHandler(host, { preferencesPath, llm } = {}) {
       return true;
     }
 
+    const decideMatch = req.method === 'POST' && req.url.match(/^\/api\/job\/([^/]+)\/decide$/);
+    if (decideMatch) {
+      const jobId = decideMatch[1];
+      const body = await readJson(req);
+      const decision = body && body.decision;
+      if (!['new', 'approved', 'rejected'].includes(decision)) { sendJson(res, 400, { ok: false, error: 'invalid decision' }); return true; }
+      if (decision === 'rejected' && !body.reason) { sendJson(res, 400, { ok: false, error: 'reason required' }); return true; }
+      const job = host.store.getRecord('jobs', jobId);
+      if (!job) { sendJson(res, 404, { ok: false, error: 'job not found' }); return true; }
+      const updated = { ...job, decision,
+        rejectReason: decision === 'rejected' ? body.reason : null,
+        rejectNote:   decision === 'rejected' ? (body.note || null) : null };
+      host.store.putRecord('jobs', updated);
+      sendJson(res, 200, { ok: true, job: updated });
+      return true;
+    }
+
     const m = req.url.match(/^\/api\/case\/([^/]+)(\/analyze|\/generate|\/research|\/gap\/([^/]+)\/answer)?$/);
     if (!m) return false;
     const caseId = decodeURIComponent(m[1]);
