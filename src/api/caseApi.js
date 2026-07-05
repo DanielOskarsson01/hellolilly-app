@@ -67,6 +67,26 @@ export function searchJobs(query) {
   return request('/api/jobs/search', { method: 'POST', body: JSON.stringify(query) });
 }
 
+// The stored jobs collection, raw canonical shape (decision/signal/matchedRules preserved) —
+// the triage view reads this, not the UI-normalized /api/jobs/search output.
+export function listJobs() {
+  return request('/api/jobs').then((b) => b.jobs);
+}
+
+// The ONE decision write. The result row AND the ad layover both call this — never a local/
+// localStorage decision. On success it dispatches ll:jobs:changed so every mounted useJobs
+// refetches, making a decision taken on one surface reflect immediately on the other.
+// decision: 'approved' | 'rejected' | 'new' ('new' = reopen, clears reason/note server-side).
+export function decideJob(jobId, { decision, reason = null, note = null }) {
+  return request(`/api/job/${encodeURIComponent(jobId)}/decide`, {
+    method: 'POST',
+    body: JSON.stringify({ decision, reason, note }),
+  }).then((b) => {
+    if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('ll:jobs:changed'));
+    return b.job;
+  });
+}
+
 // Cross-screen sync, same pattern as jobStore's ll:jobs:changed.
 export function notifyCaseChanged() {
   if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('ll:case:changed'));
