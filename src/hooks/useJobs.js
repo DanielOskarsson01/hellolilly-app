@@ -1,5 +1,5 @@
 import React from 'react';
-import { listJobs, decideJob } from '../api/caseApi.js';
+import { listJobs, decideJob, clearJobs } from '../api/caseApi.js';
 
 // useJobs — the SINGLE decision path for the Jobbsök unit.
 //
@@ -35,6 +35,7 @@ export function useJobs() {
   const approve = React.useCallback((id) => decideJob(id, { decision: 'approved' }), []);
   const reject = React.useCallback((id, reason, note) => decideJob(id, { decision: 'rejected', reason, note }), []);
   const reopen = React.useCallback((id) => decideJob(id, { decision: 'new' }), []);
+  const clear = React.useCallback(() => clearJobs(), []);
 
-  return { jobs, status, error, reload, approve, reject, reopen };
+  return { jobs, status, error, reload, approve, reject, reopen, clear };
 }

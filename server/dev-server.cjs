@@ -112,6 +112,13 @@ function createApiHandler(host, { preferencesPath, llm } = {}) {
       return true;
     }
 
+    if (req.method === 'POST' && req.url === '/api/job/clear') {
+      const all = host.store.listRecords('jobs');
+      for (const j of all) host.store.removeRecord('jobs', j.id);
+      sendJson(res, 200, { ok: true, cleared: all.length });
+      return true;
+    }
+
     const decideMatch = req.method === 'POST' && req.url.match(/^\/api\/job\/([^/]+)\/decide$/);
     if (decideMatch) {
       const jobId = decideMatch[1];

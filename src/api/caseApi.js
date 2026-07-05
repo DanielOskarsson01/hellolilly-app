@@ -87,6 +87,14 @@ export function decideJob(jobId, { decision, reason = null, note = null }) {
   });
 }
 
+// Clear all stored jobs. Dispatches ll:jobs:changed so mounted useJobs hooks refetch.
+export function clearJobs() {
+  return request('/api/job/clear', { method: 'POST' }).then((b) => {
+    if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('ll:jobs:changed'));
+    return b;
+  });
+}
+
 // Cross-screen sync, same pattern as jobStore's ll:jobs:changed.
 export function notifyCaseChanged() {
   if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('ll:case:changed'));

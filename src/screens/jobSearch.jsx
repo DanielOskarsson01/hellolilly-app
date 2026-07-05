@@ -241,7 +241,7 @@ function CsvUpload() {
 
 function JobSearch() {
   // The durable stored jobs = the triage source, read through the SINGLE decision path.
-  const { jobs, status: jobsStatus, error: jobsError, reload, approve, reject, reopen } = useJobs();
+  const { jobs, status: jobsStatus, error: jobsError, reload, approve, reject, reopen, clear } = useJobs();
 
   // Search runner (runs discovery into the store). auto:false — we triage the stored jobs first;
   // a new discovery run is an explicit user action ("Sök jobb"), not something that fires on mount.
@@ -364,6 +364,10 @@ function JobSearch() {
           {flagged.length > 0 && <span className="tri-count"><b>{flagged.length}</b> nedrankade</span>}
           {approved.length > 0 && <span className="tri-count tri-count--ok"><b>{approved.length}</b> köade</span>}
           {rejected.length > 0 && <span className="tri-count tri-count--muted"><b>{rejected.length}</b> bortvalda</span>}
+          <button type="button" className="linkbtn tri-bar__clear"
+            onClick={() => { if (window.confirm('Rensa alla jobb i listan?')) clear(); }}>
+            Rensa listan
+          </button>
         </div>
 
         <div className="tri-list">

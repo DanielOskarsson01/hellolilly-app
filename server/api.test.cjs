@@ -327,6 +327,21 @@ test('decide survives a re-discovery dedup pass (decision not clobbered)', async
   assert.equal(existing.decision, 'approved');
 });
 
+test('POST /api/job/clear removes all jobs and returns cleared count', async () => {
+  const host = createHost({ llm: null });
+  host.store.putRecord('jobs', { id: 'job_1', externalId: 'jt-1', title: 'CMO', decision: 'new' });
+  host.store.putRecord('jobs', { id: 'job_2', externalId: 'jt-2', title: 'VP Marketing', decision: 'approved' });
+  assert.equal(host.store.listRecords('jobs').length, 2);
+
+  const handle = createApiHandler(host, { preferencesPath: null, llm: null });
+  const res = mockRes();
+  assert.equal(await handle(makeReq('POST', '/api/job/clear'), res), true);
+  assert.equal(res._status, 200);
+  assert.equal(res._body.ok, true);
+  assert.equal(res._body.cleared, 2);
+  assert.equal(host.store.listRecords('jobs').length, 0);
+});
+
 test('GET /api/jobs returns stored canonical jobs with decision + signal + matchedRules', async () => {
   const host = createHost({ llm: null });
   host.store.putRecord('jobs', { id: 'job_1', externalId: 'jobtech-1', title: 'CMO', company: 'Acme', location: 'Stockholm', decision: 'new', signal: 'neutral', matchedRules: [] });
