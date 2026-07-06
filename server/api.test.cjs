@@ -276,3 +276,83 @@ test('POST /generate is 207 with a per-generator error when one fails', async ()
   assert.equal(host.store.getCase(caseId).coverLetter.status, 'failed', 'writer failed the gate');
   assert.ok(res._body.writer_error, 'the writer error is surfaced');
 });
+
+// --- Task 2: POST /api/job/:id/decide ---
+
+test('POST /api/job/:id/decide writes decision + reason; reopen clears them; other fields untouched', async () => {
+  const host = createHost({ llm: null });
+  host.store.putRecord('jobs', { id: 'job_1', externalId: 'jobtech-1', title: 'CMO', company: 'Acme', location: 'Stockholm', decision: 'new', signal: 'low', matchedRules: [{ rule: 'x', term: 'y', stage: 1 }] });
+  const handle = createApiHandler(host, { preferencesPath: null, llm: null });
+
+  let res = mockRes();
+  assert.equal(await handle(makeReq('POST', '/api/job/job_1/decide', { decision: 'rejected', reason: 'LOCATION', note: 'too far' }), res), true);
+  assert.equal(res._status, 200);
+  let stored = host.store.getRecord('jobs', 'job_1');
+  assert.equal(stored.decision, 'rejected');
+  assert.equal(stored.rejectReason, 'LOCATION');
+  assert.equal(stored.rejectNote, 'too far');
+  assert.equal(stored.title, 'CMO');                 // untouched
+  assert.equal(stored.matchedRules[0].stage, 1);     // untouched
+
+  res = mockRes();
+  await handle(makeReq('POST', '/api/job/job_1/decide', { decision: 'new' }), res); // reopen
+  stored = host.store.getRecord('jobs', 'job_1');
+  assert.equal(stored.decision, 'new');
+  assert.equal(stored.rejectReason, null);
+  assert.equal(stored.rejectNote, null);
+});
+
+test('POST /api/job/:id/decide: 404 unknown, 400 bad decision, 400 rejected-without-reason', async () => {
+  const host = createHost({ llm: null });
+  const handle = createApiHandler(host, { preferencesPath: null, llm: null });
+  let res = mockRes();
+  await handle(makeReq('POST', '/api/job/nope/decide', { decision: 'approved' }), res);
+  assert.equal(res._status, 404);
+  res = mockRes();
+  host.store.putRecord('jobs', { id: 'job_1', decision: 'new' });
+  await handle(makeReq('POST', '/api/job/job_1/decide', { decision: 'banana' }), res);
+  assert.equal(res._status, 400);
+  res = mockRes();
+  await handle(makeReq('POST', '/api/job/job_1/decide', { decision: 'rejected' }), res);
+  assert.equal(res._status, 400);
+});
+
+test('decide survives a re-discovery dedup pass (decision not clobbered)', async () => {
+  const host = createHost({ llm: null });
+  host.store.putRecord('jobs', { id: 'job_1', externalId: 'jobtech-1', decision: 'new', signal: 'neutral', matchedRules: [] });
+  const handle = createApiHandler(host, { preferencesPath: null, llm: null });
+  await handle(makeReq('POST', '/api/job/job_1/decide', { decision: 'approved' }), mockRes());
+  // simulate discovery re-seeing the same externalId (dedup path preserves the existing record)
+  const existing = host.store.listRecords('jobs').find((j) => j.externalId === 'jobtech-1');
+  assert.equal(existing.decision, 'approved');
+});
+
+test('POST /api/job/clear removes all jobs and returns cleared count', async () => {
+  const host = createHost({ llm: null });
+  host.store.putRecord('jobs', { id: 'job_1', externalId: 'jt-1', title: 'CMO', decision: 'new' });
+  host.store.putRecord('jobs', { id: 'job_2', externalId: 'jt-2', title: 'VP Marketing', decision: 'approved' });
+  assert.equal(host.store.listRecords('jobs').length, 2);
+
+  const handle = createApiHandler(host, { preferencesPath: null, llm: null });
+  const res = mockRes();
+  assert.equal(await handle(makeReq('POST', '/api/job/clear'), res), true);
+  assert.equal(res._status, 200);
+  assert.equal(res._body.ok, true);
+  assert.equal(res._body.cleared, 2);
+  assert.equal(host.store.listRecords('jobs').length, 0);
+});
+
+test('GET /api/jobs returns stored canonical jobs with decision + signal + matchedRules', async () => {
+  const host = createHost({ llm: null });
+  host.store.putRecord('jobs', { id: 'job_1', externalId: 'jobtech-1', title: 'CMO', company: 'Acme', location: 'Stockholm', decision: 'new', signal: 'neutral', matchedRules: [] });
+  host.store.putRecord('jobs', { id: 'job_2', externalId: 'rok-2', title: 'VP US', company: 'Playline', location: 'Remote US', decision: 'new', signal: 'low', matchedRules: [{ rule: 'location_out', term: 'US', stage: 1 }] });
+  const handle = createApiHandler(host, { preferencesPath: null, llm: null });
+  const res = mockRes();
+  assert.equal(await handle(makeReq('GET', '/api/jobs'), res), true);
+  assert.equal(res._status, 200);
+  assert.equal(res._body.ok, true);
+  assert.equal(res._body.jobs.length, 2);
+  const flagged = res._body.jobs.find((j) => j.id === 'job_2');
+  assert.equal(flagged.signal, 'low');
+  assert.equal(flagged.matchedRules[0].stage, 1);
+});

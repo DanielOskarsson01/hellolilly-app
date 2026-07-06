@@ -811,6 +811,8 @@ Grounded in `src/components/{primitives,shell,grid,helpfulLayover,helpfulNow,job
 
 **Net:** Screens are expected to build on `primitives.jsx` (universally) + `shell.jsx` `Sidebar`/`Topbar` + bespoke markup. The formal `grid.jsx` template system (`PageTemplate`/`ContentArea`/`ContentBox` and the crosslinking `CrossColumn`) exists as an aspirational, prop-driven layer but is currently orphaned — screens use bespoke layout markup instead of these templates.
 
+> **Errata (2026-07-05, `jobbsok-unit`):** the Jobbsök rebuild makes `src/screens/jobSearch.jsx` the **first real importer** of the `grid.jsx` templates (`PageTemplate`/`ContentArea`/`ContentBox`/`CrossColumn`) — no template change was needed. The "orphaned / zero importers" statement above is no longer true for these four exports as of this branch. `jobResultsList.jsx` is still imported by `home.jsx` (NOT orphaned by the rebuild); the new Jobbsök screen no longer uses it.
+
 ---
 
 ## Part 3 - The seams

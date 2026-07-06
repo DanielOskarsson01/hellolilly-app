@@ -58,7 +58,7 @@ const JOB_SEARCH_PROVIDERS = [
 ];
 
 const DEFAULT_JOB_SEARCH = {
-  keywords: ['lager', 'logistik', 'truck'],
+  keywords: ['marknadschef', 'head of marketing', 'marketing manager'],
   excludeKeywords: ['intern', 'junior', 'student', 'praktikant'],
   sources: ['jobtech'],
   municipality: '1980',
