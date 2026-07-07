@@ -160,8 +160,8 @@ function createApiHandler(host, { preferencesPath, llm } = {}) {
     if (req.method === 'GET' && !action) {
       const c = host.store.getCase(caseId);
       if (!c) { sendJson(res, 404, { ok: false, error: 'no such case' }); return true; }
-      const { meta, dossiers, decodedRole, fit, gaps, cvDraft, coverLetter } = c;
-      sendJson(res, 200, { ok: true, case: { meta, dossiers, decodedRole, fit, gaps, cvDraft, coverLetter } });
+      const { meta, dossiers, decodedRole, fit, gaps, cvDraft, coverLetter, coverLetterDraft } = c;
+      sendJson(res, 200, { ok: true, case: { meta, dossiers, decodedRole, fit, gaps, cvDraft, coverLetter, coverLetterDraft } });
       return true;
     }
 
@@ -219,7 +219,7 @@ function createApiHandler(host, { preferencesPath, llm } = {}) {
       const draft = {
         language: body.language || 'en',
         paragraphs: Array.isArray(body.paragraphs) ? body.paragraphs : [],
-        decisions: (body.decisions && typeof body.decisions === 'object') ? body.decisions : {},
+        decisions: (body.decisions && typeof body.decisions === 'object' && !Array.isArray(body.decisions)) ? body.decisions : {},
         editedAt: new Date().toISOString(),
       };
       const part = host.store.writePart(caseId, 'coverLetterDraft', draft);

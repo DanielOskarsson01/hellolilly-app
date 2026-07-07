@@ -440,4 +440,10 @@ test('POST /api/case/:id/letter-draft writes a durable coverLetterDraft, readabl
   const reread = host.store.getCase(c.meta.id);
   assert.deepEqual(reread.coverLetterDraft.data.paragraphs, ['p1', 'p2']);
   assert.equal(reread.coverLetterDraft.data.decisions['overclaim X'], 'soften');
+  // round-trip through the GET endpoint (catches the coverLetterDraft omission bug)
+  const getRes = mockRes();
+  assert.equal(await handle(makeReq('GET', `/api/case/${c.meta.id}`), getRes), true);
+  assert.equal(getRes._status, 200);
+  assert.deepEqual(getRes._body.case.coverLetterDraft.data.paragraphs, ['p1', 'p2']);
+  assert.equal(getRes._body.case.coverLetterDraft.data.decisions['overclaim X'], 'soften');
 });
