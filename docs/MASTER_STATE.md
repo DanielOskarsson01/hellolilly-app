@@ -1,21 +1,24 @@
 # HelloLilly - MASTER STATE (the reconciliation)
 
-**Date:** 2026-07-02 · **status-refreshed:** 2026-07-07 (main now @ `4197c28`)
+**Date:** 2026-07-02 · **status-refreshed:** 2026-07-07 (main now @ `013aae7` — core-loop wave merged)
 **What this is:** The single source of truth reconciling three layers: what is BUILT (from `docs/PROJECT_INVENTORY.md`, the factual code inventory of main @ `16a0451`), what is PLANNED (the strategy paper, DEVELOPMENT_PLAN, JOB_SEARCH_SIGNOFF, A2_RECONCILED_DESIGN, FRONTEND_BUILD_BRIEF, INTERVIEW_PREP_CONCEPT_FINAL), and what is SHOWN (the 13 frontend screens as coded). Where these disagree, this document names the gap. It supersedes nothing in the plan docs; it tells you where reality stands against them.
 **How to use it:** the truth table for orientation; the three-kind gap list for what work exists; the priority path for what order. All threads reference this before building.
 
 ---
 
-> **STATUS REFRESH — 2026-07-07.** This reconciliation was written against main @ `16a0451` (2026-07-02), when the two halves had never touched. Since then main has moved to `4197c28`: the platform blockers and the first real screen are DONE. The body below is preserved as the 2026-07-02 reconciliation; the overlays (✅ DONE / 🔨 CURRENT) mark where reality now stands. Nothing in the philosophy or the roadmap is removed.
+> **STATUS REFRESH — 2026-07-07.** This reconciliation was written against main @ `16a0451` (2026-07-02), when the two halves had never touched. Since then main has moved to `013aae7`: the platform blockers, the first real screen (Jobbsök), and the core-loop wave (Matchanalys + CV-byggaren + Personligt brev) are DONE. The body below is preserved as the 2026-07-02 reconciliation; the overlays (✅ DONE / 🔨 CURRENT) mark where reality now stands. Nothing in the philosophy or the roadmap is removed.
 >
-> **Done since — now on main @ `4197c28`:**
+> **Done since — now on main @ `013aae7`:**
 > - **D1 — durable SQLite store + served backend** ✅ — the store survives restart behind the same `createStore()` signatures; the backend runs as a served host.
 > - **D2 — evidence-pool repatriation** ✅ — the canonical `cv_data.json` is in-repo (gitignored); `seed:datafacts` repointed; the false "content-identical" comment removed.
 > - **The data bridge (Stream 2)** ✅ — the `useCase()` async layer; `/api/…` calls now exist in `src/`; six screens wired to the real backend (see `docs/STREAM2_BRIDGE.md`).
 > - **Datafact-detach hardening** ✅ — the evidence pool detached at the store boundary.
 > - **Jobbsök triage unit** ✅ — the approval screen, rebuilt on the `grid.jsx` templates (first real adopter), reading the backend jobs store; approve/reject with the 8-reason taxonomy; one durable decision record shared by row + layover, restart-survival verified; independent-review PASS. (See `docs/verification/2026-07-05-jobbsok-*`.)
+> - **The core-loop wave** ✅ — **Matchanalys + CV-byggaren + Personligt brev**, three screens on the templates, bound to the real `fit` / `gaps` / `cvDraft` / `coverLetter` case parts. The **Ärlighetskoll** honesty panel (keep/soften/cut, claim-text-keyed, survive regeneration) and **durable cover-letter save-and-resume** (`coverLetterDraft` part + `POST /api/case/:id/letter-draft`, resumes across a server restart). Matchanalys queue driven by the **durable approved-jobs store** with a **durable job→case link** (full unification). Per-task + final whole-branch (opus) + independent review all PASS; both durability requirements proven by committed demos re-run on a fresh clone. (See `docs/verification/2026-07-07-core-loop-wave-*`.)
 >
-> **🔨 YOU ARE HERE — the core-loop wave (CURRENT build):** Matchanalys + CV-byggaren + Personligt brev — three screens on the templates, bound to the real `fit` / `gaps` / `cvDraft` / `coverLetter` case parts, including the Ärlighetskoll honesty panel and cover-letter save-and-resume. Goes to independent review before merge, same as Jobbsök.
+> **🔨 YOU ARE HERE — Ansökningskoll (next Kind-1 screen):** the delivery + tracking surface — download/visualise the generated `cvDraft`/`coverLetter`, the SAVING-but-inert comment box, the apply link, and the manual application-tracking view. Needs a small application-card record defined first. (The CV/letter *surfacing* landed with the core-loop wave; Ansökningskoll adds the delivery cards + tracking view.)
+>
+> **Logged follow-ups (from the core-loop wave):** (1) remove the orphaned, unreachable `JobAnalysisContent` + its localStorage-link imports — hygiene, no live risk; (2) point-and-build the `#ansokningskoll` route (referenced but not yet a route); (3) **CV intake → datafact-mint + datafact exposure surface** (one unit — the intake rail ships disabled "Kommer" until then, and citation chips degrade to the honest generic form); (4) frontend test harness (**vitest + jsdom**). Full list incl. the `type:module` owner decision: `docs/verification/2026-07-07-core-loop-wave-build-report.md`.
 
 ## 0. The four structural findings
 
@@ -79,8 +82,8 @@ The backend is ~one full product ahead of the frontend. In dependency order:
 2. **✅ DONE — The data bridge** - the `useCase()`/API layer with states mapped 1:1 to the status envelope (`pending/ready/failed/absent`).
 3. **✅ DONE (main @ `4197c28`) — Jobbsök rebuilt as the approval screen** - reads the backend `jobs` collection; clean jobs ranked up, flagged jobs in a labelled always-expandable down-ranked section; approve/reject with the 8-reason taxonomy (reasons stored - the learner's future food); "apply" opens the real job URL. Built ON the grid.jsx templates (un-orphans the design system). Retires the browser-direct external calls AND the warehouse persona on this screen.
 4. **CSV upload surface** - onto the built job-ingest→enrich chain, per-row status, honest about progress. *(Deferred behind the core-loop wave.)*
-5. **🔨 CURRENT (core-loop wave) — Matchanalys real** - verdict from `fit`, citation chips, the fill-gap loop with the visible honest-failure path.
-6. **🔨 CURRENT (core-loop wave, in part) — Ansökningskoll** - the delivery cards (visualized+downloadable cvDraft/coverLetter, the SAVING-but-inert comment box, apply link) + the manual tracking view. Needs the small application-card record defined first. *(The `cvDraft`/`coverLetter` surfacing lands now as the CV-byggaren + Personligt brev screens; the application-card/tracking view stays pending.)*
+5. **✅ DONE (core-loop wave, main @ `013aae7`) — Matchanalys real** - verdict from `fit`, citation chips, the fill-gap loop with the visible honest-failure path (accepted / stays_gap / save_failed).
+6. **🔨 CURRENT — Ansökningskoll** - the delivery cards (visualized+downloadable cvDraft/coverLetter, the SAVING-but-inert comment box, apply link) + the manual tracking view. Needs the small application-card record defined first. *(✅ The `cvDraft`/`coverLetter` **surfacing** shipped with the core-loop wave as the CV-byggaren + Personligt brev screens; the delivery cards + application-card/tracking view are the remaining Ansökningskoll work — **you are here.**)*
 7. **✅ DONE — Retire `/api/jobs/search`** (the sibling-repo route) - point anything that needs search at `job-discovery`. The last OnlyiGaming runtime dependency dies.
 
 ### Kind 2 - SHOWN BUT NOT BUILT (the honesty pass; cheap, do alongside)
@@ -112,6 +115,6 @@ Per the project's own inert-but-honest principle: every control either works, is
 ## 5. The priority path (Daniel as user #1 of his real tool)
 D1+D2 decided → persistence lands + backend runs as a served host → data bridge → Jobbsök-as-approval-screen (on templates) → CSV upload → Matchanalys real → Ansökningskoll → honesty pass / D3 applied → then Kind 3 in order.
 
-> **Status (2026-07-07):** ✅ persistence + served backend · ✅ data bridge · ✅ Jobbsök-as-approval-screen are done. CSV upload is **deferred**; the core-loop wave (Matchanalys real → CV-byggaren → Personligt brev) was pulled ahead — **◀ you are here.** Then Ansökningskoll's application-card/tracking view, the honesty pass / D3 banners, then Kind 3 in order.
+> **Status (2026-07-07):** ✅ persistence + served backend · ✅ data bridge · ✅ Jobbsök-as-approval-screen · ✅ **the core-loop wave** (Matchanalys real → CV-byggaren → Personligt brev, on main @ `013aae7`) are done. CSV upload is **deferred**; **◀ you are here → Ansökningskoll** (delivery cards + application-card/tracking view). Then the honesty pass / D3 banners, then Kind 3 in order.
 
 One thread rule stands: job-search/frontend work in the jobsearch worktree on main; A2 features on the A2 branch; nobody specs or codes in the other's domain; this document is the shared reference.
