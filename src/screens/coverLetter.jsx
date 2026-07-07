@@ -31,7 +31,7 @@ import { casePartsView } from '../hooks/casePartsView.mjs';
 import { caseMetaView } from '../hooks/caseMetaView.mjs';
 import { PartGate, PartState, PartSkeleton, STATUS } from '../components/partGate.jsx';
 import { tr, useLang, LangToggle } from '../lib/i18n.mjs';
-import { seedEditor, unresolvedCount } from '../lib/letterDraft.mjs';
+import { seedEditor, unresolvedCount, remapDecisions } from '../lib/letterDraft.mjs';
 
 function LETTER_CROSS() {
   return [
@@ -142,7 +142,7 @@ function LetterFlag({ claim, decision, onDecide }) {
 function openLetterReview(app, person, paraTexts, unsupported, decisions) {
   window.dispatchEvent(new CustomEvent('ll:helpful:open', { detail: {
     kind:'letterreview', id: app.id, company: app.company, jobTitle: app.jobTitle, url: app.url,
-    person, paragraphs: (paraTexts || []).filter(x => x && x.trim()), angle: app.angle,
+    person, paragraphs: (paraTexts || []).filter(x => x && x.trim()),
     unsupported: unsupported || [], flagDecisions: decisions || {},
   } }));
 }
@@ -197,7 +197,7 @@ function CoverLetter() {
   // decisions keyed by claim TEXT (not index), so save + regeneration re-map stably.
   const decide = (claim, v) => setFlagDec(d => { const n = { ...d }; if (v == null) delete n[claim]; else n[claim] = v; return n; });
 
-  const onGenerate = () => actions.generate().catch(() => {});
+  const onGenerate = React.useCallback(() => { actions.generate().catch(() => {}); }, [actions]);
 
   // Deep-open from Ansökningskoll ("Skapa personligt brev"): ensure a letter exists.
   React.useEffect(() => {
@@ -207,7 +207,7 @@ function CoverLetter() {
     };
     window.addEventListener('ll:letter:open', onOpen);
     return () => window.removeEventListener('ll:letter:open', onOpen);
-  }, [status]);
+  }, [status, onGenerate]);
 
   // "Spara utkast" — ALWAYS enabled. Persists paragraphs + claim-keyed decisions
   // via the durable coverLetterDraft. THIS is what makes resume work.
@@ -239,14 +239,13 @@ function CoverLetter() {
   const reseedFromLetter = () => {
     if (!cl) return;
     setParas(cl.paragraphs.map((t) => ({ text: t, seed: t })));
-    setFlagDec({});
+    setFlagDec(remapDecisions(flagDec, cl.unsupported_by_cv));
   };
 
   const unresolvedFlags = cl ? unresolvedCount(cl.unsupported_by_cv, flagDec) : 0;
 
   const app = {
     id: caseId, company: meta.company, jobTitle: meta.jobTitle, url: meta.url,
-    angle: tr({ sv:'Founder-tempo', en:'Founder-tempo' }),
   };
 
   // Strengths (matched requirements) vs what the ad rewards (its full weighted ask,
