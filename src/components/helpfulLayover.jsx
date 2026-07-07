@@ -933,12 +933,12 @@ function CvReviewContent({ item }) {
 
   // cvDraft: { sections[], changes } | null (empty this wave if not yet generated)
   const cvDraft = parts.cvDraft;
-  const sections = (cvDraft && cvDraft.sections) || item.sections || [];
-  const changes = (cvDraft && cvDraft.changes) || item.changes || 0;
+  const sections = (cvDraft && cvDraft.sections) || [];
+  const changes = (cvDraft && cvDraft.changes != null) ? cvDraft.changes : null;
   const company = item.company || meta.company || '';
   const jobTitle = item.jobTitle || meta.jobTitle || '';
 
-  const [comments, setComments] = React.useState(item.seedComments || []);
+  const [comments, setComments] = React.useState([]);
   const [draft, setDraft] = React.useState('');
   const addComment = () => {
     const t = draft.trim();
@@ -962,7 +962,7 @@ function CvReviewContent({ item }) {
             <div className="cvrev__co">{company}</div>
             <div className="cvrev__jt">{jobTitle}</div>
           </div>
-          {changes > 0 && <span className="cvrev__changes">{changes} ändringar</span>}
+          {changes != null && changes > 0 && <span className="cvrev__changes">{changes} ändringar</span>}
         </div>
         <div className="cvrev__cta">
           <Button variant="primary" icon="check" onClick={accept}>Acceptera CV</Button>

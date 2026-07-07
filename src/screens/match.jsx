@@ -391,11 +391,6 @@ function JobMatchReview() {
     setTimeout(() => window.dispatchEvent(new CustomEvent('ll:helpful:open', {
       detail: {
         kind: 'cvreview', id: j.id, company: j.co, jobTitle: j.title,
-        templateLabel: (window.CV_TEMPLATES && window.CV_TEMPLATES.startup && window.CV_TEMPLATES.startup.label) || 'Start-up',
-        changes: 10,
-        person: window.CV_PERSON,
-        sections: window.CV_SECTIONS,
-        seedComments: [{ who: 'Sara (coach)', on: 'Sammanfattning', text: 'Stark match — vill du lyfta Coinhero först?' }],
       },
     })), 60);
   };
