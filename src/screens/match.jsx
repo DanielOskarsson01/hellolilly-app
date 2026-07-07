@@ -7,12 +7,15 @@ import { caseMetaView } from '../hooks/caseMetaView.mjs';
 import { PartGate, PartState, PartSkeleton } from '../components/partGate.jsx';
 import { tr, useLang, LangToggle } from '../lib/i18n.mjs';
 import { ContentArea, ContentBox, CrossColumn, PageTemplate, MatchRing } from '../components/grid.jsx';
+import { listJobs, createCase, linkJobCase } from '../api/caseApi.js';
+import { setActiveCaseId } from '../utils/jobStore.js';
 
-// HelloLilly — Matchanalys (design-system era, T13)
+// HelloLilly — Matchanalys (design-system era, T13 → T15)
 // Ported from design/design/screens-match2.jsx.
 // Wiring: useActiveCase → casePartsView (fit/gaps/decodedRole) + caseMetaView (company/title/logo).
 // Per-job ANALYSIS is real (fit.score, gaps loop, fill-gap 3 honest outcomes, PartGate).
-// QUEUE (ANALYZED_JOBS list) is T15 — fixture left as the design ships it.
+// QUEUE (T15): durable approved-jobs store via listJobs().filter(j => j.decision === 'approved'),
+//   refetched on ll:jobs:changed. Fixture ANALYZED_JOBS removed.
 // #triage → #jobbsok (standalone triage route retired).
 // Inline "Ändra" evidence edits: LOCAL state only (not persisted — design intent preserved).
 // CitationChip: _pool is empty this wave → honest generic fallback, no fabricated id, no false alarm.
@@ -127,15 +130,15 @@ function FillGap({ gap, reqLabel, onAnswer }) {
         <div className="loop__label">
           {mode === 'question' || gap.fillable === 'credential'
             ? ((gap.bridge && gap.bridge.prompt) || tr({ sv: 'Ditt svar', en: 'Your answer' }))
-            : tr({ sv: 'Förslag från Lilly — ändra fritt', en: 'Lilly’s suggestion — edit freely' })}
+            : tr({ sv: 'Förslag från Lilly — ändra fritt', en: "Lilly's suggestion — edit freely" })}
         </div>
         <textarea
           className="loop__ta"
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder={gap.fillable === 'credential'
-            ? tr({ sv: 'T.ex. "Jag har bokat körlektioner, klar om ca 2 mån."', en: 'e.g. "I’ve booked lessons, done in ~2 months."' })
-            : tr({ sv: 'Skriv en mening om vad du gjort…', en: 'Write a sentence about what you’ve done…' })}
+            ? tr({ sv: 'T.ex. "Jag har bokat körlektioner, klar om ca 2 mån."', en: "e.g. \"I've booked lessons, done in ~2 months.\"" })
+            : tr({ sv: 'Skriv en mening om vad du gjort…', en: "Write a sentence about what you've done…" })}
         />
 
         {/* outcome: accepted */}
@@ -154,9 +157,9 @@ function FillGap({ gap, reqLabel, onAnswer }) {
           <div className="loop__res loop__res--gap">
             <Icon name="bulb" size={18} />
             <div className="loop__res-b">
-              <div className="loop__res-t">{tr({ sv: 'Det täcker inte luckan ännu', en: 'That doesn’t cover it yet' })}</div>
+              <div className="loop__res-t">{tr({ sv: 'Det täcker inte luckan ännu', en: "That doesn't cover it yet" })}</div>
               <div className="loop__res-m">{gap.fillable === 'credential'
-                ? tr({ sv: 'Det här är ett krav vi inte kan skriva oss förbi. Har du behörigheten — eller en konkret plan — så räknas det. Annars låter vi luckan stå öppen, ärligt.', en: 'This is a requirement we can’t write around. If you hold it — or have a concrete plan — it counts. Otherwise we leave it honestly open.' })
+                ? tr({ sv: 'Det här är ett krav vi inte kan skriva oss förbi. Har du behörigheten — eller en konkret plan — så räknas det. Annars låter vi luckan stå öppen, ärligt.', en: "This is a requirement we can't write around. If you hold it — or have a concrete plan — it counts. Otherwise we leave it honestly open." })
                 : tr({ sv: 'Skriv gärna lite mer konkret om vad du faktiskt gjort, så kan det räknas. Vi hittar aldrig på en match åt dig.', en: 'Add a bit more concretely what you actually did, then it can count. We never invent a match for you.' })}</div>
             </div>
           </div>
@@ -167,7 +170,7 @@ function FillGap({ gap, reqLabel, onAnswer }) {
           <div className="loop__res loop__res--fail">
             <Icon name="refresh" size={18} />
             <div className="loop__res-b">
-              <div className="loop__res-t">{tr({ sv: 'Kunde inte spara', en: 'Couldn’t save' })}</div>
+              <div className="loop__res-t">{tr({ sv: 'Kunde inte spara', en: "Couldn't save" })}</div>
               <div className="loop__res-m">{tr({ sv: 'Din text finns kvar nedan — tryck Spara igen.', en: 'Your text is still here below — press Save again.' })}</div>
             </div>
           </div>
@@ -203,12 +206,16 @@ function FillGap({ gap, reqLabel, onAnswer }) {
 }
 
 /* ---------- Analyzed-jobs list row ----------
-   T15 wires this to the durable approved-jobs queue. For now the fixture
-   ANALYZED_JOBS (below) is the data source — exactly as the design ships it. */
+   T15: queue is durable approved jobs from listJobs(). Job records use the
+   canonical store shape: co, t (title), city, match (score), caseId. */
 function scoreTone(s) { return s >= 85 ? 'ok' : s >= 72 ? 'mid' : 'low'; }
 
 function MatchRow({ job, onOpen, onQuick, onReject }) {
   const open = () => onOpen(job.id);
+  const title = job.title || job.t || '';
+  const location = job.location || job.city || '';
+  const score = job.score != null ? job.score : (job.match || 0);
+  const notMatching = job.notMatching || [];
   return (
     <article
       className="matchrow matchrow--clickable"
@@ -217,30 +224,45 @@ function MatchRow({ job, onOpen, onQuick, onReject }) {
       tabIndex={0}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } }}
     >
-      <span className="matchrow__logo" style={{ color: job.logo }}>{job.co.slice(0, 2).toUpperCase()}</span>
+      <span className="matchrow__logo" style={{ color: job.logo }}>{(job.co || '??').slice(0, 2).toUpperCase()}</span>
       <div className="matchrow__b">
-        <div className="matchrow__t">{job.title}</div>
+        <div className="matchrow__t">{title}</div>
         <div className="matchrow__m">
           <span>{job.co}</span><span className="dot" />
-          <span>{job.location}</span><span className="dot" />
+          <span>{location}</span><span className="dot" />
           <span>{job.type}</span>
         </div>
-        <div className="matchrow__gaps">
-          <span className="matchrow__gaps-l">{tr({ sv: 'AI såg inte i ditt CV:', en: 'AI didn’t find in your CV:' })}</span>
-          <div className="matchrow__gaps-chips">
-            {job.notMatching.map((g, i) => (
-              <span key={i} className="miss"><Icon name="plus" size={10} sw={3} />{g}</span>
-            ))}
+        {notMatching.length > 0 && (
+          <div className="matchrow__gaps">
+            <span className="matchrow__gaps-l">{tr({ sv: 'AI såg inte i ditt CV:', en: "AI didn't find in your CV:" })}</span>
+            <div className="matchrow__gaps-chips">
+              {notMatching.map((g, i) => (
+                <span key={i} className="miss"><Icon name="plus" size={10} sw={3} />{g}</span>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
+        {!job.caseId && (
+          <div className="matchrow__gaps">
+            <span className="matchrow__gaps-l" style={{ color: 'var(--ll-blue)' }}>
+              {tr({ sv: 'Klar för analys', en: 'Ready for analysis' })}
+            </span>
+          </div>
+        )}
       </div>
-      <div className={`matchrow__score matchrow__score--${scoreTone(job.score)}`}>
-        <b className="num">{job.score}%</b><span>match</span>
+      <div className={`matchrow__score matchrow__score--${scoreTone(score)}`}>
+        <b className="num">{score}%</b><span>match</span>
       </div>
       <div className="matchrow__acts">
-        <Button variant="primary" size="sm" icon="target" onClick={(e) => { e.stopPropagation(); onQuick(job.id); }}>
-          {tr({ sv: 'Snabbkoll', en: 'Quick read' })}
-        </Button>
+        {!job.caseId ? (
+          <Button variant="primary" size="sm" icon="target" onClick={(e) => { e.stopPropagation(); onOpen(job.id); }}>
+            {tr({ sv: 'Analysera', en: 'Analyse' })}
+          </Button>
+        ) : (
+          <Button variant="primary" size="sm" icon="target" onClick={(e) => { e.stopPropagation(); onQuick(job.id); }}>
+            {tr({ sv: 'Snabbkoll', en: 'Quick read' })}
+          </Button>
+        )}
         <Button variant="ghost" size="sm" className="btn--reject" onClick={(e) => { e.stopPropagation(); onReject(job.id); }}>
           {tr({ sv: 'Välj bort', en: 'Reject' })}
         </Button>
@@ -249,15 +271,10 @@ function MatchRow({ job, onOpen, onQuick, onReject }) {
   );
 }
 
-/* ---------- Fixture: analyzed jobs ----------
-   TODO(T15): queue from durable approved jobs — replace ANALYZED_JOBS with
-   the real approved-jobs store (listJobs() or approved-jobs hook). */
-const ANALYZED_JOBS = [
-  { id: 'case_bettingjobs_hoa', co: 'BettingJobs · Crypto Casino', title: 'Head of Acquisition', location: 'Remote · EU',         type: 'Heltid', score: 86, logo: '#2B6CF0', notMatching: ['Web3-skala', 'Eget influencer-program'] },
-  { id: 'duelbits-hoa',         co: 'Duelbits',                    title: 'Head of Acquisition', location: 'Remote',             type: 'Heltid', score: 81, logo: '#8E7CF0', notMatching: ['Web3-partnerskap i skala'] },
-  { id: 'a5labs-growth',        co: 'A5 Labs / QuintAce',          title: 'Head of Growth',      location: 'Remote',             type: 'Heltid', score: 74, logo: '#2FA56A', notMatching: ['Content-distribution i skala', 'Namngiven referens'] },
-  { id: 'nordic-cmo',           co: 'Nordic Gaming Tech',          title: 'CMO — B2B iGaming',   location: 'Stockholm · Hybrid', type: 'Heltid', score: 69, logo: '#F0643C', notMatching: ['B2B-plattform i stor skala', 'Formell CMO-titel'] },
-];
+/* ---------- Durable approved-jobs queue (T15) ----------
+   Reads from the persistent jobs store (listJobs filtered to decision === 'approved').
+   Refetched on ll:jobs:changed so approve/reject events on other screens are reflected
+   immediately. ANALYZED_JOBS fixture is gone; this is the authoritative queue. */
 
 /* ============================================================
    Matchanalys — the main screen
@@ -268,15 +285,56 @@ function JobMatchReview() {
   const parts = casePartsView(caseData);
   const [generating, setGenerating] = React.useState(false);
 
-  // QUEUE: fixture for now; T15 replaces with listJobs() / approved-jobs store.
-  const [items, setItems] = React.useState(ANALYZED_JOBS);
+  // QUEUE: durable approved jobs. Refetched on mount and on ll:jobs:changed.
+  const [items, setItems] = React.useState([]);
+  const reloadQueue = React.useCallback(() => {
+    listJobs()
+      .then((jobs) => setItems((jobs || []).filter((j) => j.decision === 'approved')))
+      .catch(() => { /* keep current items on transient error */ });
+  }, []);
+  React.useEffect(() => { reloadQueue(); }, [reloadQueue]);
+  React.useEffect(() => {
+    window.addEventListener('ll:jobs:changed', reloadQueue);
+    return () => window.removeEventListener('ll:jobs:changed', reloadQueue);
+  }, [reloadQueue]);
+
   const [openId, setOpenId] = React.useState(null); // null = list view
   const [created, setCreated] = React.useState([]); // ids with a tailored application built
+
+  const [linking, setLinking] = React.useState(null); // jobId currently being linked
 
   const rejectItem = React.useCallback((id) => {
     setItems((cur) => cur.filter((j) => j.id !== id));
     setOpenId((cur) => (cur === id ? null : cur));
   }, []);
+
+  // Durable job→case link (T15 full unification).
+  // If the job already has a caseId: set it as the active case and open the analysis view.
+  // If not: create a case → linkJobCase (durable POST /api/job/:id/case) → setActiveCaseId → open.
+  const handleOpenJob = React.useCallback(async (id) => {
+    const job = items.find((j) => j.id === id);
+    if (!job) return;
+    if (job.caseId) {
+      setActiveCaseId(job.caseId);
+      setOpenId(id);
+      return;
+    }
+    setLinking(id);
+    try {
+      const sourceInput = [job.snippet, job.url ? '\n\n' + job.url : ''].filter(Boolean).join('');
+      const c = await createCase({ company: job.co, role: job.t || job.title || '', sourceInput });
+      const caseId = c && c.meta && c.meta.id;
+      if (!caseId) throw new Error('createCase returned no id');
+      await linkJobCase(id, caseId); // durable POST /api/job/:id/case; dispatches ll:jobs:changed
+      setActiveCaseId(caseId);
+      setOpenId(id);
+    } catch (err) {
+      // Surface the error as a transient notice without crashing the queue
+      console.error('[match] job→case link failed:', err.message);
+    } finally {
+      setLinking(null);
+    }
+  }, [items]);
 
   // The match-analysis layover's "Välj bort" CTA rejects into this same list.
   React.useEffect(() => {
@@ -285,21 +343,22 @@ function JobMatchReview() {
     return () => window.removeEventListener('ll:match:reject', onReject);
   }, [rejectItem]);
 
-  // "Snabbkoll" opens the quick-read layover.
+  // "Snabbkoll" opens the quick-read layover. Durable job fields: t (title), city, match (score).
   const openQuick = React.useCallback((id) => {
     const j = items.find((x) => x.id === id);
     if (!j) return;
     window.dispatchEvent(new CustomEvent('ll:helpful:open', {
-      detail: { ...j, t: j.title, city: j.location, match: j.score, kind: 'job', externalId: j.id },
+      detail: { ...j, t: j.t || j.title || '', city: j.city || j.location || '', match: j.match || j.score || 0, kind: 'job', externalId: j.id },
     }));
   }, [items]);
 
   // The layover's "Fyll luckorna & förbättra" CTA opens the full page for that job.
+  // Uses handleOpenJob so the caseId link is made durably if not yet present.
   React.useEffect(() => {
-    const onOpenFull = (e) => { if (e.detail && e.detail.id) setOpenId(e.detail.id); };
+    const onOpenFull = (e) => { if (e.detail && e.detail.id) handleOpenJob(e.detail.id); };
     window.addEventListener('ll:match:open', onOpenFull);
     return () => window.removeEventListener('ll:match:open', onOpenFull);
-  }, []);
+  }, [handleOpenJob]);
 
   // Inline "Ändra" evidence edits: LOCAL state only (not persisted — design intent).
   const [capOv, setCapOv] = React.useState({});    // { [reqId]: newEvidence }
@@ -361,7 +420,7 @@ function JobMatchReview() {
         <p className="ll-pagehead__sub">
           {openId
             ? tr({ sv: 'Lilly har läst annonsen och jämfört den mot ditt CV. Fyll luckorna en i taget — vi hittar aldrig på en match.', en: 'Lilly read the ad and compared it to your CV. Fill the gaps one at a time — we never invent a match.' })
-            : tr({ sv: 'Jobben du godkänt har laddats ner och matchats mot ditt CV. Klicka för hela analysen — eller välj bort det som inte passar.', en: 'The jobs you approved were downloaded and matched to your CV. Click for the full analysis — or reject what doesn’t fit.' })}
+            : tr({ sv: 'Jobben du godkänt har laddats ner och matchats mot ditt CV. Klicka för hela analysen — eller välj bort det som inte passar.', en: "The jobs you approved were downloaded and matched to your CV. Click for the full analysis — or reject what doesn't fit." })}
         </p>
       </div>
       <div className="ll-pagehead__actions"><LangToggle /></div>
@@ -380,7 +439,7 @@ function JobMatchReview() {
       ? (
         <PartState
           title={tr({ sv: 'Inga analyser kvar', en: 'No analyses left' })}
-          body={tr({ sv: 'Du har gått igenom allt. Godkänn fler jobb i triage så analyseras de här.', en: 'You’ve been through them all. Approve more jobs in triage and they’ll be analysed here.' })}
+          body={tr({ sv: 'Du har gått igenom allt. Godkänn fler jobb i triage så analyseras de här.', en: "You've been through them all. Approve more jobs in triage and they'll be analysed here." })}
         >
           {/* #triage repointed to #jobbsok — standalone triage route was retired */}
           <a href="#jobbsok" style={{ textDecoration: 'none' }}>
@@ -393,14 +452,16 @@ function JobMatchReview() {
           {activeItems.length > 0 ? (
             <React.Fragment>
               <div className="tri-bar">
-                <span className="tri-count"><b>{activeItems.length}</b> {tr({ sv: 'analyserade jobb', en: 'analysed jobs' })}</span>
+                <span className="tri-count"><b>{activeItems.length}</b> {tr({ sv: 'godkända jobb', en: 'approved jobs' })}</span>
                 <span className="text-muted" style={{ fontSize: 'var(--fs-sm)' }}>
-                  {tr({ sv: 'Klicka för hela analysen · välj bort det som inte passar', en: 'Click for the full analysis · reject what doesn’t fit' })}
+                  {linking
+                    ? tr({ sv: 'Skapar ärende…', en: 'Setting up case…' })
+                    : tr({ sv: 'Klicka Analysera · välj bort det som inte passar', en: "Click Analyse · reject what doesn't fit" })}
                 </span>
               </div>
               <div className="matchlist">
                 {activeItems.map((j) => (
-                  <MatchRow key={j.id} job={j} onOpen={setOpenId} onQuick={openQuick} onReject={rejectItem} />
+                  <MatchRow key={j.id} job={j} onOpen={handleOpenJob} onQuick={openQuick} onReject={rejectItem} />
                 ))}
               </div>
             </React.Fragment>
@@ -423,7 +484,7 @@ function JobMatchReview() {
                   <div className="matcharch__row" key={j.id}>
                     <span className="matcharch__logo" style={{ color: j.logo }}>{j.co.slice(0, 2).toUpperCase()}</span>
                     <div className="matcharch__b">
-                      <div className="matcharch__t">{j.title} · <span className="matcharch__co">{j.co}</span></div>
+                      <div className="matcharch__t">{j.title || j.t} · <span className="matcharch__co">{j.co}</span></div>
                       <div className="matcharch__chips">
                         <span className="matcharch__tag">{tr({ sv: 'CV skapat', en: 'CV created' })}</span>
                         {(j.notMatching || []).slice(0, 2).map((g, i) => <span key={i} className="matcharch__chip">{g}</span>)}
@@ -450,8 +511,8 @@ function JobMatchReview() {
     // Compute meta outside PartGate so caseMetaView runs once regardless of fit status.
     const meta = caseMetaView(caseData);
     const co = selected ? selected.co : (meta.company || '');
-    const jt = selected ? selected.title : (meta.jobTitle || '');
-    const loc = selected ? selected.location : (meta.location || '');
+    const jt = selected ? (selected.title || selected.t || '') : (meta.jobTitle || '');
+    const loc = selected ? (selected.location || selected.city || '') : (meta.location || '');
     const pool = parts._pool || [];
 
     // Derive analysis values (only meaningful when fitStatus === 'ready').
@@ -670,13 +731,13 @@ function JobMatchReview() {
             </div>
             <div className="matchqueue">
               {items.filter((i) => i.id !== openId && !created.includes(i.id)).map((j) => (
-                <button key={j.id} className="matchqueue__row" onClick={() => setOpenId(j.id)}>
-                  <span className="matchqueue__logo" style={{ color: j.logo }}>{j.co.slice(0, 2).toUpperCase()}</span>
+                <button key={j.id} className="matchqueue__row" onClick={() => handleOpenJob(j.id)}>
+                  <span className="matchqueue__logo" style={{ color: j.logo }}>{(j.co || '??').slice(0, 2).toUpperCase()}</span>
                   <span className="matchqueue__b">
-                    <span className="matchqueue__t">{j.title}</span>
-                    <span className="matchqueue__m">{j.co} · {j.location}</span>
+                    <span className="matchqueue__t">{j.title || j.t}</span>
+                    <span className="matchqueue__m">{j.co} · {j.location || j.city}</span>
                   </span>
-                  <span className={`matchqueue__score matchqueue__score--${scoreTone(j.score)}`}>{j.score}%</span>
+                  <span className={`matchqueue__score matchqueue__score--${scoreTone(j.score != null ? j.score : j.match)}`}>{j.score != null ? j.score : j.match}%</span>
                   <Icon name="arrow" size={16} />
                 </button>
               ))}
@@ -694,14 +755,14 @@ function JobMatchReview() {
             </div>
             <div className="matchqueue">
               {created.map((id) => {
-                const j = ANALYZED_JOBS.find((x) => x.id === id) || items.find((x) => x.id === id);
+                const j = items.find((x) => x.id === id);
                 if (!j) return null;
                 return (
                   <div className="matchqueue__row matchqueue__row--static" key={id}>
-                    <span className="matchqueue__logo" style={{ color: j.logo }}>{j.co.slice(0, 2).toUpperCase()}</span>
+                    <span className="matchqueue__logo" style={{ color: j.logo }}>{(j.co || '??').slice(0, 2).toUpperCase()}</span>
                     <span className="matchqueue__b">
-                      <span className="matchqueue__t">{j.title}</span>
-                      <span className="matchqueue__m">{j.co} · {j.location}</span>
+                      <span className="matchqueue__t">{j.title || j.t}</span>
+                      <span className="matchqueue__m">{j.co} · {j.location || j.city}</span>
                     </span>
                     <Button variant="secondary" size="sm" icon="search" onClick={() => openCvReview(j)}>
                       {tr({ sv: 'Se resultat', en: 'See result' })}
