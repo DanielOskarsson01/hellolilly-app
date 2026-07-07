@@ -136,7 +136,7 @@ function createApiHandler(host, { preferencesPath, llm } = {}) {
       return true;
     }
 
-    const m = req.url.match(/^\/api\/case\/([^/]+)(\/analyze|\/generate|\/research|\/gap\/([^/]+)\/answer)?$/);
+    const m = req.url.match(/^\/api\/case\/([^/]+)(\/analyze|\/generate|\/research|\/letter-draft|\/gap\/([^/]+)\/answer)?$/);
     if (!m) return false;
     const caseId = decodeURIComponent(m[1]);
     const action = m[2];
@@ -193,6 +193,21 @@ function createApiHandler(host, { preferencesPath, llm } = {}) {
       } catch (err) {
         sendJson(res, 500, { ok: false, error: err.message });
       }
+      return true;
+    }
+
+    if (req.method === 'POST' && action === '/letter-draft') {
+      const existing = host.store.getCase(caseId);
+      if (!existing) { sendJson(res, 404, { ok: false, error: 'case not found' }); return true; }
+      const body = await readJson(req);
+      const draft = {
+        language: body.language || 'en',
+        paragraphs: Array.isArray(body.paragraphs) ? body.paragraphs : [],
+        decisions: (body.decisions && typeof body.decisions === 'object') ? body.decisions : {},
+        editedAt: new Date().toISOString(),
+      };
+      const part = host.store.writePart(caseId, 'coverLetterDraft', draft);
+      sendJson(res, 200, { ok: true, part });
       return true;
     }
 

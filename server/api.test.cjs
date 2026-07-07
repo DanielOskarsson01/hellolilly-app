@@ -362,3 +362,19 @@ test('a new case exposes coverLetterDraft as an absent part', () => {
   const c = host.store.createCase({ company: 'Acme', role: 'CMO' });
   assert.equal(c.coverLetterDraft.status, 'absent');
 });
+
+test('POST /api/case/:id/letter-draft writes a durable coverLetterDraft, readable via GET case', async () => {
+  const host = createHost();
+  const c = host.store.createCase({ company: 'Acme', role: 'CMO' });
+  const body = { language: 'en', paragraphs: ['p1', 'p2'], decisions: { 'overclaim X': 'soften' } };
+  const handle = createApiHandler(host, { preferencesPath: null, llm: null });
+  const res = mockRes();
+  await handle(makeReq('POST', `/api/case/${c.meta.id}/letter-draft`, body), res);
+  assert.equal(res._status, 200);
+  assert.equal(res._body.ok, true);
+  assert.equal(res._body.part.status, 'ready');
+  // durable round-trip: re-read straight from the store
+  const reread = host.store.getCase(c.meta.id);
+  assert.deepEqual(reread.coverLetterDraft.data.paragraphs, ['p1', 'p2']);
+  assert.equal(reread.coverLetterDraft.data.decisions['overclaim X'], 'soften');
+});
