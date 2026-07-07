@@ -356,3 +356,9 @@ test('GET /api/jobs returns stored canonical jobs with decision + signal + match
   assert.equal(flagged.signal, 'low');
   assert.equal(flagged.matchedRules[0].stage, 1);
 });
+
+test('a new case exposes coverLetterDraft as an absent part', () => {
+  const host = createHost();
+  const c = host.store.createCase({ company: 'Acme', role: 'CMO' });
+  assert.equal(c.coverLetterDraft.status, 'absent');
+});
