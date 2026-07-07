@@ -321,7 +321,7 @@ function JobMatchReview() {
     }
     setLinking(id);
     try {
-      const sourceInput = [job.snippet, job.url ? '\n\n' + job.url : ''].filter(Boolean).join('');
+      const sourceInput = [job.snippet, job.url].filter(Boolean).join('\n\n');
       const c = await createCase({ company: job.co, role: job.t || job.title || '', sourceInput });
       const caseId = c && c.meta && c.meta.id;
       if (!caseId) throw new Error('createCase returned no id');
@@ -482,7 +482,7 @@ function JobMatchReview() {
               <div className="matcharch__list">
                 {createdJobs.map((j) => (
                   <div className="matcharch__row" key={j.id}>
-                    <span className="matcharch__logo" style={{ color: j.logo }}>{j.co.slice(0, 2).toUpperCase()}</span>
+                    <span className="matcharch__logo" style={{ color: j.logo }}>{(j.co || '??').slice(0, 2).toUpperCase()}</span>
                     <div className="matcharch__b">
                       <div className="matcharch__t">{j.title || j.t} · <span className="matcharch__co">{j.co}</span></div>
                       <div className="matcharch__chips">
