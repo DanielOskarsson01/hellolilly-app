@@ -1,4 +1,4 @@
-import profile from '../lib/profile.js';
+import profile from '../lib/profile.mjs';
 
 export function caseMetaView(caseData, job) {
   const meta = (caseData && caseData.meta) || {};

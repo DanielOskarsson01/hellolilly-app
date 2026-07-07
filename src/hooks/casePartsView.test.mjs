@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { casePartsView } from './casePartsView.js';
+import { casePartsView } from './casePartsView.mjs';
 
 const CASE = {
   meta: { id: 'c1', company: 'BettingJobs', role: 'Head of Acquisition' },
@@ -14,6 +14,12 @@ test('dataOf returns the payload for ready parts, null otherwise', () => {
   assert.equal(p.fit.score, 72);
   assert.equal(p.gaps, null);       // pending → no data
   assert.equal(p.coverLetter, null); // absent → no data
+});
+
+test('dataOf method returns payload for ready parts, null otherwise', () => {
+  const p = casePartsView(CASE);
+  assert.deepEqual(p.dataOf('fit'), { score: 72, capability: { overall: 'ok', requirements: [] } });
+  assert.equal(p.dataOf('gaps'), null);
 });
 
 test('statusOf returns the envelope status, "absent" when missing', () => {

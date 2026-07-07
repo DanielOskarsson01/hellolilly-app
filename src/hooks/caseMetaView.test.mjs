@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { caseMetaView } from './caseMetaView.js';
-import profile from '../lib/profile.js';
+import { caseMetaView } from './caseMetaView.mjs';
+import profile from '../lib/profile.mjs';
 
 const CASE = {
   meta: { id: 'c1', company: 'BettingJobs', role: 'Head of Acquisition', owner: 'self' },
@@ -26,6 +26,7 @@ test('company comes from meta.company', () => {
 
 test('logo is the first two characters of company, uppercased', () => {
   const m = caseMetaView(CASE);
+  // 'BettingJobs' → first two chars 'BE' (adapter derives from the real company name, not the design's hardcoded 'BJ')
   assert.equal(m.logo, 'BE');
 });
 
