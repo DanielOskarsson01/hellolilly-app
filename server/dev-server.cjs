@@ -136,6 +136,22 @@ function createApiHandler(host, { preferencesPath, llm } = {}) {
       return true;
     }
 
+    // POST /api/job/:id/case — durable job→case link. MUST sit above the /api/case/:id
+    // guard (the regex below) so the case matcher does not shadow it. Placement mirrors
+    // the decide route for exactly the same reason.
+    const caseMatch = req.method === 'POST' && req.url.match(/^\/api\/job\/([^/]+)\/case$/);
+    if (caseMatch) {
+      const jobId = decodeURIComponent(caseMatch[1]);
+      const job = host.store.getRecord('jobs', jobId);
+      if (!job) { sendJson(res, 404, { ok: false, error: 'job not found' }); return true; }
+      const body = await readJson(req);
+      if (!body.caseId) { sendJson(res, 400, { ok: false, error: 'caseId required' }); return true; }
+      const updated = { ...job, caseId: body.caseId };
+      host.store.putRecord('jobs', updated);
+      sendJson(res, 200, { ok: true, job: updated });
+      return true;
+    }
+
     const m = req.url.match(/^\/api\/case\/([^/]+)(\/analyze|\/generate|\/research|\/letter-draft|\/gap\/([^/]+)\/answer)?$/);
     if (!m) return false;
     const caseId = decodeURIComponent(m[1]);

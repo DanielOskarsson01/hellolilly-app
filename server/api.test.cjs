@@ -363,6 +363,69 @@ test('a new case exposes coverLetterDraft as an absent part', () => {
   assert.equal(c.coverLetterDraft.status, 'absent');
 });
 
+// --- Task 3: POST /api/job/:id/case ---
+
+test('POST /api/job/:id/case links a caseId onto the durable job record (idempotent)', async () => {
+  const host = createHost({ llm: null });
+  host.store.putRecord('jobs', { id: 'job_x', externalId: 'e1', title: 'Head of Acq', company: 'BettingJobs', decision: 'approved' });
+  const handle = createApiHandler(host, { preferencesPath: null, llm: null });
+
+  const res1 = mockRes();
+  assert.equal(await handle(makeReq('POST', '/api/job/job_x/case', { caseId: 'case_1' }), res1), true);
+  assert.equal(res1._status, 200);
+  assert.equal(res1._body.ok, true);
+  assert.equal(res1._body.job.caseId, 'case_1');
+  // durable: assert the store was updated
+  assert.equal(host.store.getRecord('jobs', 'job_x').caseId, 'case_1');
+
+  // idempotent: re-linking the same caseId returns 200, unchanged
+  const res2 = mockRes();
+  assert.equal(await handle(makeReq('POST', '/api/job/job_x/case', { caseId: 'case_1' }), res2), true);
+  assert.equal(res2._status, 200);
+  assert.equal(res2._body.job.caseId, 'case_1');
+});
+
+test('POST /api/job/:id/case: 404 unknown job, 400 missing caseId', async () => {
+  const host = createHost({ llm: null });
+  const handle = createApiHandler(host, { preferencesPath: null, llm: null });
+
+  // 404: job not found
+  const res404 = mockRes();
+  await handle(makeReq('POST', '/api/job/no-such-job/case', { caseId: 'case_1' }), res404);
+  assert.equal(res404._status, 404);
+  assert.equal(res404._body.ok, false);
+
+  // 400: missing caseId
+  host.store.putRecord('jobs', { id: 'job_y', externalId: 'e2', title: 'CPO', company: 'Acme', decision: 'approved' });
+  const res400 = mockRes();
+  await handle(makeReq('POST', '/api/job/job_y/case', {}), res400);
+  assert.equal(res400._status, 400);
+  assert.equal(res400._body.ok, false);
+});
+
+test('POST /api/job/:id/case does NOT hit the case handler (shadowing regression)', async () => {
+  // This verifies the job route sits above the /api/case/:id guard in dev-server.cjs.
+  // If shadowed, GET /api/case/job_z would try to load 'job_z' as a case and not return 200
+  // for the job POST route. Here we confirm the job/case route returns true (handled),
+  // and that a distinct GET /api/case/:id still resolves to the case handler (not the job route).
+  const host = createHost({ llm: null });
+  host.store.putRecord('jobs', { id: 'job_z', externalId: 'e3', title: 'CMO', company: 'Acme', decision: 'approved' });
+  const c = host.store.createCase({ company: 'Acme', role: 'CMO' });
+  const handle = createApiHandler(host, { preferencesPath: null, llm: null });
+
+  // The job/case route must be handled (not fall through to case handler)
+  const resJob = mockRes();
+  assert.equal(await handle(makeReq('POST', '/api/job/job_z/case', { caseId: c.meta.id }), resJob), true);
+  assert.equal(resJob._status, 200);
+  assert.equal(resJob._body.job.caseId, c.meta.id);
+
+  // The GET /api/case/:id route still works (case handler not broken)
+  const resCase = mockRes();
+  assert.equal(await handle(makeReq('GET', `/api/case/${c.meta.id}`), resCase), true);
+  assert.equal(resCase._status, 200);
+  assert.equal(resCase._body.case.meta.company, 'Acme');
+});
+
 test('POST /api/case/:id/letter-draft writes a durable coverLetterDraft, readable via GET case', async () => {
   const host = createHost();
   const c = host.store.createCase({ company: 'Acme', role: 'CMO' });
