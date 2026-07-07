@@ -3975,4 +3975,75 @@ body.ll-template { background: var(--ll-cream); }
   background: var(--ll-white); color: var(--ll-ink-soft); border: 1px solid var(--ll-border-strong);
 }
 .flag__btn[aria-pressed="true"] { background: var(--ll-blue-deep); color: #fff; border-color: var(--ll-blue-deep); }
+
+/* ===== core-loop wave — layover review-content (from ll-helpful.css) ===== */
+
+/* Widen the layover for CV/letter review panels */
+.lay--wide { width: min(1040px, 96vw); }
+
+/* ---- cvrev: overall review container ---- */
+.cvrev { display: flex; flex-direction: column; min-height: 100%; }
+.cvrev__head { display: flex; flex-direction: column; gap: 14px; padding: 22px 56px 16px 28px; border-bottom: 1px solid var(--ll-border); }
+.cvrev__head-top { display: flex; align-items: flex-start; gap: 12px; }
+.cvrev__head-id { flex: 1; min-width: 0; position: relative; }
+.cvrev__co { font-family: var(--font-display); font-weight: 900; font-size: 20px; color: var(--ll-blue-deep); }
+.cvrev__jt { font-size: 13px; color: var(--ll-ink-soft); margin-top: 2px; }
+.cvrev__tpl { font-weight: 700; color: var(--ll-ink); }
+.cvrev__changes { flex: 0 0 auto; font-family: var(--font-display); font-weight: 800; font-size: 12px; color: #b5502f; background: var(--ll-coral-soft); border-radius: var(--r-pill); padding: 5px 12px; white-space: nowrap; }
+.cvrev__cta { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.cvrev__cta .ll-link { margin-left: auto; }
+.cvrev__body { display: grid; grid-template-columns: minmax(0, 1fr) 260px; grid-template-rows: minmax(0, 1fr); gap: 20px; padding: 20px 28px 28px; align-items: stretch; flex: 1 1 auto; }
+.cvrev__docwrap { background: #EAEEF5; border-radius: var(--r-md); padding: 20px; display: flex; flex-direction: column; }
+.cvrev__docwrap > .cvpaper { flex: 1 1 auto; }
+.cvrev__rail { display: flex; flex-direction: column; gap: 10px; position: sticky; top: 8px; }
+.cvrev__rail-h { display: flex; align-items: center; gap: 6px; font-family: var(--font-display); font-weight: 800; font-size: 12.5px; color: var(--ll-ink-mute); text-transform: uppercase; letter-spacing: .04em; }
+/* honesty-check section within the rail — plain container; spacing/bg from parent */
+.cvrev__honesty { display: flex; flex-direction: column; gap: 6px; }
+.cvrev__apply { margin-top: 4px; display: flex; flex-direction: column; gap: 6px; padding-top: 12px; border-top: 1px dashed var(--ll-border); }
+.cvrev__apply-note { font-size: 11px; color: var(--ll-ink-mute); text-align: center; line-height: 1.4; }
+
+/* ---- cvnote: annotation cards in the review rail ---- */
+.cvnote { background: #FFFDF5; border: 1px solid var(--ll-amber); border-left: 3px solid var(--ll-amber); border-radius: 8px; padding: 10px 12px; box-shadow: var(--sh-sm); }
+.cvnote__h { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.cvnote__h b { font-family: var(--font-display); font-size: 12.5px; color: var(--ll-ink); }
+.cvnote__on { font-size: 10.5px; font-weight: 700; color: var(--ll-blue); background: var(--ll-blue-tint); border-radius: var(--r-pill); padding: 1px 7px; }
+.cvnote p { margin: 5px 0 0; font-size: 12.5px; color: var(--ll-ink-soft); line-height: 1.45; }
+.cvnote__act { margin-top: 8px; display: flex; }
+.cvnote__btn { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; font-family: var(--font-display); font-weight: 800; font-size: 11.5px; color: var(--ll-blue-deep); background: var(--ll-white); border: 1.5px solid var(--ll-blue); border-radius: var(--r-pill); padding: 4px 12px; }
+.cvnote__btn:hover { background: var(--ll-blue-tint); }
+.cvnote__done { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; font-family: var(--font-display); font-weight: 800; font-size: 11.5px; color: #1c7a48; background: var(--ll-green-soft); border: 1.5px solid #BEE3CB; border-radius: var(--r-pill); padding: 4px 12px; }
+.cvnote--applied { background: #F4FBF7; border-color: #BEE3CB; border-left-color: var(--ll-green); }
+.cvnote--add { background: var(--ll-white); border-color: var(--ll-border); border-left-color: var(--ll-blue); display: flex; flex-direction: column; gap: 8px; }
+.cvnote--add textarea { width: 100%; box-sizing: border-box; resize: vertical; border: 1px solid var(--ll-border); border-radius: 8px; padding: 8px 10px; font-family: var(--font-body); font-size: 12.5px; color: var(--ll-ink); }
+.cvnote--add textarea:focus { outline: none; border-color: var(--ll-blue); box-shadow: 0 0 0 3px var(--ll-blue-tint); }
+
+/* ---- cvpaper: near-true-size document preview (review layover context) ---- */
+/* Note: base .cvpaper already defined for the CV builder; these are BEM modifiers
+   and sub-elements specific to the review layover's structured paper layout. */
+.cvpaper--letter { padding: 40px 44px; }
+/* Blue-accent variant: sets --cv-accent so name/section headers pick up blue-deep */
+.cvpaper--blue { --cv-accent: var(--ll-blue-deep); }
+.cvpaper__id { display: flex; align-items: center; gap: 18px; }
+.cvpaper__id-b { min-width: 0; }
+.cvpaper__name { font-family: var(--font-display); font-weight: 900; font-size: 26px; margin: 0; color: var(--cv-accent, var(--ll-blue-deep)); }
+.cvpaper__role { font-weight: 700; color: var(--ll-blue); font-size: 14px; margin-top: 2px; }
+.cvpaper__contact { color: var(--ll-ink-mute); font-size: 12px; margin-top: 4px; }
+.cvpaper__sec { margin-top: 20px; }
+.cvpaper__sec-h { font-family: var(--font-display); font-weight: 800; font-size: 12.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--cv-accent, var(--ll-blue-deep)); border-bottom: 1.5px solid var(--ll-border); padding-bottom: 4px; margin-bottom: 8px; }
+.cvpaper__p { margin: 0; color: var(--ll-ink-soft); }
+.cvpaper__ul { margin: 0; padding-left: 18px; }
+.cvpaper__ul li { margin-bottom: 5px; }
+
+/* ---- ltpaper: letter paper inside the review layover ---- */
+.ltpaper__head { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
+.ltpaper__ava { width: 54px; height: 54px; border-radius: 50%; flex: 0 0 auto; display: grid; place-items: center; background: var(--ll-lilac-soft); color: var(--ll-lilac); font-family: var(--font-display); font-weight: 900; font-size: 22px; }
+.ltpaper__subject { font-family: var(--font-display); font-weight: 800; color: var(--ll-blue-deep); font-size: 14px; margin-bottom: 16px; }
+.ltpaper__p { margin: 0 0 14px; color: var(--ll-ink); line-height: 1.65; font-size: 13.5px; }
+.ltpaper__sign { margin: 18px 0 0; font-weight: 700; color: var(--ll-ink); }
+
+/* Responsive: stack the doc + rail vertically on narrower viewports */
+@media (max-width: 860px) {
+  .cvrev__body { grid-template-columns: 1fr; grid-template-rows: none; }
+  .cvrev__rail { position: static; }
+}
 .flag__done { display: inline-flex; align-items: center; gap: 5px; font-size: var(--fs-xs); color: var(--ll-green); font-weight: var(--fw-semibold); }
