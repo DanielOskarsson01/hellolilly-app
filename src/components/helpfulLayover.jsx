@@ -218,7 +218,7 @@ function HelpfulLayover() {
   return (
     <React.Fragment>
       <div className={`lay-scrim ${open ? 'lay-scrim--open' : ''}`} onClick={() => setItem(null)} aria-hidden={!open} />
-      <div className={`lay ${open ? 'lay--open' : ''}`} role="dialog" aria-modal="true" aria-hidden={!open}>
+      <div className={`lay ${open ? 'lay--open' : ''} ${item && (item.kind === 'cvreview' || item.kind === 'letterreview') ? 'lay--wide' : ''}`} role="dialog" aria-modal="true" aria-hidden={!open}>
         <button className="lay__close" onClick={() => setItem(null)} aria-label="Stäng">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
         </button>
