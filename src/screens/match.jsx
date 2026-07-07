@@ -44,7 +44,7 @@ function CitationChip({ citation, pool, isNew }) {
     <span className={`cite ${isNew ? 'cite--new' : ''}`}>
       <Icon name="doc" size={11} sw={2.4} />
       {isNew
-        ? tr({ sv: 'Tillagt nyss · ' + type, en: 'Just added · ' + type })
+        ? (df ? tr({ sv: 'Tillagt nyss · ' + type, en: 'Just added · ' + type }) : tr({ sv: 'Tillagt nyss', en: 'Just added' }))
         : df
           ? tr({ sv: 'Från ditt CV · ' + type, en: 'From your CV · ' + type })
           : tr({ sv: 'Från din datafakta-pool', en: 'From your datafact pool' })}
@@ -521,8 +521,8 @@ function JobMatchReview() {
                 </div>
               </div>
               <h2 className="verdictblk__title">{verdictHeadline(scoreVal)}</h2>
-              <p className="verdictblk__sum">{fit.capability && fit.capability.overall}</p>
-              {fit.preference && fit.preference.narrative && (
+              <p className="verdictblk__sum">{fit && fit.capability && fit.capability.overall}</p>
+              {fit && fit.preference && fit.preference.narrative && (
                 <div className="verdictblk__pref">
                   <strong>{tr({ sv: 'Passar villkoren: ', en: 'Fits your terms: ' })}</strong>
                   {fit.preference.narrative}
