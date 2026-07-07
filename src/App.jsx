@@ -18,8 +18,8 @@ import { HelpfulLayover } from './components/helpfulLayover.jsx';
 
 const LL_ROUTES = {
   home: { c: () => <HomeExpanded />, title: 'Hem' },
-  cv: { c: () => <CVBuilder />, title: 'CV-byggaren' },
-  letter: { c: () => <CoverLetter />, title: 'Personligt brev' },
+  cv: { c: () => <CVBuilder />, title: 'CV-byggaren', template: true },
+  letter: { c: () => <CoverLetter />, title: 'Personligt brev', template: true },
   interview: { c: () => <InterviewTrainer />, title: 'Intervjuträning' },
   activity: { c: () => <ActivityTracker />, title: 'Min aktivitet' },
   library: { c: () => <SharedLibrary />, title: 'Bibliotek' },
@@ -27,7 +27,7 @@ const LL_ROUTES = {
   studio: { c: () => <ImageStudio />, title: 'Bildstudio' },
   coach: { c: () => <CoachWorkspace />, title: 'Coachvy' },
   jobbsok: { c: () => <JobSearch />, title: 'Jobbsök', template: true },
-  match: { c: () => <JobMatchReview />, title: 'Matchanalys' },
+  match: { c: () => <JobMatchReview />, title: 'Matchanalys', template: true },
   calendar: { c: () => <CalendarView />, title: 'Kalender' },
   community: { c: () => <Community />, title: 'Community' },
 };

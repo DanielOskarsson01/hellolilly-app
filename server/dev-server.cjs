@@ -136,7 +136,23 @@ function createApiHandler(host, { preferencesPath, llm } = {}) {
       return true;
     }
 
-    const m = req.url.match(/^\/api\/case\/([^/]+)(\/analyze|\/generate|\/research|\/gap\/([^/]+)\/answer)?$/);
+    // POST /api/job/:id/case — durable job→case link. MUST sit above the /api/case/:id
+    // guard (the regex below) so the case matcher does not shadow it. Placement mirrors
+    // the decide route for exactly the same reason.
+    const caseMatch = req.method === 'POST' && req.url.match(/^\/api\/job\/([^/]+)\/case$/);
+    if (caseMatch) {
+      const jobId = decodeURIComponent(caseMatch[1]);
+      const job = host.store.getRecord('jobs', jobId);
+      if (!job) { sendJson(res, 404, { ok: false, error: 'job not found' }); return true; }
+      const body = await readJson(req);
+      if (!body.caseId) { sendJson(res, 400, { ok: false, error: 'caseId required' }); return true; }
+      const updated = { ...job, caseId: body.caseId };
+      host.store.putRecord('jobs', updated);
+      sendJson(res, 200, { ok: true, job: updated });
+      return true;
+    }
+
+    const m = req.url.match(/^\/api\/case\/([^/]+)(\/analyze|\/generate|\/research|\/letter-draft|\/gap\/([^/]+)\/answer)?$/);
     if (!m) return false;
     const caseId = decodeURIComponent(m[1]);
     const action = m[2];
@@ -144,8 +160,8 @@ function createApiHandler(host, { preferencesPath, llm } = {}) {
     if (req.method === 'GET' && !action) {
       const c = host.store.getCase(caseId);
       if (!c) { sendJson(res, 404, { ok: false, error: 'no such case' }); return true; }
-      const { meta, dossiers, decodedRole, fit, gaps, cvDraft, coverLetter } = c;
-      sendJson(res, 200, { ok: true, case: { meta, dossiers, decodedRole, fit, gaps, cvDraft, coverLetter } });
+      const { meta, dossiers, decodedRole, fit, gaps, cvDraft, coverLetter, coverLetterDraft } = c;
+      sendJson(res, 200, { ok: true, case: { meta, dossiers, decodedRole, fit, gaps, cvDraft, coverLetter, coverLetterDraft } });
       return true;
     }
 
@@ -193,6 +209,21 @@ function createApiHandler(host, { preferencesPath, llm } = {}) {
       } catch (err) {
         sendJson(res, 500, { ok: false, error: err.message });
       }
+      return true;
+    }
+
+    if (req.method === 'POST' && action === '/letter-draft') {
+      const existing = host.store.getCase(caseId);
+      if (!existing) { sendJson(res, 404, { ok: false, error: 'case not found' }); return true; }
+      const body = await readJson(req);
+      const draft = {
+        language: body.language || 'en',
+        paragraphs: Array.isArray(body.paragraphs) ? body.paragraphs : [],
+        decisions: (body.decisions && typeof body.decisions === 'object' && !Array.isArray(body.decisions)) ? body.decisions : {},
+        editedAt: new Date().toISOString(),
+      };
+      const part = host.store.writePart(caseId, 'coverLetterDraft', draft);
+      sendJson(res, 200, { ok: true, part });
       return true;
     }
 

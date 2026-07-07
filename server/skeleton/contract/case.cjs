@@ -11,7 +11,7 @@ const META_STATUS = ['intake', 'researching', 'analyzing', 'prep_ready', 'live',
 
 // The enveloped top-level parts. (crosslinks is NOT here — it is a derived query, §5.
 // The candidate data-layer is NOT here either — the case references it, §2.1.)
-const PARTS = ['dossiers', 'decodedRole', 'fit', 'gaps', 'cvDraft', 'coverLetter', 'prep', 'cards', 'liveLog', 'postMortem'];
+const PARTS = ['dossiers', 'decodedRole', 'fit', 'gaps', 'cvDraft', 'coverLetter', 'coverLetterDraft', 'prep', 'cards', 'liveLog', 'postMortem'];
 
 function nowIso() {
   return new Date().toISOString();

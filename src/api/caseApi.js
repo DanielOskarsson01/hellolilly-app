@@ -95,6 +95,29 @@ export function clearJobs() {
   });
 }
 
+// Saves a cover-letter draft part (paragraphs + per-paragraph decisions) for a case.
+// Dispatches ll:case:changed so every mounted useCase hook refetches.
+export function saveCoverLetterDraft(caseId, { paragraphs, decisions, language = 'en' }) {
+  return request(`/api/case/${encodeURIComponent(caseId)}/letter-draft`, {
+    method: 'POST',
+    body: JSON.stringify({ language, paragraphs, decisions }),
+  }).then((b) => {
+    if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('ll:case:changed'));
+    return b.part;
+  });
+}
+
+// Links a stored job to a case. Dispatches ll:jobs:changed so every mounted useJobs hook refetches.
+export function linkJobCase(jobId, caseId) {
+  return request(`/api/job/${encodeURIComponent(jobId)}/case`, {
+    method: 'POST',
+    body: JSON.stringify({ caseId }),
+  }).then((b) => {
+    if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('ll:jobs:changed'));
+    return b.job;
+  });
+}
+
 // Cross-screen sync, same pattern as jobStore's ll:jobs:changed.
 export function notifyCaseChanged() {
   if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('ll:case:changed'));

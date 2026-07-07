@@ -76,6 +76,7 @@ export function useCase(caseId) {
       analyze: wrap('analyze', () => caseApi.analyze(caseId)),
       generate: wrap('generate', () => caseApi.generate(caseId)),
       answerGap: wrap('answerGap', (gapId, payload) => caseApi.answerGap(caseId, gapId, payload)),
+      saveLetterDraft: wrap('saveLetterDraft', (payload) => caseApi.saveCoverLetterDraft(caseId, payload)),
     };
   }, [caseId]);
 

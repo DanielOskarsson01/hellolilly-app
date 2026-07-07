@@ -2,8 +2,11 @@ import React from 'react';
 import { Icon, Clover, Photo, Avatar, Button, Tag, SectionHeader } from './primitives.jsx';
 import { acceptJob, getAcceptedJobs, jobKey, removeJob, setJobCase, setActiveCaseId } from '../utils/jobStore.js';
 import { createCase, decideJob } from '../api/caseApi.js';
-import { useCase } from '../hooks/useCase.js';
+import { useCase, useActiveCase } from '../hooks/useCase.js';
+import { casePartsView } from '../hooks/casePartsView.mjs';
+import { caseMetaView } from '../hooks/caseMetaView.mjs';
 import { REJECT_REASONS } from '../lib/jobTriage.mjs';
+import { LetterFlag } from '../screens/coverLetter.jsx';
 
 // HelloLilly — Helpful Now layover
 // Opens when a Helpful Now item is clicked (custom event `ll:helpful:open`).
@@ -50,6 +53,10 @@ const RICH_CONTENT = {
 };
 
 function HelpfulLayoverContent({ item }) {
+  // Cover-letter review (from Personligt brev "Granska" → kind:'letterreview').
+  if (item && item.kind === 'letterreview') return <LetterReviewContent item={item} />;
+  // CV review (from Matchanalys / Ansökningskoll → kind:'cvreview').
+  if (item && item.kind === 'cvreview') return <CvReviewContent item={item} />;
   // A search-result row opens the light preview + decision surface (NOT the full analysis and
   // NOT an iframe of the posting). Placed before kind:'job' so it never falls through to it.
   if (item && item.kind === 'jobpreview') return <JobPreviewContent job={item} />;
@@ -211,7 +218,7 @@ function HelpfulLayover() {
   return (
     <React.Fragment>
       <div className={`lay-scrim ${open ? 'lay-scrim--open' : ''}`} onClick={() => setItem(null)} aria-hidden={!open} />
-      <div className={`lay ${open ? 'lay--open' : ''}`} role="dialog" aria-modal="true" aria-hidden={!open}>
+      <div className={`lay ${open ? 'lay--open' : ''} ${item && (item.kind === 'cvreview' || item.kind === 'letterreview') ? 'lay--wide' : ''}`} role="dialog" aria-modal="true" aria-hidden={!open}>
         <button className="lay__close" onClick={() => setItem(null)} aria-label="Stäng">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
         </button>
@@ -743,6 +750,296 @@ function MatchAnalysisContent({ job, caseData, actions, running }) {
         </div>
       </div>
     </React.Fragment>
+  );
+}
+
+/* ============================================================
+   Letter-review content (kind:'letterreview')
+   Opened from Personligt brev screen's "Granska" button.
+   item carries: { company, jobTitle, url, person, paragraphs[],
+                   unsupported[], flagDecisions{} } — all packed by
+   the screen's openLetterReview() before dispatching the event.
+   Decisions are keyed by CLAIM TEXT (stable across save + regen),
+   mirroring the screen's flagDec shape. Reuses the real LetterFlag
+   imported from coverLetter.jsx — no window.LetterFlag fallback.
+   ============================================================ */
+function LetterReviewContent({ item }) {
+  const person = item.person || {};
+  const paras = item.paragraphs || [];
+  const unsupported = item.unsupported || [];
+  const [flagDec, setFlagDec] = React.useState(item.flagDecisions || {});
+  const decide = (claim, v) =>
+    setFlagDec((d) => { const n = { ...d }; if (v == null) delete n[claim]; else n[claim] = v; return n; });
+  const openFlags = unsupported.filter((claim) => !flagDec[claim]).length;
+
+  const [comments, setComments] = React.useState(item.seedComments || []);
+  const [draft, setDraft] = React.useState('');
+  const addComment = () => {
+    const t = draft.trim();
+    if (!t) return;
+    setComments((c) => [...c, { who: 'Du', on: 'Allmänt', text: t }]);
+    setDraft('');
+  };
+  const applyComment = (i) =>
+    setComments((cs) => cs.map((c, j) => (j === i ? { ...c, applied: !c.applied } : c)));
+  const applyAll = () => setComments((cs) => cs.map((c) => ({ ...c, applied: true })));
+  const accept = () => {
+    window.dispatchEvent(new CustomEvent('ll:letter:accept', { detail: { id: item.id } }));
+    window.dispatchEvent(new CustomEvent('ll:helpful:close'));
+  };
+  const dl = () => {
+    const html =
+      `<body style="font-family:sans-serif;max-width:640px;margin:40px auto;color:#16233A">` +
+      `<p style="font-weight:bold">${item.company}</p>` +
+      `<h3>Ansökan: ${item.jobTitle}</h3>` +
+      paras.map((x) => `<p>${x}</p>`).join('') +
+      `<p style="font-weight:bold">${person.name || ''}</p>` +
+      `<p style="color:#666">${person.contact || ''}</p></body>`;
+    const blob = new Blob(['<!doctype html><meta charset="utf-8">' + html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'Brev_' + String(item.company || 'brev').replace(/\W+/g, '_') + '.html';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  };
+
+  return (
+    <div className="cvrev">
+      <div className="cvrev__head">
+        <div className="cvrev__head-top">
+          <div className="cvrev__head-id">
+            <div className="cvrev__co">{item.company}</div>
+            <div className="cvrev__jt">
+              {item.jobTitle}
+              {item.angle ? <span className="cvrev__tpl"> · Vinkel: {item.angle}</span> : null}
+            </div>
+          </div>
+          <span className="cvrev__changes" style={{ background: 'var(--ll-lilac-soft)', color: 'var(--ll-lilac)' }}>
+            Personligt brev
+          </span>
+        </div>
+        <div className="cvrev__cta">
+          <Button variant="primary" icon="check" onClick={accept}>Spara brev</Button>
+          <Button variant="secondary" icon="download" onClick={dl}>Ladda ner</Button>
+          {item.url && (
+            <a href={item.url} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}>
+              <Button variant="secondary" icon="arrow">Ansök</Button>
+            </a>
+          )}
+        </div>
+      </div>
+
+      <div className="cvrev__body">
+        <div className="cvrev__docwrap">
+          <div className="cvpaper cvpaper--letter">
+            <div className="ltpaper__head">
+              <div className="ltpaper__ava" aria-hidden="true">{(person.name || 'D').slice(0, 1)}</div>
+              <div>
+                <div className="cvpaper__name" style={{ fontSize: '20px' }}>{person.name}</div>
+                <div className="cvpaper__role">{person.headline}</div>
+                <div className="cvpaper__contact">{person.contact}</div>
+              </div>
+            </div>
+            <div className="ltpaper__subject">Ansökan: {item.jobTitle} — {item.company}</div>
+            {paras.map((x, i) => <p key={i} className="ltpaper__p">{x}</p>)}
+            <p className="ltpaper__sign">{person.name}</p>
+          </div>
+        </div>
+
+        <div className="cvrev__rail">
+          {/* Ärlighetskoll rail — claim-TEXT–keyed decisions, mirroring the screen */}
+          {unsupported.length > 0 && (
+            <div className="cvrev__honesty" style={{ marginBottom: 'var(--sp-4)' }}>
+              <div className="cvrev__rail-h">
+                <Icon
+                  name={openFlags === 0 ? 'check' : 'bulb'}
+                  size={15}
+                  style={{ color: openFlags === 0 ? 'var(--ll-green)' : '#b07212' }}
+                />
+                Ärlighetskoll {openFlags === 0 ? '· alla hanterade' : `(${openFlags} kvar)`}
+              </div>
+              <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--ll-ink-soft)', margin: '0 0 var(--sp-2)' }}>
+                Påståenden i brevet som ditt CV inte belägger — behåll, mjuka upp eller ta bort.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-2)' }}>
+                {unsupported.map((claim) => (
+                  <LetterFlag
+                    key={claim}
+                    claim={claim}
+                    decision={flagDec[claim]}
+                    onDecide={(v) => decide(claim, v)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+          <div className="cvrev__rail-h"><Icon name="letter" size={15} />Kommentarer ({comments.length})</div>
+          {comments.map((c, i) => (
+            <div className={`cvnote ${c.applied ? 'cvnote--applied' : ''}`} key={i}>
+              <div className="cvnote__h"><b>{c.who}</b>{c.on && <span className="cvnote__on">{c.on}</span>}</div>
+              <p>{c.text}</p>
+              <div className="cvnote__act">
+                {c.applied
+                  ? <button className="cvnote__done" onClick={() => applyComment(i)}><Icon name="check" size={12} sw={3} />Ändrad · ångra</button>
+                  : <button className="cvnote__btn" onClick={() => applyComment(i)}><Icon name="pen" size={12} sw={2.4} />Ändra</button>}
+              </div>
+            </div>
+          ))}
+          <div className="cvnote cvnote--add">
+            <textarea
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              placeholder="Föreslå en ändring i brevet…"
+              rows={3}
+            />
+            <Button variant="secondary" size="sm" icon="plus" onClick={addComment}>Lägg till kommentar</Button>
+          </div>
+          {comments.length > 0 && (
+            <div className="cvrev__apply">
+              <Button
+                variant="primary"
+                size="sm"
+                icon="sparkle"
+                block
+                disabled={comments.every((c) => c.applied)}
+                onClick={applyAll}
+              >
+                {comments.every((c) => c.applied) ? 'Ändringar genomförda ✓' : 'Genomför ändringar'}
+              </Button>
+              <span className="cvrev__apply-note">Lilly uppdaterar brevet enligt kommentarerna.</span>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   CV-review content (kind:'cvreview')
+   Opened from Matchanalys / Ansökningskoll "Se resultat" button.
+   item carries: { company, jobTitle, id } — company/jobTitle for the
+   header. Real CV content is read from parts.cvDraft via useActiveCase().
+   _pool is empty this wave — honest generic citation chips only.
+   ============================================================ */
+function CvReviewContent({ item }) {
+  const { caseData } = useActiveCase();
+  const parts = casePartsView(caseData);
+  const meta = caseMetaView(caseData);
+  const person = meta.person || {};
+
+  // cvDraft: { sections[], changes } | null (empty this wave if not yet generated)
+  const cvDraft = parts.cvDraft;
+  const sections = (cvDraft && cvDraft.sections) || [];
+  const changes = (cvDraft && cvDraft.changes != null) ? cvDraft.changes : null;
+  const company = item.company || meta.company || '';
+  const jobTitle = item.jobTitle || meta.jobTitle || '';
+
+  const [comments, setComments] = React.useState([]);
+  const [draft, setDraft] = React.useState('');
+  const addComment = () => {
+    const t = draft.trim();
+    if (!t) return;
+    setComments((c) => [...c, { who: 'Du', on: 'Allmänt', text: t }]);
+    setDraft('');
+  };
+  const applyComment = (i) =>
+    setComments((cs) => cs.map((c, j) => (j === i ? { ...c, applied: !c.applied } : c)));
+  const applyAll = () => setComments((cs) => cs.map((c) => ({ ...c, applied: true })));
+  const accept = () => {
+    window.dispatchEvent(new CustomEvent('ll:cv:accept', { detail: { id: item.id } }));
+    window.dispatchEvent(new CustomEvent('ll:helpful:close'));
+  };
+
+  return (
+    <div className="cvrev">
+      <div className="cvrev__head">
+        <div className="cvrev__head-top">
+          <div className="cvrev__head-id">
+            <div className="cvrev__co">{company}</div>
+            <div className="cvrev__jt">{jobTitle}</div>
+          </div>
+          {changes != null && changes > 0 && <span className="cvrev__changes">{changes} ändringar</span>}
+        </div>
+        <div className="cvrev__cta">
+          <Button variant="primary" icon="check" onClick={accept}>Acceptera CV</Button>
+          {item.url && (
+            <a href={item.url} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}>
+              <Button variant="secondary" icon="arrow">Ansök</Button>
+            </a>
+          )}
+        </div>
+      </div>
+
+      <div className="cvrev__body">
+        <div className="cvrev__docwrap">
+          <div className="cvpaper cvpaper--blue">
+            <div className="cvpaper__id">
+              <div className="cvpaper__id-b">
+                <h1 className="cvpaper__name">{person.name}</h1>
+                <div className="cvpaper__role">{person.headline}</div>
+                <div className="cvpaper__contact">{person.contact}</div>
+              </div>
+            </div>
+            {sections.length === 0 && (
+              <p className="cvpaper__p" style={{ color: 'var(--ll-ink-soft)', fontStyle: 'italic' }}>
+                CV-utkastet genereras efter matchanalysen. Kör analysen och kom tillbaka här.
+              </p>
+            )}
+            {sections.map((s, i) => (
+              <div key={i} className="cvpaper__sec">
+                <div className="cvpaper__sec-h">{s.heading}</div>
+                {s.body
+                  ? <p className="cvpaper__p">{s.body}</p>
+                  : <ul className="cvpaper__ul">{(s.items || []).map((it, j) => <li key={j}>{it}</li>)}</ul>}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="cvrev__rail">
+          <div className="cvrev__rail-h"><Icon name="letter" size={15} />Kommentarer ({comments.length})</div>
+          {comments.map((c, i) => (
+            <div className={`cvnote ${c.applied ? 'cvnote--applied' : ''}`} key={i}>
+              <div className="cvnote__h"><b>{c.who}</b>{c.on && <span className="cvnote__on">{c.on}</span>}</div>
+              <p>{c.text}</p>
+              <div className="cvnote__act">
+                {c.applied
+                  ? <button className="cvnote__done" onClick={() => applyComment(i)}><Icon name="check" size={12} sw={3} />Ändrad · ångra</button>
+                  : <button className="cvnote__btn" onClick={() => applyComment(i)}><Icon name="pen" size={12} sw={2.4} />Ändra</button>}
+              </div>
+            </div>
+          ))}
+          <div className="cvnote cvnote--add">
+            <textarea
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              placeholder="Föreslå en ändring på CV:t…"
+              rows={3}
+            />
+            <Button variant="secondary" size="sm" icon="plus" onClick={addComment}>Lägg till kommentar</Button>
+          </div>
+          {comments.length > 0 && (
+            <div className="cvrev__apply">
+              <Button
+                variant="primary"
+                size="sm"
+                icon="sparkle"
+                block
+                disabled={comments.every((c) => c.applied)}
+                onClick={applyAll}
+              >
+                {comments.every((c) => c.applied) ? 'Ändringar genomförda ✓' : 'Genomför ändringar'}
+              </Button>
+              <span className="cvrev__apply-note">Lilly uppdaterar CV:t enligt kommentarerna.</span>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 

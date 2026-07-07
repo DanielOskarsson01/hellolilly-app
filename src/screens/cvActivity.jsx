@@ -1,11 +1,289 @@
 import React from 'react';
 import { Icon, Clover, Avatar, AvatarStack, Photo, Tag, Chip, Button, Rating, SectionHeader, DemoBar } from '../components/primitives.jsx';
 import { Sidebar } from '../components/shell.jsx';
-import { CASE_PROFILE, PIPELINE_RUN } from '../data/strategyData.js';
-import { useActiveCase, useCase } from '../hooks/useCase.js';
+import { useActiveCase } from '../hooks/useCase.js';
+import { casePartsView } from '../hooks/casePartsView.mjs';
+import { caseMetaView } from '../hooks/caseMetaView.mjs';
+import { PartGate, PartState, PartSkeleton, STATUS } from '../components/partGate.jsx';
+import { tr, useLang, LangToggle } from '../lib/i18n.mjs';
+import { ContentArea, ContentBox, CrossColumn, PageTemplate } from '../components/grid.jsx';
 import { listCases } from '../api/caseApi.js';
 
-// HelloLilly — CV builder & Activity tracker
+// HelloLilly — CV-byggaren (design-system era, bound to cvDraft)
+// Ported from design/design/screens-cv2.jsx; wired to real data hooks.
+// CSS renames applied per T9 merge:
+//   .improve  → .cvb-improve  (was collision with existing indicators)
+//   .intake   → .cvb-intake   (was collision with existing chat intake rail)
+//   .improve__btn  → .cvb-improve__btn
+//   .intake__hint  → .cvb-intake__hint
+
+/* ---------- Crosslinking data for this screen ---------- */
+function CV_CROSS() {
+  return [
+    { kind:'Mall',    icon:'doc',    title:tr({ sv:'Skriv resultat, inte uppgifter', en:'Write results, not tasks' }),    nav:tr({sv:'Mall',en:'Template'}),   why:tr({ sv:'Coach-godkänd bullet-mall', en:'Coach-approved bullet template' }) },
+    { kind:'Målkrav', icon:'target', title:tr({ sv:'Skriv mot kravet: attribution & LTV', en:'Write toward: attribution & LTV' }), nav:tr({sv:'Krav',en:'Req'}),  why:tr({ sv:'Från rollens matchanalys', en:"From the role's decoded requirements" }) },
+    { kind:'Nyckelord',icon:'search',title:tr({ sv:'Saknade nyckelord för rollen', en:'Missing keywords for the role' }),   nav:tr({sv:'Ord',en:'Words'}),   why:tr({ sv:'token-partnerships · influencer', en:'token-partnerships · influencer' }) },
+    { kind:'Coach',   icon:'users',  title:tr({ sv:'Coach med iGaming-erfarenhet', en:'Coach with iGaming experience' }),  nav:tr({sv:'Sara',en:'Sara'}),   why:tr({ sv:'Kan granska dina bullets', en:'Can review your bullets' }) },
+  ];
+}
+
+/* ---------- One CV item, traceable to its datafact ---------- */
+// pool is EMPTY this wave → df is always null → chip shows honest generic fallback.
+function CvItem({ item, resolve, asBullet }) {
+  const df = item.datafactRef ? resolve(item.datafactRef.id) : null;
+  const isNew = item.datafactRef && /_\d{10,}$/.test(item.datafactRef.id);
+  // When df is null (empty pool), render the honest generic chip so the
+  // traceability guarantee is always visible but never fabricated.
+  const chip = df
+    ? (
+      <span className={`cvitem__chip ${isNew ? 'cvitem__chip--new' : ''}`}>
+        <Icon name="doc" size={10} sw={2.4} />
+        {isNew ? tr({ sv:'Tillagt nyss', en:'Just added' }) : tr({ sv:'Från din intake · ' + df.type, en:'From your intake · ' + df.type })}
+      </span>
+    )
+    : item.datafactRef
+      ? (
+        <span className="cvitem__chip">
+          <Icon name="doc" size={10} sw={2.4} />
+          {tr({ sv:'Från ditt CV', en:'From your CV' })}
+        </span>
+      )
+      : null;
+  if (asBullet) return <li className="cvitem">{item.text}{chip}</li>;
+  return <p className="cvitem" style={{ margin:'0 0 6px' }}>{item.text}{chip}</p>;
+}
+
+/* ---------- Improve strip (per section; disabled "Kommer") ---------- */
+function ImproveStrip({ section }) {
+  return (
+    <div className="cvb-improve" aria-label={tr({ sv:'Förbättra ' + section.heading, en:'Improve ' + section.heading })}>
+      <button className="cvb-improve__btn" disabled aria-disabled="true"><Icon name="pen" size={11} sw={2.6} />{tr({ sv:'Förbättra formulering', en:'Improve wording' })}</button>
+      <button className="cvb-improve__btn" disabled aria-disabled="true"><Icon name="search" size={11} sw={2.6} />{tr({ sv:'Lägg till nyckelord', en:'Add keywords' })}</button>
+      <span className="soon-tag">{tr({ sv:'Kommer', en:'Coming' })}</span>
+    </div>
+  );
+}
+
+/* ---------- The living CV preview (renders cvDraft.sections[]) ---------- */
+function CvLive({ cvDraft, meta, resolve }) {
+  const person = meta.person || {};
+  // Only sections with at least one renderable item render (spec: select, never invent).
+  const sections = (cvDraft.sections || []).filter(s => (s.items || []).length > 0);
+  return (
+    <div className="cvlive">
+      <div className="paper paper--cv">
+        <h2>{person.name}</h2>
+        <div className="paper__role">{person.headline}</div>
+        <div className="paper__contact">{person.contact}</div>
+        {sections.map(sec => (
+          <div className="cvlive__sec" key={sec.key}>
+            <div className="paper__sec-h">{sec.heading}</div>
+            {sec.key === 'summary'
+              ? sec.items.map((it, i) => <CvItem key={i} item={it} resolve={resolve} />)
+              : <ul>{sec.items.map((it, i) => <CvItem key={i} item={it} resolve={resolve} asBullet />)}</ul>}
+            <ImproveStrip section={sec} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Intake rail — DISABLED "Kommer" (living-CV-now decision) ---------- */
+// Rendered visibly so the user sees the intended layout, but the form and pool
+// list are disabled. No addFact call, no datafact-mint engine — deferred.
+const INTAKE_TYPES = [
+  { code:'Erfarenhet', sv:'Erfarenhet', en:'Experience' },
+  { code:'Resultat',   sv:'Resultat',   en:'Result' },
+  { code:'Utbildning', sv:'Utbildning', en:'Education' },
+  { code:'Styrka',     sv:'Styrka',     en:'Strength' },
+];
+function IntakeRail({ pool }) {
+  return (
+    <div className="cvb-intake">
+      <div className="secrow">
+        <Icon name="doc" size={20} style={{ color:'var(--ll-blue)' }} />
+        <h3>{tr({ sv:'Dina byggstenar', en:'Your building blocks' })}</h3>
+        <span className="secrow__pill secrow__pill--ok">{pool.length} {tr({ sv:'fakta', en:'facts' })}</span>
+        <span className="soon-tag">{tr({ sv:'Kommer', en:'Coming' })}</span>
+      </div>
+      <p className="cvb-intake__hint">{tr({ sv:'Allt i ditt CV byggs av de här verifierade fakta. Lilly väljer bland dem - hon hittar aldrig på något nytt.', en:'Everything in your CV is built from these verified facts. Lilly selects among them - she never invents anything new.' })}</p>
+
+      <div className="loop__label" style={{ marginTop:'var(--sp-2)' }}>{tr({ sv:'Lägg till en byggsten', en:'Add a building block' })}</div>
+      <div className="loop__mode" role="group" aria-label={tr({ sv:'Typ av fakta', en:'Fact type' })} aria-disabled="true">
+        {INTAKE_TYPES.map(t => (
+          <button key={t.code} disabled aria-disabled="true">{tr({ sv:t.sv, en:t.en })}</button>
+        ))}
+      </div>
+      <textarea
+        className="loop__ta" style={{ minHeight:64 }}
+        disabled
+        placeholder={tr({ sv:'Byggstensintag aktiveras snart.', en:'Building block intake coming soon.' })}
+      />
+      <div>
+        <Button variant="secondary" size="sm" icon="plus" disabled>
+          {tr({ sv:'Spara byggsten', en:'Save building block' })}
+        </Button>
+      </div>
+
+      {pool.length > 0 && (
+        <div style={{ display:'flex', flexDirection:'column', gap:'var(--sp-2)', marginTop:'var(--sp-2)' }}>
+          {pool.map(df => (
+            <div className={`fact ${/_\d{10,}$/.test(df.id) ? 'fact--new' : ''}`} key={df.id}>
+              <div className="fact__top">
+                <span className="fact__type">{df.type}</span>
+                <span className="fact__lang">{df.language}</span>
+              </div>
+              <div className="fact__text">{df.text}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ===================== CV BUILDER ===================== */
+function CVBuilder() {
+  useLang();
+  const { caseData, running, actions } = useActiveCase();
+  const parts = casePartsView(caseData);
+  const meta = caseMetaView(caseData);
+
+  // resolveDatafact: reads pool by id; pool is empty this wave → always returns null.
+  const resolveDatafact = React.useCallback((id) => {
+    const pool = parts._pool || [];
+    return pool.find(df => df.id === id) || null;
+  }, [parts._pool]);
+
+  const cvStatus = parts.statusOf('cvDraft');
+  const cvDraft = parts.cvDraft; // null unless status === 'ready'
+  const pool = parts._pool || [];
+
+  const cross = (
+    <CrossColumn
+      title={tr({ sv:'Stöd för ditt CV', en:'Support for your CV' })}
+      sub={tr({ sv:'Det som hjälper avsnittet du jobbar med.', en:'What helps the section in focus.' })}
+      items={CV_CROSS()}
+    />
+  );
+
+  const head = (
+    <div className="ll-pagehead">
+      <div className="ll-pagehead__b">
+        <h1>{tr({ sv:'CV-byggaren', en:'CV builder' })}</h1>
+        <p className="ll-pagehead__sub">{tr({ sv:'Förbi det tomma pappret: dina svar blir byggstenar, Lilly väljer ihop dem till ett CV för rollen - aldrig något påhittat.', en:'Past the blank page: your answers become building blocks, Lilly assembles them into a role-tailored CV - never anything invented.' })}</p>
+      </div>
+      <div className="ll-pagehead__actions"><LangToggle /></div>
+    </div>
+  );
+
+  const ctx = meta.company && (
+    <div className="ctxbar">
+      <span className="ctxbar__logo">{meta.logo}</span>
+      <div className="ctxbar__b">
+        <div className="ctxbar__t">{meta.jobTitle} · {meta.company}</div>
+        {meta.location && <div className="ctxbar__m">{meta.location}</div>}
+      </div>
+      <span className="ctxbar__lang"><Icon name="doc" size={12} sw={2.4} />{tr({ sv:'CV på engelska · svenska kommer', en:'CV in English · Swedish coming' })}</span>
+    </div>
+  );
+
+  const body = (
+    <React.Fragment>
+      {/* Version switcher — one real version per case; more versions per role coming */}
+      <div className="vers" role="group" aria-label={tr({ sv:'CV-versioner', en:'CV versions' })}>
+        {meta.jobTitle && meta.company
+          ? <button className="vers__tab" aria-pressed="true"><Icon name="cv" size={13} sw={2.4} />{meta.jobTitle} · {meta.company}</button>
+          : <button className="vers__tab" aria-pressed="true"><Icon name="cv" size={13} sw={2.4} />{tr({ sv:'Ditt CV', en:'Your CV' })}</button>
+        }
+        <button className="vers__tab" disabled aria-disabled="true"><Icon name="plus" size={12} sw={2.6} />{tr({ sv:'Ny version för annan roll', en:'New version for another role' })}</button>
+        <span className="soon-tag">{tr({ sv:'Kommer', en:'Coming' })}</span>
+      </div>
+
+      <ContentArea mode="split">
+        {/* Left: guided intake rail — disabled "Kommer" this wave */}
+        <ContentBox>
+          <IntakeRail pool={pool} />
+        </ContentBox>
+
+        {/* Center-right: the living CV */}
+        <ContentBox>
+          <div className="secrow">
+            <Icon name="cv" size={20} style={{ color:'var(--ll-blue)' }} />
+            <h3>{tr({ sv:'Ditt levande CV', en:'Your living CV' })}</h3>
+            {cvStatus === STATUS.READY && (
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={running.generate ? null : 'refresh'}
+                onClick={() => actions.generate()}
+                disabled={running.generate}
+              >
+                {running.generate ? tr({ sv:'Uppdaterar…', en:'Updating…' }) : tr({ sv:'Uppdatera CV', en:'Update CV' })}
+              </Button>
+            )}
+          </div>
+          <div className="guarantee">
+            <Icon name="check" size={14} sw={3} />
+            {tr({ sv:'Lilly väljer, hittar aldrig på: varje rad går att spåra till en av dina byggstenar.', en:'Lilly selects, never invents: every line traces to one of your building blocks.' })}
+          </div>
+          <div style={{ height:'var(--sp-3)' }}></div>
+
+          <PartGate
+            status={cvStatus}
+            busy={running.generate}
+            absent={
+              <PartState
+                title={tr({ sv:'Inget CV genererat ännu', en:'No CV generated yet' })}
+                body={tr({ sv:'Lilly bygger ett skräddarsytt CV för den här rollen av dina byggstenar - varje rad med källa.', en:'Lilly assembles a role-tailored CV from your building blocks - every line with a source.' })}
+              >
+                <Button variant="primary" icon={running.generate ? null : 'sparkle'} onClick={() => actions.generate()} disabled={running.generate}>
+                  {running.generate ? tr({ sv:'Genererar…', en:'Generating…' }) : tr({ sv:'Generera CV', en:'Generate CV' })}
+                </Button>
+              </PartState>
+            }
+          >
+            {cvDraft && <CvLive cvDraft={cvDraft} meta={meta} resolve={resolveDatafact} />}
+          </PartGate>
+        </ContentBox>
+      </ContentArea>
+
+      {cvStatus === STATUS.READY && (
+        <ContentBox tone="tint">
+          <div className="comment-row">
+            <div style={{ flex:1, minWidth:200 }}>
+              <div style={{ fontFamily:'var(--font-display)', fontWeight:800, color:'var(--ll-blue-deep)', fontSize:'var(--fs-md)' }}>{tr({ sv:'Nästa steg', en:'Next step' })}</div>
+              <div className="text-soft" style={{ fontSize:'var(--fs-sm)', marginTop:2 }}>{tr({ sv:'Använd CV:t som grund för ditt personliga brev, eller granska hela ansökan.', en:'Use the CV as the base for your cover letter, or review the whole application.' })}</div>
+            </div>
+            <a className="btn btn--primary" href="#letter"><Icon name="letter" size={16} />{tr({ sv:'Använd i Personligt brev', en:'Use in Cover letter' })}</a>
+            <a className="btn btn--secondary" href="#ansokningskoll"><Icon name="check" size={16} />{tr({ sv:'Ansökningskoll', en:'Application check' })}</a>
+          </div>
+        </ContentBox>
+      )}
+    </React.Fragment>
+  );
+
+  return (
+    <PageTemplate
+      label="CV-byggaren"
+      nav={<Sidebar active="cv" />}
+      cross={cross}
+      content={<ContentArea>{head}{ctx}{body}</ContentArea>}
+    />
+  );
+}
+
+/* ===================== ACTIVITY TRACKER ===================== */
+function WeekRing({ pct = 72 }) {
+  const r = 34, c = 2 * Math.PI * r, off = c * (1 - pct/100);
+  return (
+    <svg className="ring" width="86" height="86" viewBox="0 0 86 86">
+      <circle className="bg" cx="43" cy="43" r={r} />
+      <circle className="fg" cx="43" cy="43" r={r} strokeDasharray={c} strokeDashoffset={off} />
+    </svg>
+  );
+}
 
 /* tool header bar shared by tool screens */
 function ToolHeader({ title, step, total, children }) {
@@ -19,262 +297,6 @@ function ToolHeader({ title, step, total, children }) {
       <div className="topbar__spacer" />
       {children}
     </header>
-  );
-}
-
-/* ===================== CV BUILDER ===================== */
-function VoiceWave({ bars = 18 }) {
-  const hs = [8,14,20,12,18,22,10,16,21,9,15,19,11,17,13,20,8,14];
-  return <div className="voicewave">{Array.from({length:bars}).map((_,i)=>(<span key={i} style={{ height:hs[i%hs.length] }} />))}</div>;
-}
-
-const CV_TEMPLATES = [
-  { id:'lager', title:'Lager & logistik', tone:'ph--sky', meta:'ATS-vänlig · bild valfri', focus:'Tydlig erfarenhet, truckkort och skiftvana' },
-  { id:'classic', title:'Klassisk rekryterare', tone:'ph--mint', meta:'En sida · hög läsbarhet', focus:'Profil, arbetslivserfarenhet och kompetenser först' },
-  { id:'visual', title:'Bild-CV enkelt', tone:'ph--sun', meta:'Foto + sidospalt', focus:'Bra när personlig presentation hjälper' },
-];
-
-const CV_SECTIONS = [
-  { title:'Profil', body:'Pålitlig lager- och logistikmedarbetare med praktik från PostNord, truck A1 och vana vid scanning, plockning och inleverans.' },
-  { title:'Erfarenhet', body:'PostNord praktik, ICA-kundkontakt och daglig vana av tempo, ansvar och tydlig kommunikation.' },
-  { title:'Kompetenser', body:'Truck A1, lagerhantering, handdator/scanning, plock och pack, noggrannhet, punktlighet och lagarbete.' },
-  { title:'Utbildning', body:'Gymnasieutbildning samt kurser och intyg som kan kompletteras direkt när de laddas upp.' },
-  { title:'Språk', body:'Svenska flytande, arabiska modersmål och enkel yrkesengelska för instruktioner och system.' },
-  { title:'Referenser', body:'Referenser lämnas på begäran. Lilly hjälper till att formulera frågan till handledare eller tidigare chef.' },
-];
-
-// The live preview pane, bound to the active case's cvDraft envelope. Every rendered
-// text is a SELECTED datafact (cv-builder never authors), so the paper shows real,
-// traceable content — or an honest absent/pending/failed state.
-function CVDraftPaper({ caseData, running, actions }) {
-  const draft = caseData && caseData.cvDraft;
-  const status = draft ? draft.status : 'absent';
-
-  if (!caseData || status === 'absent') {
-    return (
-      <div className="cvpaper" style={{ display: 'grid', placeItems: 'center', minHeight: 420, textAlign: 'center', gap: 10 }}>
-        <div>
-          <Clover size={38} color="#2B6CF0" />
-          <h2 style={{ marginTop: 12 }}>Inget CV-utkast ännu</h2>
-          <p className="muted" style={{ maxWidth: 380, margin: '8px auto 14px' }}>
-            CV-utkastet byggs från din matchanalys. Kör en analys på ett accepterat jobb så väljer Lilly de datafakta som passar rollen.
-          </p>
-          <a className="btn btn--primary btn--sm" href="#match"><Icon name="target" size={16} />Till Matchanalys</a>
-        </div>
-      </div>
-    );
-  }
-
-  if (status === 'pending' || running.generate) {
-    return (
-      <div className="cvpaper" style={{ display: 'grid', placeItems: 'center', minHeight: 420, textAlign: 'center', gap: 10 }}>
-        <div>
-          <VoiceWave bars={14} />
-          <h2 style={{ marginTop: 12 }}>Lilly bygger utkastet</h2>
-          <p className="muted" style={{ maxWidth: 380, margin: '8px auto 0' }}>
-            Väljer datafakta per sektion utifrån de avkodade kraven för {caseData.meta.role} hos {caseData.meta.company}.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  if (status === 'failed') {
-    return (
-      <div className="cvpaper" style={{ display: 'grid', placeItems: 'center', minHeight: 420, textAlign: 'center', gap: 10 }}>
-        <div>
-          <Icon name="doc" size={30} />
-          <h2 style={{ marginTop: 12 }}>Utkastet kunde inte byggas</h2>
-          <p className="muted" style={{ maxWidth: 380, margin: '8px auto 14px' }}>{draft.error || 'Okänt fel.'}</p>
-          <Button variant="secondary" size="sm" icon="target" onClick={() => actions.generate().catch(() => {})}>Försök igen</Button>
-        </div>
-      </div>
-    );
-  }
-
-  const sections = (draft.data && draft.data.sections) || [];
-  return (
-    <div className="cvpaper">
-      <div className="cvpaper__photo">
-        <Photo tone="ph--sky" clover person label="CV-bild" />
-      </div>
-      {/* Single-user product: the pool is Daniel's real CV (meta.owner = 'self'). */}
-      <h2>Daniel Oskarsson</h2>
-      <div className="cv-role">{caseData.meta.role} · {caseData.meta.company}</div>
-      {sections.map((sec) => (
-        <div className="cv-sec" key={sec.key || sec.heading}>
-          <h3>{sec.heading}</h3>
-          {sec.items.map((it) => (
-            <p key={it.datafactRef ? it.datafactRef.id : it.text} style={{ marginTop: 8 }}>{it.text}</p>
-          ))}
-        </div>
-      ))}
-      {sections.length === 0 && <p className="muted" style={{ marginTop: 12 }}>Inga sektioner kunde fyllas från datafakta-poolen.</p>}
-    </div>
-  );
-}
-
-function CVBuilder() {
-  const [uploadedTemplates, setUploadedTemplates] = React.useState([]);
-  const { caseData, running, actions } = useActiveCase();
-
-  const onTemplateUpload = (event) => {
-    const files = Array.from(event.target.files || []).map((file) => ({
-      id: `${file.name}-${file.lastModified}`,
-      name: file.name,
-      size: Math.round(file.size / 1024),
-    }));
-    setUploadedTemplates((current) => [...files, ...current].slice(0, 6));
-    event.target.value = '';
-  };
-
-  return (
-    <div className="ll app" data-screen-label="CV-byggaren">
-      <Sidebar active="cv" />
-      <div className="main">
-        <ToolHeader title="CV-byggaren" step="4" total="7">
-          <label className="btn btn--secondary btn--sm cv-upload-btn">
-            <Icon name="upload" size={16} />
-            Ladda upp mall
-            <input type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" multiple onChange={onTemplateUpload} />
-          </label>
-          <Button variant="ghost" size="sm" icon="download">Ladda ner PDF</Button>
-          <Button variant="primary" size="sm" icon="check">Spara</Button>
-        </ToolHeader>
-
-        <div className="cvbuilder-grid">
-          {/* intake — fixture conversation (labelled demo until the Stream 1 design pass wires it) */}
-          <section className="intake" style={{ borderRight:'1px solid var(--ll-border)' }}>
-            <DemoBar />
-            <div className="intake__head">
-              <Avatar name="Sara Lind" size="md" tone="av-c3" clover />
-              <div>
-                <div className="intake__title">Vi bygger ditt CV från case record</div>
-                <div className="cap">En fråga i taget - kopplat till {(caseData && caseData.meta.company) || PIPELINE_RUN.company}-analysen</div>
-              </div>
-              <span className="intake__prog">60% klart</span>
-            </div>
-
-            <div className="cv-template-panel">
-              <div className="between" style={{ marginBottom:10 }}>
-                <div>
-                  <h3>CV-mallar</h3>
-                  <p className="cap">Välj bas eller ladda upp en egen mall.</p>
-                </div>
-                <span className="pill">{CV_TEMPLATES.length + uploadedTemplates.length} mallar</span>
-              </div>
-              <div className="cv-templates">
-                {CV_TEMPLATES.map((template) => (
-                  <button className="cv-template-card" key={template.id} type="button">
-                    <Photo tone={template.tone} clover person={template.id === 'visual'} label={template.title} />
-                    <div>
-                      <b>{template.title}</b>
-                      <span>{template.meta}</span>
-                      <p>{template.focus}</p>
-                    </div>
-                  </button>
-                ))}
-                {uploadedTemplates.map((template) => (
-                  <button className="cv-template-card cv-template-card--uploaded" key={template.id} type="button">
-                    <div className="filetype ft-doc">DOC</div>
-                    <div>
-                      <b>{template.name}</b>
-                      <span>{template.size} KB · uppladdad</span>
-                      <p>Redo att mappas mot HelloLillys CV-sektioner.</p>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="intake__feed">
-              <div className="msg msg--bot">
-                <Avatar name="Sara Lind" size="sm" tone="av-c3" />
-                <div>
-                  <div className="msg__bubble">Hej {CASE_PROFILE.person.split(' ')[0]}! Vi tar det lugnt och bygger ditt CV tillsammans. Jag har redan hämtat intake, aktivitet och matchanalysen - du behöver inte börja om.</div>
-                </div>
-              </div>
-
-              <div className="intake__reassure"><Icon name="check" size={16} sw={2.6} />Jag hittade praktik, truck A1 och dagens Application Check. Nu fyller vi bara luckorna.</div>
-
-              <div className="msg msg--bot">
-                <Avatar name="Sara Lind" size="sm" tone="av-c3" />
-                  <div className="msg__bubble">Pipeline-fråga: <b>har du använt handdator, scanning eller inleveranssystem?</b> Det kan täcka WMS-luckan ärligt.</div>
-              </div>
-
-              <div className="msg msg--me">
-                <div className="msg__bubble">Ja, jag scannade paket och registrerade inleveranser på praktiken.</div>
-              </div>
-
-              <div className="msg msg--bot">
-                <Avatar name="Sara Lind" size="sm" tone="av-c3" />
-                <div>
-                  <div className="msg__bubble">Perfekt. Då skriver vi det som handdator och inleverans, inte som SAP-expertis. Det blir sant och användbart.</div>
-                  <div className="msg__hint">Fråga 4 av 7 · du kan alltid gå tillbaka</div>
-                </div>
-              </div>
-            </div>
-
-            <div className="cv-section-panel">
-              <div className="between" style={{ marginBottom:10 }}>
-                <h3>CV-sektioner</h3>
-                <span className="cap">Allt innehåll är redigerbart</span>
-              </div>
-              <div className="cv-section-grid">
-                {CV_SECTIONS.map((section) => (
-                  <div className="cv-section-card" key={section.title}>
-                    <div className="cv-section-card__icon"><Icon name="doc" size={16} /></div>
-                    <div>
-                      <b>{section.title}</b>
-                      <p>{section.body}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="intake__composer">
-              <div className="intake__inputrow">
-                <input placeholder="Skriv ditt svar…" aria-label="Ditt svar" />
-                <button className="intake__mic" aria-label="Spela in röst"><Icon name="mic" size={20} /></button>
-                <button className="intake__send" aria-label="Skicka"><Icon name="send" size={19} /></button>
-              </div>
-              <div className="intake__quick">
-                <Chip icon="voice">Jag scannade paket</Chip>
-                <Chip>Jag använde handdator</Chip>
-                <Chip>Fråga Sara</Chip>
-              </div>
-            </div>
-          </section>
-
-          {/* live preview — the real cvDraft for the active case */}
-          <section className="cvframe">
-            <div style={{ width:'100%', maxWidth:560 }}>
-              <div className="between" style={{ marginBottom:14 }}>
-                {caseData && caseData.cvDraft.status === 'ready'
-                  ? <span className="tag tag--green" style={{ gap:6 }}><Icon name="sparkle" size={14} />Byggt från din matchanalys</span>
-                  : <span className="tag tag--ghost" style={{ gap:6 }}><Icon name="doc" size={14} />Väntar på analys</span>}
-                <span className="cap" style={{ fontWeight:700 }}>
-                  {caseData ? `Förhandsvisning · ${caseData.meta.company}` : 'Förhandsvisning'}
-                </span>
-              </div>
-              <CVDraftPaper caseData={caseData} running={running} actions={actions} />
-            </div>
-          </section>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ===================== ACTIVITY TRACKER ===================== */
-function WeekRing({ pct = 72 }) {
-  const r = 34, c = 2 * Math.PI * r, off = c * (1 - pct/100);
-  return (
-    <svg className="ring" width="86" height="86" viewBox="0 0 86 86">
-      <circle className="bg" cx="43" cy="43" r={r} />
-      <circle className="fg" cx="43" cy="43" r={r} strokeDasharray={c} strokeDashoffset={off} />
-    </svg>
   );
 }
 
