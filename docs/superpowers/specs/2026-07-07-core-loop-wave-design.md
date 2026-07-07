@@ -14,15 +14,17 @@ They remain **three separate screens / three menu points** (`#match`, `#cv`, `#l
 - Real PDF/print export — the client-side HTML-blob download stays as-is, noted as known. (§7)
 - Multi-application letter list (A8).
 - CV "improve" wording tools + multi-version-per-role switcher — stay disabled ("Kommer"). (§7)
+- **CV intake datafact-mint write + datafact exposure-surface read** — deferred as ONE unit ("CV intake → datafact-mint + exposure surface"), **logged as a named follow-up** so "Kommer" is honestly tracked, not permanent. This wave: the CV intake rail renders as a visible disabled "Kommer" strip (like the improve strip), and citation chips degrade to the honest generic form (no datafact-type resolution).
 - `ActivityTracker` (`#activity`) restyle — left untouched this wave.
 - A frontend DOM test harness (vitest+jsdom) — still the standing follow-up; not built here.
 
 ## Approved decisions
 
 1. **Full durable decision-unification** of the Matchanalys queue (see §Seam), with **queue-only** pre-authorized as the fallback *iff* the job→case durability surfaces more than "a small route + a field" during detailed planning.
-2. **Real `PartGate` component** + a **`caseData → parts` selector** (the design screens read a flat `parts.X`; the real `useCase` returns `{status,data}` envelopes).
+2. **Real `PartGate`/`PartState`/`PartSkeleton` module** + a **`caseData → parts` selector** (the design screens read a flat `parts.X`; the real `useCase` returns `{status,data}` envelopes).
 3. **`coverLetterDraft` case part** for save-and-resume, with per-claim keep/soften/cut **decisions keyed by claim text** (not index), so a regeneration can't silently mis-map them.
-4. All §7 resolutions below.
+4. **Two frontend adapters** for what the design assumes but the real case lacks: `profile.js`+`caseMetaView` (person/role identity) and the datafact resolver (degrades honestly; full resolution deferred with the intake follow-up). See §Identity + datafact resolution.
+5. All §7 resolutions below.
 
 ## Architecture
 
@@ -34,9 +36,20 @@ They remain **three separate screens / three menu points** (`#match`, `#cv`, `#l
 - **`src/lib/i18n.js`** — port of `design/design/ll-i18n.js`: `tr({sv,en})`, `useLang()`, `setLang()`, `getLang()`, plus a `LangToggle` component. Default `sv`; `en` additive. Generated artifacts (CV/letter) are English-only for MVP — surfaced honestly ("svenska kommer"), not hidden.
 - **`casePartsView(caseData)`** (small helper, in `src/hooks/useCase.js` or a sibling) — maps the real envelope shape (`caseData.fit.status/.data`, …) to the flat `parts` shape the design screens read (`parts.fit`, `parts.meta`, `parts._pool`, …), so the ported screens stay close to their design source and are easy to diff against `design/design/`.
 - **CSS merge** — `design/design/ll-apply.css` (Matchanalys) + `ll-build.css` (CV+letter, incl. `.flag` honesty styles) fold into `src/styles/hello-lily.css`, token-only. **Verify the `.improve` class-name collision** against the existing home/expanded CSS before merging (§7).
+- **Honest-state atoms** — `PartGate` ships alongside the two other design-bridge atoms the ported screens reference directly: **`PartState`** (icon + title + body block used for `failed`/`absent`/empty CTAs) and **`PartSkeleton`** (the `pending` bars), plus a `STATUS` constant (`{PENDING,READY,FAILED,ABSENT}`) so ported `STATUS.READY`-style reads compile. All three are generic UI (not fixtures) — port them as a real module (`partGate.jsx`).
+
+### Identity + datafact resolution (two adapters the design assumes, the real case doesn't provide)
+The design screens read fields the real case **doesn't carry**. Both are resolved on the **frontend** this wave (no new backend); neither fabricates content.
+
+- **Person / meta shape.** The design reads `meta.person` (name/headline/contact), `meta.jobTitle`, `meta.location`, `meta.employment`, `meta.logo`, `meta.url`. The real case `meta` only has `company`, `role`, `owner:'self'`, `status`, … So:
+  - A single **`src/lib/profile.js`** is the source of the person identity — Daniel's real name/headline/contact. This is the user's **own identity** per §6 persona, **not fabricated content**; single-user MVP (`owner:'self'`). When multi-user lands it moves to a per-user profile — **logged follow-up**.
+  - **`caseMetaView(caseData, job?)`** maps real→design meta: `jobTitle ← meta.role`, `company ← meta.company`, `logo ← company initials`, and `location`/`url` ← the **linked job record** when present. Unknown fields (e.g. `employment`) are **omitted, never fabricated** (honesty: show only what we have).
+- **Datafact citations.** `CitationChip`/`CvItem` resolve a datafact id → its `type` for the "Från ditt CV · &lt;type&gt;" chip; the design's principle is "an unresolvable citation is the honesty hook". But the real **`GET /api/case/:id` does not expose the datafact pool** (confirmed: `listDatafacts()` is boot/health-check only). So this wave:
+  - `casePartsView` exposes `parts._pool` if the case ever carries it; **today it is `[]`**, so `resolveDatafact(id)` returns null and the chip **degrades to the honest generic form the design already ships** (`(df && df.type) || 'CV'` → "Från ditt CV") — a truthful attribution, just without the specific type. It does **not** raise a false "unresolvable" alarm on every row (that signal only means something once the pool is actually exposed).
+  - Full type-resolved chips + the unresolvable-as-signal behaviour light up when the **datafact exposure surface** (a small read on the case GET) lands — **deferred and logged together with the intake mint engine** (§Non-goals), because the user scoped "datafact-mint + exposure surface" as one follow-up unit.
 
 ### Data-path preservation (the "restyle, don't rewire" rule)
-Every screen keeps its real path through `useCase`/`caseApi`. The design's fixture bridge (`ll-case.jsx`, its own `useCase`/`PartGate`/`resolveDatafact`) is **replaced** by the real `src/hooks/useCase.js` + the new `PartGate` + the real datafact pool from the case. No screen reads `strategyData.js` fixtures or the old localStorage decision path afterward.
+Every screen keeps its real path through `useCase`/`caseApi`. The design's fixture bridge (`ll-case.jsx`, its own `useCase`/`PartGate`/`resolveDatafact`) is **replaced** by the real `src/hooks/useCase.js` + the new `PartGate` + the datafact resolver (§Identity + datafact resolution — pool not exposed this wave; chips degrade honestly). No screen reads `strategyData.js` fixtures or the old localStorage decision path afterward.
 
 ## Screen 1 — Matchanalys (`#match`)
 
@@ -99,6 +112,8 @@ Every screen keeps its real path through `useCase`/`caseApi`. The design's fixtu
 - **coverLetter.data:** `{ language, paragraphs:[string], unsupported_by_cv:[string] }`.
 - **coverLetterDraft.data (NEW):** `{ language, paragraphs:[string], decisions:{[claimText]:'keep'|'soften'|'cut'}, editedAt }`.
 - **job record:** `{ id, externalId, source, title, company, location, url, snippet, decision:'new'|'approved'|'rejected', signal, matchedRules[], caseId? (NEW) }`.
+- **meta (real):** `{ id, company, role, owner, status, round, interviewDate, … }` — NO `person`/`jobTitle`/`location`/`employment`/`logo`. The **design-shaped** meta the screens read comes from `caseMetaView(caseData, job)` + `src/lib/profile.js` (frontend-only; `jobTitle←role`, `person←profile`, `location/url←linked job`, `employment` omitted if unknown).
+- **_pool:** NOT exposed by `GET /api/case/:id` this wave → `parts._pool = []` → citation chips degrade to the generic "Från ditt CV" form. Full resolution rides the deferred datafact exposure-surface follow-up.
 
 ## Testing
 
@@ -119,5 +134,7 @@ Every screen keeps its real path through `useCase`/`caseApi`. The design's fixtu
 2. Ärlighetskoll panel surfaces every `unsupported_by_cv` claim with keep/soften/cut.
 3. Cover-letter save-and-resume **persists in the durable store** across a restart, keyed to the case — verified, not in-session only.
 4. Matchanalys queue driven by durable approved jobs; job→case link durable (or the queue-only fallback, reported).
-5. Full suite green incl. new tests; fresh-clone holds.
-6. No merge — review-ready.
+5. Person identity + role context render from `profile.js` + `caseMetaView` — **no undefined fields, no fabricated ones** (unknown fields omitted); citation chips render honestly (generic form this wave).
+6. Full suite green incl. new tests; fresh-clone holds.
+7. No merge — review-ready.
+8. The deferred **"CV intake → datafact-mint + exposure surface"** follow-up is recorded as a named item in the build report.

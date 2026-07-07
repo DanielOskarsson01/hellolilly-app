@@ -314,14 +314,20 @@ git commit -m "feat(letter): claim-keyed draft decision logic (remap/seed/unreso
 
 ---
 
-## Task 5: `casePartsView` — envelope→parts selector (pure)
+## Task 5: `casePartsView` selector + `caseMetaView`/`profile` identity adapter (pure)
 
 **Files:**
 - Create: `src/hooks/casePartsView.js`
-- Test: `src/hooks/casePartsView.test.mjs`
+- Create: `src/lib/profile.js` (single person-identity source — Daniel's real name/headline/contact; the user's OWN identity per §6 persona, not fabricated content; `owner:'self'`)
+- Create: `src/hooks/caseMetaView.js` (real-meta → design-meta adapter)
+- Test: `src/hooks/casePartsView.test.mjs`, `src/hooks/caseMetaView.test.mjs`
+
+**Why this task carries the identity adapter:** the design screens read `meta.person`/`meta.jobTitle`/`meta.location`/`meta.employment`/`meta.logo`, but the real case `meta` only has `company`/`role`/`owner`/… (verified). Without an adapter the CV paper header, letter signature, and ctxbar render `undefined`. This is the **`meta.person` identity source** the spec §Identity + datafact resolution requires — resolved frontend-only, nothing fabricated.
 
 **Interfaces:**
-- Produces: `casePartsView(caseData) → { meta, _pool, statusOf(part), dataOf(part), fit, gaps, cvDraft, coverLetter, coverLetterDraft, decodedRole }` where `fit`/`gaps`/etc. are the `.data` payloads (or `null` if not ready), and `statusOf(part)` returns the envelope status. Lets a ported design screen read `parts.fit` (data) and gate on `parts.statusOf('fit')` without touching envelope internals.
+- Produces: `casePartsView(caseData) → { meta, _pool, statusOf(part), dataOf(part), fit, gaps, cvDraft, coverLetter, coverLetterDraft, decodedRole }` where `fit`/`gaps`/etc. are the `.data` payloads (or `null` if not ready), and `statusOf(part)` returns the envelope status. Lets a ported design screen read `parts.fit` (data) and gate on `parts.statusOf('fit')` without touching envelope internals. **`_pool` is `[]` this wave** (the case GET does not expose datafacts) — so `resolveDatafact` degrades to the honest generic chip; do NOT treat empty-pool as "all citations unresolvable" alarms.
+- Produces: `caseMetaView(caseData, job?) → { company, jobTitle, location, employment?, logo, url, person, companyNote? }` — `jobTitle←meta.role`, `company←meta.company`, `logo←company initials`, `location`/`url`←the linked `job` record when passed, `person←profile`. **Unknown fields (e.g. `employment`) are omitted, never invented.**
+- Produces: `profile` (default export of `src/lib/profile.js`) — `{ name, headline, contact }` for the current single user.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -384,16 +390,44 @@ export function casePartsView(caseData) {
 }
 ```
 
+- [ ] **Step 3b: Implement `profile.js` + `caseMetaView.js` (identity adapter) — test-first**
+
+Write the failing test (`src/hooks/caseMetaView.test.mjs`): `jobTitle←role`, `company←company`, `person←profile`, `location←job.location` when a job is passed, and **`employment` absent when unknown** (asserts the field is `undefined`, not a fabricated string). Then implement:
+
+```js
+// src/lib/profile.js — the single person-identity source (single-user MVP; the user's own identity, not content)
+const profile = { name: 'Daniel Oskarsson', headline: 'iGaming growth and marketing leader', contact: 'Stockholm · daniel.oskarsson@…' };
+export default profile;
+
+// src/hooks/caseMetaView.js
+import profile from '../lib/profile.js';
+export function caseMetaView(caseData, job) {
+  const meta = (caseData && caseData.meta) || {};
+  const company = meta.company || (job && job.company) || null;
+  return {
+    company,
+    jobTitle: meta.role || (job && job.title) || null,
+    logo: company ? company.slice(0, 2).toUpperCase() : null,
+    location: (job && job.location) || null, // omitted → null when no linked job
+    url: (job && job.url) || null,
+    person: profile,
+    // employment intentionally NOT set — unknown fields are omitted, never fabricated
+  };
+}
+```
+
+*(Contact string: use Daniel's real contact from `docs/MASTER_PRODUCT_DESIGN_SPEC.md` / `candidate_preferences.json` when wiring — the placeholder above is illustrative.)*
+
 - [ ] **Step 4: Run to verify it passes**
 
-Run: `node --test src/hooks/casePartsView.test.mjs`
-Expected: PASS (3).
+Run: `node --test src/hooks/casePartsView.test.mjs src/hooks/caseMetaView.test.mjs`
+Expected: PASS.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/hooks/casePartsView.js src/hooks/casePartsView.test.mjs
-git commit -m "feat(case): casePartsView selector — envelope→parts for the ported screens"
+git add src/hooks/casePartsView.js src/hooks/casePartsView.test.mjs src/lib/profile.js src/hooks/caseMetaView.js src/hooks/caseMetaView.test.mjs
+git commit -m "feat(case): casePartsView selector + caseMetaView/profile identity adapter"
 ```
 
 ---
@@ -521,7 +555,7 @@ git commit -m "feat(api): saveCoverLetterDraft + linkJobCase client wrappers + u
 
 ---
 
-## Task 8: `PartGate` component
+## Task 8: `PartGate` + `PartState` + `PartSkeleton` + `STATUS` (honest-state module)
 
 **Files:**
 - Create: `src/components/partGate.jsx`
@@ -531,6 +565,7 @@ git commit -m "feat(api): saveCoverLetterDraft + linkJobCase client wrappers + u
 - Produces:
   - `pickSlot(status, { busy }) → 'pending'|'failed'|'absent'|'ready'` (pure).
   - `<PartGate status={...} busy={bool} pending={jsx} failed={jsx} absent={jsx}>{ready children}</PartGate>`.
+  - `PartState` (icon + title + body block, ported from `design/design/ll-case.jsx` — used by the screens for `failed`/`absent`/empty CTAs, e.g. `<PartState tone="fail" …>`), `PartSkeleton` (the `pending` bars, `<PartSkeleton lines={n}/>`), and a `STATUS = {PENDING:'pending',READY:'ready',FAILED:'failed',ABSENT:'absent'}` constant. These three are generic UI in the design bridge (not fixtures); the ported screens reference them directly, so `partGate.jsx` **must export them** (or the ports won't compile).
 
 - [ ] **Step 1: Write the failing test** (pure slot logic)
 
@@ -577,6 +612,8 @@ export function PartGate({ status, busy, pending, failed, absent, children }) {
   return absent || null;
 }
 ```
+
+Also in `partGate.jsx`: port `PartState` and `PartSkeleton` from `design/design/ll-case.jsx` (keep their markup/classes) and export `STATUS`. Export all four (`PartGate`, `PartState`, `PartSkeleton`, `STATUS`) so the ported screens' `<PartState>`/`<PartSkeleton>`/`STATUS.*` references resolve.
 
 - [ ] **Step 4: Run to verify it passes** — PASS (1).
 
@@ -640,9 +677,9 @@ git commit -m "feat(routes): match/cv/letter become template screens (own nav + 
 - Uses: `useCase`, `casePartsView`, `PartGate`, `i18n`, `letterDraft.mjs`, `caseApi.saveCoverLetterDraft`
 
 **Interfaces:**
-- Consumes: `parts.coverLetter`, `parts.coverLetterDraft`, `parts.fit`, `parts.decodedRole`, `parts.meta`; `seedEditor`, `remapDecisions`, `unresolvedCount`; `actions.generate`, `actions.saveLetterDraft`.
+- Consumes: `parts.coverLetter`, `parts.coverLetterDraft`, `parts.fit`, `parts.decodedRole`, `caseMetaView(caseData)`; `seedEditor`, `remapDecisions`, `unresolvedCount`; `actions.generate`, `actions.saveLetterDraft`.
 
-- [ ] **Step 1: Port the markup** — copy `screens-letter2.jsx` into `coverLetter.jsx`, swapping the design's fixture bridge for the real one: `import { useActiveCase } from '../hooks/useCase.js'`, `casePartsView`, `PartGate`, `tr/useLang/LangToggle` from `src/lib/i18n.js`, `LetterFlag`/`Para`/`ParaInsert` kept. Replace design `parts.X` reads with `const parts = casePartsView(caseData)`.
+- [ ] **Step 1: Port the markup** — copy `screens-letter2.jsx` into `coverLetter.jsx`, swapping the design's fixture bridge for the real one: `import { useActiveCase } from '../hooks/useCase.js'`, `casePartsView`, `caseMetaView`, `PartGate`, `tr/useLang/LangToggle` from `src/lib/i18n.js`, `LetterFlag`/`Para`/`ParaInsert` kept. Replace design `parts.X` reads with `const parts = casePartsView(caseData)`; the letter header/ctxbar (`company`, `jobTitle`) and the **signature (`person.name`) + download contact** come from `caseMetaView` (not the missing `meta.person`).
 - [ ] **Step 2: Wire the part gate** — wrap the letter body in `<PartGate status={parts.statusOf('coverLetter')} busy={running.generate} absent={<GenerateCTA onClick={actions.generate} label={tr({sv:'Skriv brev',en:'Write letter'})}/>} failed={<RetryCTA .../>}>`.
 - [ ] **Step 3: Resume-on-open** — seed editor state from the durable draft or the letter:
 
@@ -681,11 +718,11 @@ git commit -m "feat(letter): Personligt brev on templates — coverLetter bound 
 - Modify: `src/screens/cvActivity.jsx` (replace the `CVBuilder` component with the port of `design/design/screens-cv2.jsx`; **keep `ActivityTracker` unchanged**)
 
 **Interfaces:**
-- Consumes: `parts.cvDraft`, `parts._pool`, `parts.meta`; `PartGate`; `actions.generate`.
+- Consumes: `parts.cvDraft`, `parts._pool`, `caseMetaView(caseData)`; `PartGate`; `actions.generate`.
 
-- [ ] **Step 1: Port** `screens-cv2.jsx` `CVBuilderDS` into `cvActivity.jsx`'s `CVBuilder`, swapping the fixture bridge for `useActiveCase` + `casePartsView` + `PartGate` + i18n. `resolveDatafact(id)` reads from `parts._pool`.
+- [ ] **Step 1: Port** `screens-cv2.jsx` `CVBuilderDS` into `cvActivity.jsx`'s `CVBuilder`, swapping the fixture bridge for `useActiveCase` + `casePartsView` + `PartGate` + i18n. Person/role header from `caseMetaView` (`meta.person.name`, `jobTitle`, `company`). `resolveDatafact(id)` reads `parts._pool` — **empty this wave**, so `CvItem` chips render the honest generic "Från din intake"/"Från ditt CV" form (design's built-in fallback); do not fake a type. The **intake rail renders as a visible disabled "Kommer" strip** (living-CV-now / intake-deferred decision) — no `addFact`, no datafact-mint call.
 - [ ] **Step 2: Gate** on `cvDraft` — `<PartGate status={parts.statusOf('cvDraft')} busy={running.generate} absent={<GenerateCTA .../>}>` → `CvLive`.
-- [ ] **Step 3: Honest surfaces** — only sections with ≥1 resolvable item render; every `CvItem` shows its datafact chip; keep the "Lilly väljer, hittar aldrig på" guarantee; Improve-strip + version-switcher stay disabled ("Kommer"). No CV text authored in the UI.
+- [ ] **Step 3: Honest surfaces** — only sections with ≥1 renderable item render; every `CvItem` shows its (possibly generic) datafact chip; keep the "Lilly väljer, hittar aldrig på" guarantee; Improve-strip + version-switcher + intake rail stay disabled ("Kommer"). No CV text authored in the UI.
 - [ ] **Step 4: Manual verify** — `#cv` renders the living CV from a ready `cvDraft`; absent-state generate CTA otherwise. `ActivityTracker` (`#activity`) still works unchanged.
 - [ ] **Step 5: Diff-fidelity check** vs `screens-cv2.jsx`.
 - [ ] **Step 6: Commit**
@@ -703,9 +740,9 @@ git commit -m "feat(cv): CV-byggaren on templates — cvDraft bound, traceable l
 - Modify: `src/screens/match.jsx` (replace with the port of `design/design/screens-match2.jsx`; queue wiring lands in Task 15)
 
 **Interfaces:**
-- Consumes: `parts.fit`, `parts.gaps`, `parts.decodedRole`, `parts.meta`, `parts._pool`; `PartGate`; `actions.analyze`, `actions.answerGap`.
+- Consumes: `parts.fit`, `parts.gaps`, `parts.decodedRole`, `caseMetaView(caseData, job)`, `parts._pool`; `PartGate`; `actions.analyze`, `actions.answerGap`.
 
-- [ ] **Step 1: Port** `screens-match2.jsx` into `match.jsx`, swapping the fixture bridge for `useCase`/`casePartsView`/`PartGate`/i18n. Reuse the analysis rendering already proven in `helpfulLayover.jsx` `MatchAnalysisContent` (verdict, "Det du har" with `CitationChip`, "Luckor att fylla" with the fill-gap loop). `resolveDatafact` reads `parts._pool`.
+- [ ] **Step 1: Port** `screens-match2.jsx` into `match.jsx`, swapping the fixture bridge for `useCase`/`casePartsView`/`PartGate`/i18n. Verdict header (`company`/`jobTitle`/`location`/`logo`) from `caseMetaView(caseData, job)` (the linked approved-job supplies `location`/`url`). Reuse the analysis rendering already proven in `helpfulLayover.jsx` `MatchAnalysisContent` (verdict, "Det du har" with `CitationChip`, "Luckor att fylla" with the fill-gap loop). `resolveDatafact` reads `parts._pool` — empty this wave → `CitationChip` degrades to the honest generic form (no false "unresolvable" alarm on every row).
 - [ ] **Step 2: Gate** the analysis on `parts.statusOf('fit')`; the fill-gap loop uses `actions.answerGap(gap.id,{answer,requirementId})` with the three honest outcomes (accepted/stays_gap/save_failed) exactly as `GapFillForm` does today.
 - [ ] **Step 3: Served score** — match % = `parts.fit.score` (never a fixture). Repoint the dead `#triage` link → `#jobbsok`.
 - [ ] **Step 4: Manual verify** — for a case with `fit`/`gaps` ready, `#match` shows the verdict + requirements + working fill-gap loop; pending/failed/absent states honest.
@@ -748,7 +785,11 @@ git commit -m "feat(layover): letter + cv review content on real parts (reuse Le
 - [ ] **Step 2: Queue from durable approved jobs** — in `match.jsx`, replace `getAcceptedJobs()` with `listJobs().filter(j => j.decision === 'approved')`, refetched on `ll:jobs:changed`. An approved job with no `caseId`/`fit` shows an **"Analysera"** CTA (no score); analyzed jobs show `fit.score` + open the analysis.
 - [ ] **Step 3: Durable job→case link** — "Analysera" flow: if the job has no `caseId`, `createCase({company:job.company, role:job.title, sourceInput:job.snippet+job.url})` → `linkJobCase(job.id, caseId)` (durable) → `setActiveCaseId(caseId)` → open the analysis. Subsequent opens read `job.caseId`.
 - [ ] **Step 4: Verify durability** — approve a job in `#jobbsok`, open `#match`, click Analysera, then **restart the server without wiping** → the job still shows as approved AND still linked to its case (caseId persisted on the durable job record).
-- [ ] **Step 5: Fallback check (pre-authorized)** — if Steps 3-4 need materially more than this one route + field (case dedup, display-field backfill, analyze orchestration), STOP and switch to the **queue-only** path: queue from durable approved jobs (Step 2 stays), but keep the `caseId` link on the existing `setJobCase`/active-case mechanism, flagged as a follow-up. Report which path shipped.
+- [ ] **Step 5: Fallback trigger (pre-authorized — CONCRETE, not judgment).** Full unification is defined as EXACTLY: **(1)** one new field on the job record (`caseId`) + **(2)** the one `POST /api/job/:id/case` route (T3) + **(3)** relocating the queue read in `match.jsx`. **Complete full unification** unless closing the seam requires ANY ONE of these — then STOP, switch to **queue-only**, and report which fired:
+  - a **contract/schema change beyond that single `caseId` field** (a new part, a new collection, or a changed job-record contract), OR
+  - a change to **any wired screen besides `match.jsx`** (home, `jobResultsList`, the layover, `jobSearch`, …), OR
+  - **migrating existing `acceptedJobs` data** (a backfill/migration of the old localStorage list into the durable store).
+  Queue-only = Step 2 stays (durable approved-jobs queue), but the `caseId` link stays on the existing `setJobCase`/active-case mechanism, flagged as a follow-up. Absent any of the three triggers, full unification is the required outcome. Record which path shipped in the build report.
 - [ ] **Step 6: Commit**
 
 ```bash
@@ -761,28 +802,44 @@ git commit -m "feat(match): decision-unification seam — durable approved-jobs 
 ## Task 16: Integration verification + build report
 
 **Files:**
+- Create: `docs/verification/2026-07-07-letter-save-resume-restart.sh` + `.md` (durability demo a)
+- Create: `docs/verification/2026-07-07-seam-durability-restart.sh` + `.md` (durability demo b)
 - Create: `docs/verification/2026-07-07-core-loop-wave-build-report.md`
 
 - [ ] **Step 1: Full suite** — `npm test` green (backend routes + all `src/**/*.test.mjs` logic). Record counts.
 - [ ] **Step 2: Fresh-clone condition** — clone the branch to `/tmp`, `npm ci`, `npm test` green; portability scan (no sibling-repo/worktree/absolute paths in `src/`+`server/`).
-- [ ] **Step 3: Manual E2E** (the honest states + the two hard requirements):
-  - Each screen renders its real part; pending/ready/failed/absent all honest via `PartGate`.
-  - Ärlighetskoll surfaces every `unsupported_by_cv` claim with keep/soften/cut.
-  - **Save-and-resume restart-survival:** edit a letter, resolve flags, Spara utkast, `Ctrl+C` + `npm run dev` (NO wipe), reopen `#letter` → resumes from the durable draft.
-  - **Seam:** approve in `#jobbsok` → appears in `#match` queue → Analysera links a durable caseId (survives restart).
-- [ ] **Step 4: Write the build report** — the two new routes, the shared foundation, the §7 resolutions as resolved, the seam outcome (full vs queue-only fallback), save-and-resume mechanism, the design→real adaptations, and the known DOM-test gap.
+- [ ] **Step 3: Script + COMMIT two durability demos to `docs/verification/` — these ARE the primary durability evidence (NOT "verify manually").** Each is a runnable script driving the served API (curl) across a real server restart, plus a committed transcript of its PASS output.
+  - **(a) `docs/verification/2026-07-07-letter-save-resume-restart.{sh,md}`:** create a case → seed/`generate` a `coverLetter` → `POST /api/case/:id/letter-draft` with edited paragraphs + flag decisions → **`kill` the server, `npm run dev` (NO store wipe)** → `GET /api/case/:id` → assert `coverLetterDraft.data.paragraphs` AND `.decisions` are byte-intact (draft + flag decisions resume). Commit the `.sh` + the captured transcript showing `durable:true` and the intact draft.
+  - **(b) `docs/verification/2026-07-07-seam-durability-restart.{sh,md}`:** `POST /api/job/:id/decide {decision:'approved'}` → `GET /api/jobs` shows it approved (→ enters the `#match` queue) → `POST /api/job/:id/case {caseId}` → **`kill` + restart (NO wipe)** → `GET /api/jobs` → assert the job is still `approved` AND `caseId` still linked (job→case durable). Commit the `.sh` + the captured PASS transcript.
+  - **(c) Manual UI smoke (SECONDARY, supplements the scripts):** each screen renders its real part with honest pending/ready/failed/absent via `PartGate`; Ärlighetskoll surfaces every `unsupported_by_cv` claim with keep/soften/cut; the `#letter` editor visibly resumes from the durable draft after the (a) restart. Not the evidence of record — the committed scripts in (a)/(b) are.
+- [ ] **Step 4: Write the build report** — the two new routes, the shared foundation, the seam outcome (full vs queue-only fallback + which T15-Step-5 trigger fired, if any), save-and-resume mechanism, the design→real adaptations (incl. the `caseMetaView`/`profile` identity adapter + the honest citation-chip degradation), the known DOM-test gap, and links to the two committed durability demos (Step 3a/3b).
+  - **§7 confirmation table (required — each item confirmed LANDED, not just "as resolved"), one row per resolution with its task + a one-line proof:** `#triage`→`#jobbsok` repoint (T13) · served `fit.score` not fixture (T13) · `.improve` collision handled/namespaced (T9) · i18n `tr/useLang` ported (T6/T9) · keep/soften/cut **persisted** via `coverLetterDraft` (T11) · inline-"Ändra" left local, logged (T13) · concern-chooser deferred (T11) · PDF-as-HTML-blob noted known (T11) · CV improve/version/**intake** disabled "Kommer" (T12) · multi-application deferred (T11) · generated artifacts English-only surfaced honestly (T11/T12).
+  - **Logged follow-ups (§Logged follow-ups)** — record the named **"CV intake → datafact-mint + datafact exposure surface"** item explicitly (its own unit) so "Kommer" is tracked, not permanent; plus the other §Logged-follow-ups items.
 - [ ] **Step 5: Commit + STOP** — do NOT merge. Ready for independent review (same as Jobbsök).
 
 ```bash
-git add docs/verification/2026-07-07-core-loop-wave-build-report.md
-git commit -m "docs(verification): core-loop wave build report — review-ready, no merge"
+git add docs/verification/2026-07-07-letter-save-resume-restart.sh docs/verification/2026-07-07-letter-save-resume-restart.md docs/verification/2026-07-07-seam-durability-restart.sh docs/verification/2026-07-07-seam-durability-restart.md docs/verification/2026-07-07-core-loop-wave-build-report.md
+git commit -m "docs(verification): core-loop wave build report + two durability demos — review-ready, no merge"
 ```
 
 ---
 
+## Logged follow-ups (deferred this wave — honestly tracked, not permanent)
+
+These are OUT of scope for this wave but recorded here + in the build report so nothing "Kommer" quietly becomes forever:
+
+1. **CV intake → datafact-mint + datafact exposure surface** (a new backend engine, its own unit). Two coupled pieces: (a) a **write** path (`addFact`/mint an intake answer into the datafact pool, gate-checked before minting) so the CV intake rail becomes functional; (b) a **read** exposure surface (referenced datafacts on `GET /api/case/:id`) so citation chips resolve the datafact **type** and the "unresolvable citation = honesty hook" fires as a real signal. Until then: intake rail disabled ("Kommer"); chips show the honest generic form.
+2. **Multi-user profile** — `src/lib/profile.js` is single-user (`owner:'self'`) this wave; moves to a per-user profile source when multi-user lands.
+3. **Inline "Ändra" evidence write-back** (Matchanalys) — edits to a matched requirement's evidence stay local-only; decide whether an edited evidence line should persist to a part.
+4. **Real PDF/print export** for the letter (currently a client-side HTML-blob download).
+5. **Letter "concern-to-address" chooser** (strengths-vs-rewards ships instead).
+6. **Multi-application letter list** (A8) and per-role CV versions.
+7. **Frontend DOM test harness** (vitest+jsdom) — the standing follow-up; logic is unit-tested, layout/cross-surface is manual this wave.
+
 ## Self-review notes (plan vs spec)
 
-- **Spec coverage:** three screens (T11-13), shared foundation PartGate/i18n/selector (T5,6,8), coverLetterDraft part+route+save/resume (T1,2,4,7,11), job→case route+seam (T3,15), CSS merge + `.improve` (T9), template routes (T10), layover (T14), §7 resolutions (T13 triage-link/score; T9 `.improve`/i18n; T11 keep-soften-cut persistence), fresh-clone + verification (T16). ✅
-- **Deferred (spec non-goals):** concern-chooser, real PDF, multi-application, CV improve/version tools, ActivityTracker restyle, DOM harness — none given tasks (correct).
+- **Spec coverage:** three screens (T11-13), shared foundation PartGate/**PartState/PartSkeleton/STATUS**/i18n/selector (T5,6,8), **identity adapter `caseMetaView`+`profile`** (T5, consumed T11-13), **datafact resolver + honest empty-pool degradation** (T5,12,13), coverLetterDraft part+route+save/resume (T1,2,4,7,11), job→case route+seam (T3,15), CSS merge + `.improve` (T9), template routes (T10), layover (T14), §7 resolutions (T13 triage-link/score; T9 `.improve`/i18n; T11 keep-soften-cut persistence), logged follow-ups (§Logged follow-ups + T16), fresh-clone + verification (T16). ✅
+- **The four "resolve in the plan" asks (from review):** PartGate/PartState/STATUS module → T8; `caseData→parts` selector → T5; datafact-citation resolver → T5 (+ honest degradation, exposure surface logged follow-up); `meta.person` identity source → T5 `caseMetaView`/`profile`. All landed.
+- **Deferred (spec non-goals):** CV intake datafact-mint + exposure surface, concern-chooser, real PDF, multi-application, CV improve/version tools, inline-Ändra write-back, ActivityTracker restyle, DOM harness — none given tasks (correct); all in §Logged follow-ups.
 - **Type consistency:** `casePartsView` returns `.data` payloads + `statusOf`/`dataOf` (used by T11-14); `seedEditor`/`remapDecisions`/`unresolvedCount` (T4) consumed in T11; `saveCoverLetterDraft`/`linkJobCase` (T7) consumed in T11/T15; `pickSlot`/`PartGate` (T8) consumed in T11-14. Names consistent across tasks.
 - **Fallback:** the pre-authorized queue-only path is explicit at T15 Step 5.
