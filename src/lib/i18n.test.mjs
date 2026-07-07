@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { trFor } from './i18n.js'; // pure, lang-injected variant for testing
+import { trFor } from './i18n.mjs'; // pure, lang-injected variant for testing
 
 test('trFor resolves active language, falls back to sv then empty', () => {
   assert.equal(trFor('en', { sv: 'Hej', en: 'Hi' }), 'Hi');

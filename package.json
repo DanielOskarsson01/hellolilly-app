@@ -1,5 +1,4 @@
 {
-  "type": "module",
   "scripts": {
     "dev": "node --env-file-if-exists=.env server/dev-server.cjs",
     "dev:vite": "vite",
