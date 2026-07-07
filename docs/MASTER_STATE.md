@@ -1,10 +1,21 @@
 # HelloLilly - MASTER STATE (the reconciliation)
 
-**Date:** 2026-07-02
+**Date:** 2026-07-02 · **status-refreshed:** 2026-07-07 (main now @ `4197c28`)
 **What this is:** The single source of truth reconciling three layers: what is BUILT (from `docs/PROJECT_INVENTORY.md`, the factual code inventory of main @ `16a0451`), what is PLANNED (the strategy paper, DEVELOPMENT_PLAN, JOB_SEARCH_SIGNOFF, A2_RECONCILED_DESIGN, FRONTEND_BUILD_BRIEF, INTERVIEW_PREP_CONCEPT_FINAL), and what is SHOWN (the 13 frontend screens as coded). Where these disagree, this document names the gap. It supersedes nothing in the plan docs; it tells you where reality stands against them.
 **How to use it:** the truth table for orientation; the three-kind gap list for what work exists; the priority path for what order. All threads reference this before building.
 
 ---
+
+> **STATUS REFRESH — 2026-07-07.** This reconciliation was written against main @ `16a0451` (2026-07-02), when the two halves had never touched. Since then main has moved to `4197c28`: the platform blockers and the first real screen are DONE. The body below is preserved as the 2026-07-02 reconciliation; the overlays (✅ DONE / 🔨 CURRENT) mark where reality now stands. Nothing in the philosophy or the roadmap is removed.
+>
+> **Done since — now on main @ `4197c28`:**
+> - **D1 — durable SQLite store + served backend** ✅ — the store survives restart behind the same `createStore()` signatures; the backend runs as a served host.
+> - **D2 — evidence-pool repatriation** ✅ — the canonical `cv_data.json` is in-repo (gitignored); `seed:datafacts` repointed; the false "content-identical" comment removed.
+> - **The data bridge (Stream 2)** ✅ — the `useCase()` async layer; `/api/…` calls now exist in `src/`; six screens wired to the real backend (see `docs/STREAM2_BRIDGE.md`).
+> - **Datafact-detach hardening** ✅ — the evidence pool detached at the store boundary.
+> - **Jobbsök triage unit** ✅ — the approval screen, rebuilt on the `grid.jsx` templates (first real adopter), reading the backend jobs store; approve/reject with the 8-reason taxonomy; one durable decision record shared by row + layover, restart-survival verified; independent-review PASS. (See `docs/verification/2026-07-05-jobbsok-*`.)
+>
+> **🔨 YOU ARE HERE — the core-loop wave (CURRENT build):** Matchanalys + CV-byggaren + Personligt brev — three screens on the templates, bound to the real `fit` / `gaps` / `cvDraft` / `coverLetter` case parts, including the Ärlighetskoll honesty panel and cover-letter save-and-resume. Goes to independent review before merge, same as Jobbsök.
 
 ## 0. The four structural findings
 
@@ -64,13 +75,13 @@ Status codes: **BUILT** (tested, on main) · **PARTIAL** · **STUB** · **MISSIN
 
 ### Kind 1 - BUILT BUT INVISIBLE (wiring work; the highest-value list)
 The backend is ~one full product ahead of the frontend. In dependency order:
-1. **Persistence + a running backend** (D1) - the store must survive and be servable before a frontend can read it. The store interface was built for a single-adapter swap.
-2. **The data bridge** - the `useCase()`/API layer with states mapped 1:1 to the status envelope (`pending/ready/failed/absent`).
-3. **Jobbsök rebuilt as the approval screen** - reads the backend `jobs` collection; clean jobs ranked up, flagged jobs in a labelled always-expandable down-ranked section; approve/reject with the 8-reason taxonomy (reasons stored - the learner's future food); "apply" opens the real job URL. Built ON the grid.jsx templates (un-orphans the design system). Retires the browser-direct external calls AND the warehouse persona on this screen.
-4. **CSV upload surface** - onto the built job-ingest→enrich chain, per-row status, honest about progress.
-5. **Matchanalys real** - verdict from `fit`, citation chips, the fill-gap loop with the visible honest-failure path.
-6. **Ansökningskoll** - the delivery cards (visualized+downloadable cvDraft/coverLetter, the SAVING-but-inert comment box, apply link) + the manual tracking view. Needs the small application-card record defined first.
-7. **Retire `/api/jobs/search`** (the sibling-repo route) - point anything that needs search at `job-discovery`. The last OnlyiGaming runtime dependency dies.
+1. **✅ DONE — Persistence + a running backend** (D1) - the store must survive and be servable before a frontend can read it. The store interface was built for a single-adapter swap. *(Durable SQLite adapter shipped behind the same signatures; served host running.)*
+2. **✅ DONE — The data bridge** - the `useCase()`/API layer with states mapped 1:1 to the status envelope (`pending/ready/failed/absent`).
+3. **✅ DONE (main @ `4197c28`) — Jobbsök rebuilt as the approval screen** - reads the backend `jobs` collection; clean jobs ranked up, flagged jobs in a labelled always-expandable down-ranked section; approve/reject with the 8-reason taxonomy (reasons stored - the learner's future food); "apply" opens the real job URL. Built ON the grid.jsx templates (un-orphans the design system). Retires the browser-direct external calls AND the warehouse persona on this screen.
+4. **CSV upload surface** - onto the built job-ingest→enrich chain, per-row status, honest about progress. *(Deferred behind the core-loop wave.)*
+5. **🔨 CURRENT (core-loop wave) — Matchanalys real** - verdict from `fit`, citation chips, the fill-gap loop with the visible honest-failure path.
+6. **🔨 CURRENT (core-loop wave, in part) — Ansökningskoll** - the delivery cards (visualized+downloadable cvDraft/coverLetter, the SAVING-but-inert comment box, apply link) + the manual tracking view. Needs the small application-card record defined first. *(The `cvDraft`/`coverLetter` surfacing lands now as the CV-byggaren + Personligt brev screens; the application-card/tracking view stays pending.)*
+7. **✅ DONE — Retire `/api/jobs/search`** (the sibling-repo route) - point anything that needs search at `job-discovery`. The last OnlyiGaming runtime dependency dies.
 
 ### Kind 2 - SHOWN BUT NOT BUILT (the honesty pass; cheap, do alongside)
 Per the project's own inert-but-honest principle: every control either works, is visibly disabled with a label, or is removed. The inventory's per-screen CTA tables (Part 2) are the checklist. Highlights: the dead hero buttons and thumbs on Home; "spara automatiskt"/"Ladda ner PDF"/"Spara" on CV-byggaren; the fake recording UI on Intervjuträning; "320+ delade resurser" over a 6-item fixture; the "Ansök" button that doesn't apply; the fake poll voting; the ~52 nav destinations that render ComingSoon (ComingSoon itself is an honest pattern - keep it, but stop advertising breadth the sidebar can't honour, or label the group). Scope depends on D3: demo screens get a one-line demo banner instead of per-CTA surgery.
@@ -94,10 +105,13 @@ Per the project's own inert-but-honest principle: every control either works, is
 - **Anthropic client:** the dead `temperature` param - remove when next touched.
 
 ## 4. The three decisions in front of Daniel
-- **D1 - Persistence.** In-memory has been hit from three independent directions (cron, frontend serving, survival). Recommendation: pull the real-DB swap forward NOW - the store interface was built for exactly this single-adapter swap, and it unlocks Kind-1 items 1-6 and Kind-3 item 4 at once. (A long-running host with in-memory store is the weaker alternative: it serves the frontend but still loses everything on restart.)
-- **D2 - The evidence pool.** Diff the two English cv_data.json copies, pick the true canonical (the sibling `cv-source/en` copy is the recently-enriched one - likely the winner), and BRING IT INTO THIS REPO (gitignored is fine; outside-the-repo is not). Update `seed:datafacts` to the in-repo path and delete its false "content-identical" comment.
-- **D3 - The demo layer.** The 9 Amir-persona screens: (a) keep as an honestly-labelled demo mode (one banner: "Demo - example data"), or (b) park them out of the nav until each is rebuilt on real data. Either is defensible; what's not is fixture theatre presenting as live. This decision sizes the Kind-2 honesty pass.
+- **D1 - Persistence.** ✅ **DECIDED + DONE** — durable SQLite adapter shipped, backend served. In-memory has been hit from three independent directions (cron, frontend serving, survival). Recommendation: pull the real-DB swap forward NOW - the store interface was built for exactly this single-adapter swap, and it unlocks Kind-1 items 1-6 and Kind-3 item 4 at once. (A long-running host with in-memory store is the weaker alternative: it serves the frontend but still loses everything on restart.)
+- **D2 - The evidence pool.** ✅ **DECIDED + DONE** — canonical `cv_data.json` brought in-repo (gitignored), `seed:datafacts` repointed, false comment removed. Diff the two English cv_data.json copies, pick the true canonical (the sibling `cv-source/en` copy is the recently-enriched one - likely the winner), and BRING IT INTO THIS REPO (gitignored is fine; outside-the-repo is not). Update `seed:datafacts` to the in-repo path and delete its false "content-identical" comment.
+- **D3 - The demo layer.** ✅ **DECIDED** — keep them, each with a visible "Demo - exempeldata" banner (per `DECISIONS_ADDENDUM.md`); a screen loses the banner only when rebuilt on real data. The 9 Amir-persona screens: (a) keep as an honestly-labelled demo mode (one banner: "Demo - example data"), or (b) park them out of the nav until each is rebuilt on real data. Either is defensible; what's not is fixture theatre presenting as live. This decision sizes the Kind-2 honesty pass.
 
 ## 5. The priority path (Daniel as user #1 of his real tool)
 D1+D2 decided → persistence lands + backend runs as a served host → data bridge → Jobbsök-as-approval-screen (on templates) → CSV upload → Matchanalys real → Ansökningskoll → honesty pass / D3 applied → then Kind 3 in order.
+
+> **Status (2026-07-07):** ✅ persistence + served backend · ✅ data bridge · ✅ Jobbsök-as-approval-screen are done. CSV upload is **deferred**; the core-loop wave (Matchanalys real → CV-byggaren → Personligt brev) was pulled ahead — **◀ you are here.** Then Ansökningskoll's application-card/tracking view, the honesty pass / D3 banners, then Kind 3 in order.
+
 One thread rule stands: job-search/frontend work in the jobsearch worktree on main; A2 features on the A2 branch; nobody specs or codes in the other's domain; this document is the shared reference.
