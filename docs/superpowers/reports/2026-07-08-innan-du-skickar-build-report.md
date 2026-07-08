@@ -6,7 +6,7 @@
 **Spec:** `docs/superpowers/specs/2026-07-08-innan-du-skickar-presend-design.md` · **Plan:** `docs/superpowers/plans/2026-07-08-innan-du-skickar-presend.md`
 
 ## Result
-- **Tests:** baseline 201 pass on `main`; final **221 pass / 0 fail / 1 skipped** (1 pre-existing env-conditional skip; includes the two post-review honesty fixes below). **Fresh-clone holds** — the suite passes with **no `node_modules`**, so a clean checkout is green.
+- **Tests:** baseline 201 pass on `main`; final **221 pass / 0 fail / 1 skipped** (1 pre-existing env-conditional skip; includes the two post-review honesty fixes below). **Fresh-clone holds** — verified on a bare `/tmp` clone of the pushed branch: `git clone` → `npm ci` → `npm test` = **221 / 0 / 1**. (Correction: an earlier check that ran the suite *without* `npm install` reported a false green — the worktree is nested inside the main repo, so Node resolved the *parent's* `node_modules`. Without install a true bare clone fails `api.test.cjs` (`vite`) and `i18n.test.mjs` (`react`) on those declared deps — both pre-existing, resolved by the standard `npm install`. Clone → install → test is the correct check, and it passes.)
 - **Execution:** subagent-driven, 8 tasks (Task 1 dropped in pre-flight — see below), fresh implementer + independent task reviewer per task, a final whole-branch review (verdict: *ready to merge with Minor fixes; no Critical/Important*), then **two honesty fixes applied + independently reviewed** (findings §ns 1–2 below).
 - Branch tip after fixes: `551bad6`. Spec+plan at `719b0d9`. No merge.
 
