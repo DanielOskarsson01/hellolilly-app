@@ -126,7 +126,7 @@ export function alignKeyword(caseId, { term, basisDatafactId }) {
     method: 'POST',
     body: JSON.stringify({ term, basisDatafactId }),
   }).then((b) => {
-    if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('ll:case:changed'));
+    if (b.ok && typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('ll:case:changed'));
     return b.result;
   });
 }

@@ -450,10 +450,10 @@ test('POST /cv/align-keyword aligned round-trip: ok:true + term persisted in cvD
   assert.equal(res._body.ok, true);
   assert.equal(res._body.result.outcome, 'aligned');
   assert.equal(res._body.result.term, 'Scrum');
-  // term must be persisted in the stored cvDraft
+  // term must be persisted in the stored cvDraft in the EXACT case supplied
   const updated = host.store.getCase(caseId);
   const itemText = updated.cvDraft.data.sections[0].items[0].text;
-  assert.ok(itemText.toLowerCase().includes('scrum'), `expected 'scrum' in "${itemText}"`);
+  assert.ok(itemText.includes('Scrum'), `expected 'Scrum' (exact case) in "${itemText}"`);
 });
 
 test('POST /cv/align-keyword refused round-trip: ok:false + nothing written', async () => {
