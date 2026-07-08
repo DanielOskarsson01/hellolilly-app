@@ -118,6 +118,19 @@ export function linkJobCase(jobId, caseId) {
   });
 }
 
+// Honesty-gated keyword alignment. Appends the ad term to the matching CV item ONLY
+// when a real datafact backs it. aligned → ok:true; refused → ok:false (never hidden).
+// Dispatches ll:case:changed on success so every mounted useCase hook refetches.
+export function alignKeyword(caseId, { term, basisDatafactId }) {
+  return request(`/api/case/${encodeURIComponent(caseId)}/cv/align-keyword`, {
+    method: 'POST',
+    body: JSON.stringify({ term, basisDatafactId }),
+  }).then((b) => {
+    if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('ll:case:changed'));
+    return b.result;
+  });
+}
+
 // Cross-screen sync, same pattern as jobStore's ll:jobs:changed.
 export function notifyCaseChanged() {
   if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('ll:case:changed'));

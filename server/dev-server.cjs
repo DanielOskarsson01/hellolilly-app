@@ -11,6 +11,7 @@ const { createHost } = require('./skeleton/host.cjs');
 const { bootstrapStore, seedDatafactsIfEmpty } = require('./store-bootstrap.cjs');
 const { createAnthropicClient } = require('./skeleton/clients/anthropic.cjs');
 const { applyAnswer } = require('./skeleton/fill-gap/bullet-judge.cjs');
+const { applyAlign } = require('./skeleton/fill-gap/keyword-judge.cjs');
 
 const PORT = Number(process.env.PORT || 5173);
 
@@ -152,7 +153,7 @@ function createApiHandler(host, { preferencesPath, llm } = {}) {
       return true;
     }
 
-    const m = req.url.match(/^\/api\/case\/([^/]+)(\/analyze|\/generate|\/research|\/letter-draft|\/gap\/([^/]+)\/answer)?$/);
+    const m = req.url.match(/^\/api\/case\/([^/]+)(\/analyze|\/generate|\/research|\/letter-draft|\/cv\/align-keyword|\/gap\/([^/]+)\/answer)?$/);
     if (!m) return false;
     const caseId = decodeURIComponent(m[1]);
     const action = m[2];
@@ -206,6 +207,19 @@ function createApiHandler(host, { preferencesPath, llm } = {}) {
           caseId, gapId, answer: body.answer, requirementId: body.requirementId, tags: body.tags || [],
         });
         sendJson(res, 200, { ok: true, ...out });
+      } catch (err) {
+        sendJson(res, 500, { ok: false, error: err.message });
+      }
+      return true;
+    }
+
+    // POST /api/case/:caseId/cv/align-keyword — honesty-gated keyword align (reversible cvDraft edit).
+    // Aligned → ok:true; refused → ok:false. Never bypasses applyAlign's guardrail.
+    if (req.method === 'POST' && action === '/cv/align-keyword') {
+      try {
+        const body = await readJson(req);
+        const result = await applyAlign(host.store, { caseId, term: body.term, basisDatafactId: body.basisDatafactId });
+        sendJson(res, 200, { ok: result.outcome === 'aligned', result });
       } catch (err) {
         sendJson(res, 500, { ok: false, error: err.message });
       }

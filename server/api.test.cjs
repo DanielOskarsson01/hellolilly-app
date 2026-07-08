@@ -426,6 +426,52 @@ test('POST /api/job/:id/case does NOT hit the case handler (shadowing regression
   assert.equal(resCase._body.case.meta.company, 'Acme');
 });
 
+// --- Task 7: POST /api/case/:id/cv/align-keyword ---
+
+function alignKeywordFixture() {
+  const host = createHost({ llm: null });
+  host.store.ingestDatafact({ id: 'datafact_k1', kind: 'datafact', type: 'cv', text: 'Led agile transformation across three squads.', tags: [], language: 'en' });
+  const c = host.store.createCase({ company: 'Acme', role: 'PM' });
+  host.store.writePart(c.meta.id, 'cvDraft', {
+    sections: [{
+      key: 'experience', heading: 'Experience',
+      items: [{ text: 'Led agile transformation across three squads.', datafactRef: { kind: 'datafact', id: 'datafact_k1' } }],
+    }],
+  });
+  return { host, caseId: c.meta.id };
+}
+
+test('POST /cv/align-keyword aligned round-trip: ok:true + term persisted in cvDraft', async () => {
+  const { host, caseId } = alignKeywordFixture();
+  const handle = createApiHandler(host, { preferencesPath: null, llm: null });
+  const res = mockRes();
+  await handle(makeReq('POST', `/api/case/${caseId}/cv/align-keyword`, { term: 'Scrum', basisDatafactId: 'datafact_k1' }), res);
+  assert.equal(res._status, 200);
+  assert.equal(res._body.ok, true);
+  assert.equal(res._body.result.outcome, 'aligned');
+  assert.equal(res._body.result.term, 'Scrum');
+  // term must be persisted in the stored cvDraft
+  const updated = host.store.getCase(caseId);
+  const itemText = updated.cvDraft.data.sections[0].items[0].text;
+  assert.ok(itemText.toLowerCase().includes('scrum'), `expected 'scrum' in "${itemText}"`);
+});
+
+test('POST /cv/align-keyword refused round-trip: ok:false + nothing written', async () => {
+  const { host, caseId } = alignKeywordFixture();
+  const handle = createApiHandler(host, { preferencesPath: null, llm: null });
+  const before = host.store.getCase(caseId).cvDraft.data.sections[0].items[0].text;
+
+  const res = mockRes();
+  // No basisDatafactId → guardrail must refuse
+  await handle(makeReq('POST', `/api/case/${caseId}/cv/align-keyword`, { term: 'Scrum', basisDatafactId: null }), res);
+  assert.equal(res._status, 200);
+  assert.equal(res._body.ok, false);
+  assert.equal(res._body.result.outcome, 'refused');
+  // nothing written
+  const after = host.store.getCase(caseId).cvDraft.data.sections[0].items[0].text;
+  assert.equal(after, before, 'refused path must not modify the cvDraft');
+});
+
 test('POST /api/case/:id/letter-draft writes a durable coverLetterDraft, readable via GET case', async () => {
   const host = createHost();
   const c = host.store.createCase({ company: 'Acme', role: 'CMO' });
