@@ -4117,7 +4117,7 @@ body.ll-template { background: var(--ll-cream); }
 .rgl {
   display: flex; align-items: center; gap: var(--sp-2);
   font-size: var(--fs-sm); color: var(--ll-ink);
-  padding: 8px 12px; border-radius: var(--r-sm); background: var(--ll-blue-tint-2);
+  padding: var(--sp-2) var(--sp-3); border-radius: var(--r-sm); background: var(--ll-blue-tint-2);
 }
 .rgl__ic { flex: 0 0 auto; display: grid; place-items: center; }
 .rgl__ic--ok   { color: var(--ll-green); }
@@ -4183,7 +4183,7 @@ body.ll-template { background: var(--ll-cream); }
   display: flex; gap: var(--sp-2); align-items: center;
   font-size: var(--fs-xs); font-weight: var(--fw-bold); color: var(--ll-blue-deep);
   background: var(--ll-blue-tint-2); border-radius: var(--r-sm);
-  padding: 8px 12px; margin-bottom: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3); margin-bottom: var(--sp-3);
 }
 .kw-scope svg { color: var(--ll-blue); flex: 0 0 auto; }
 .kw { border: 1px solid var(--ll-border); border-radius: var(--r-sm); padding: var(--sp-4); background: var(--ll-white); }

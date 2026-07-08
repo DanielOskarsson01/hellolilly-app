@@ -490,8 +490,8 @@ function InnanDuSkickar() {
         </Button>
       </PartState>
     );
-  } else if (!caseData || cvStatus === 'absent' || letterStatus === 'absent') {
-    // Empty state: no draft yet — point to build them first, honestly name the distinction
+  } else if (!caseData || cvStatus === 'absent' || letterStatus === 'absent' || !coreReady) {
+    // Empty state: no draft yet (or analysis not yet ready) — point to build them first, honestly name the distinction
     const meta = parts.meta || {};
     const role = meta.role || meta.jobTitle || '';
     const company = meta.company || '';
@@ -520,15 +520,18 @@ function InnanDuSkickar() {
         <div className="honestline" style={{ maxWidth: 520, marginInline: 'auto', textAlign: 'left' }}>
           <Icon name="bulb" size={16} />
           <div className="honestline__b">
-            {tr({ sv: 'Ansökningskoll och ', en: 'The delivery view and ' })}
+            {tr({ sv: 'Ansökningskoll och ', en: 'Application Check and ' })}
             <b>{tr({ sv: 'Innan du skickar', en: 'Before you send' })}</b>
             {tr({ sv: ' är två olika saker: den ena samlar dina förbättrade CV, den här gör en passformskoll innan du trycker på skicka.', en: ' are two different things: one collects your enhanced CVs, this one does a fit-check before you hit send.' })}
           </div>
         </div>
       </PartState>
     );
-  } else {
+  } else if (coreReady) {
     body = <CheckedState parts={parts} actions={actions} />;
+  } else {
+    // Defensive fallback: should not normally be reached (all non-ready cases handled above)
+    body = <ContentBox className="ll-box--feature"><PartSkeleton lines={5} /></ContentBox>;
   }
 
   return (
