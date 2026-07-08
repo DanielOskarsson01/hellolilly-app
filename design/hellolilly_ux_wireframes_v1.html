@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HelloLilly - UX-wireframes (rest of site) v1</title>
+<style>
+  :root{
+    --ink:#3f3f46; --mut:#8a8a93; --line:#d6d3d1; --bg:#f6f5f3; --card:#ffffff;
+    --real:#3f6f52; --demo:#8a6d1f; --konc:#3d5a80; --built:#a1a1aa;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:system-ui,-apple-system,sans-serif; background:var(--bg); color:var(--ink); font-size:14px; line-height:1.45;}
+  .app{display:flex; min-height:100vh;}
+
+  /* ---------- NAV ---------- */
+  nav{width:250px; min-width:250px; border-right:1px solid var(--line); background:#fbfaf9; padding:14px 0 40px;}
+  nav h1{font-size:13px; letter-spacing:.4px; padding:4px 16px 10px; border-bottom:1px solid var(--line);}
+  nav h1 small{display:block; color:var(--mut); font-weight:400; font-size:11px; margin-top:2px;}
+  .nav-grp{padding:10px 8px 2px;}
+  .nav-grp>span{display:block; font-size:10px; text-transform:uppercase; letter-spacing:.8px; color:var(--mut); padding:0 8px 4px;}
+  .nav-item{display:flex; align-items:center; gap:6px; width:100%; text-align:left; border:0; background:none; font:inherit; color:var(--ink); padding:5px 8px; border-radius:6px; cursor:pointer;}
+  .nav-item:hover{background:#efedeb;}
+  .nav-item.on{background:#e7e4e1; font-weight:600;}
+  .nav-item.dead{color:var(--built); cursor:default;}
+  .nav-item.dead:hover{background:none;}
+  .t{font-size:9px; font-weight:700; letter-spacing:.5px; padding:1px 5px; border-radius:4px; border:1px solid; margin-left:auto; white-space:nowrap;}
+  .t1{color:var(--real); border-color:var(--real);}
+  .t2{color:var(--real); border-color:var(--real); border-style:dashed;}
+  .t3{color:var(--real); border-color:var(--real); border-style:dotted;}
+  .t4{color:var(--demo); border-color:var(--demo);}
+  .t5{color:var(--konc); border-color:var(--konc);}
+  .tb{color:var(--built); border-color:var(--built);}
+
+  /* ---------- STAGE ---------- */
+  main{flex:1; padding:22px 26px 80px; max-width:1080px;}
+  .screen-head{display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; margin-bottom:4px;}
+  .screen-head h2{font-size:20px;}
+  .screen-head .sv{color:var(--mut); font-size:14px;}
+  .tierline{font-size:11px; color:var(--mut); margin-bottom:12px;}
+
+  .banner{border:1px solid; border-radius:6px; padding:7px 12px; font-size:12px; font-weight:600; margin-bottom:14px; display:flex; gap:8px; align-items:center;}
+  .banner.demo{color:var(--demo); border-color:var(--demo); background:#fdf9ef;}
+  .banner.konc{color:var(--konc); border-color:var(--konc); background:#f2f6fa;}
+
+  .frame{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:18px; box-shadow:0 1px 2px rgba(0,0,0,.03);}
+  .cols{display:flex; gap:16px; align-items:flex-start;}
+  .colmain{flex:1; min-width:0;}
+  .help{width:210px; min-width:210px; border:1px dashed var(--line); border-radius:8px; padding:10px;}
+  .help h4{font-size:11px; text-transform:uppercase; letter-spacing:.6px; color:var(--mut); margin-bottom:8px;}
+  .help .slot{border:1px dashed var(--line); border-radius:6px; padding:8px; margin-bottom:8px; font-size:11px; color:var(--mut);}
+  .help .slot b{display:block; color:var(--ink); font-size:10px; text-transform:uppercase; letter-spacing:.5px; margin-bottom:3px;}
+  .help p{font-size:10px; color:var(--mut);}
+
+  /* wireframe primitives */
+  .wf{border:1px dashed var(--line); border-radius:8px; padding:12px; margin-bottom:12px; position:relative;}
+  .wf:last-child{margin-bottom:0;}
+  .wf>label{position:absolute; top:-8px; left:10px; background:var(--card); padding:0 6px; font-size:10px; text-transform:uppercase; letter-spacing:.6px; color:var(--mut);}
+  .ln{height:9px; background:#eceae7; border-radius:4px; margin:6px 0;}
+  .ln.w40{width:40%;} .ln.w60{width:60%;} .ln.w80{width:80%;} .ln.w25{width:25%;}
+  .btn{display:inline-block; border:1.5px solid var(--ink); border-radius:6px; padding:5px 12px; font-size:12px; font-weight:600; margin:4px 6px 0 0; background:#fff;}
+  .btn.sec{border-color:var(--mut); color:var(--mut); font-weight:500;}
+  .btn.dis{border-style:dashed; color:var(--built); border-color:var(--built);}
+  .inp{border:1px solid var(--line); border-radius:6px; padding:6px 10px; font-size:12px; color:var(--mut); background:#fff; margin:4px 6px 4px 0; display:inline-block;}
+  .chips{display:flex; gap:6px; flex-wrap:wrap; margin:6px 0;}
+  .chip{border:1px solid var(--line); border-radius:20px; padding:2px 10px; font-size:11px; color:var(--ink); background:#fff;}
+  .chip.on{border-color:var(--ink); font-weight:600;}
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .grid3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;}
+  .card{border:1px solid var(--line); border-radius:8px; padding:10px; background:#fff;}
+  .card h5{font-size:12px; margin-bottom:4px;}
+  .card small{color:var(--mut); font-size:10px;}
+  .imgph{border:1px solid var(--line); border-radius:6px; background:
+    linear-gradient(to top right, transparent calc(50% - 1px), var(--line), transparent calc(50% + 1px)),
+    linear-gradient(to bottom right, transparent calc(50% - 1px), var(--line), transparent calc(50% + 1px)), #fafaf9;
+    display:flex; align-items:center; justify-content:center; color:var(--mut); font-size:11px; min-height:90px;}
+  .kv{display:flex; gap:10px; flex-wrap:wrap;}
+  .kv .stat{border:1px solid var(--line); border-radius:8px; padding:8px 14px; font-size:12px; background:#fff;}
+  .kv .stat b{display:block; font-size:16px;}
+  .steps{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px;}
+  .steps .st{border:1px solid var(--line); border-radius:6px; padding:4px 10px; font-size:11px; color:var(--mut);}
+  .steps .st.on{border-color:var(--ink); color:var(--ink); font-weight:600;}
+  .bub{max-width:70%; border:1px solid var(--line); border-radius:10px; padding:8px 10px; font-size:12px; margin:6px 0; background:#fff;}
+  .bub.me{margin-left:auto; background:#f1efec;}
+  .kan{display:grid; grid-template-columns:repeat(4,1fr); gap:8px;}
+  .kan .col{border:1px dashed var(--line); border-radius:8px; padding:8px; min-height:110px;}
+  .kan .col>b{font-size:10px; text-transform:uppercase; letter-spacing:.5px; color:var(--mut); display:block; margin-bottom:6px;}
+  .kan .kc{border:1px solid var(--line); border-radius:6px; background:#fff; padding:6px; font-size:11px; margin-bottom:6px;}
+  .callout{display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px; border-radius:50%; border:1.5px solid var(--konc); color:var(--konc); font-size:10px; font-weight:700; margin-right:6px;}
+  .note-real{border-left:3px solid var(--real); background:#f2f6f3; padding:8px 10px; font-size:12px; border-radius:0 6px 6px 0; margin-bottom:12px;}
+  .sec-label{display:inline-block; font-size:9px; font-weight:700; letter-spacing:.5px; padding:1px 6px; border-radius:4px; border:1px solid; margin-bottom:6px;}
+  .sec-label.demo{color:var(--demo); border-color:var(--demo);}
+  .sec-label.konc{color:var(--konc); border-color:var(--konc);}
+
+  /* flows + notes */
+  .flows{margin-top:16px; font-size:11px; color:var(--mut);}
+  .flows b{color:var(--ink);}
+  .flowchip{display:inline-block; border:1px solid var(--line); border-radius:20px; padding:2px 10px; margin:3px 4px 0 0; font-size:11px; cursor:pointer; background:#fff;}
+  .flowchip:hover{border-color:var(--ink);}
+  .flowchip.ext{cursor:default; color:var(--mut); border-style:dashed;}
+  .uxnotes{margin-top:14px; border-top:1px solid var(--line); padding-top:10px;}
+  .uxnotes h4{font-size:11px; text-transform:uppercase; letter-spacing:.6px; color:var(--mut); margin-bottom:6px;}
+  .uxnotes li{font-size:12px; margin:0 0 5px 16px;}
+
+  @media(max-width:860px){
+    .app{flex-direction:column;}
+    nav{width:100%; min-width:0; display:flex; overflow-x:auto; padding:8px;}
+    nav h1{display:none;}
+    .nav-grp{display:flex; gap:4px; padding:0 4px;}
+    .nav-grp>span{display:none;}
+    .nav-item{white-space:nowrap;}
+    .cols{flex-direction:column;} .help{width:100%;}
+    .kan{grid-template-columns:1fr 1fr;}
+    .grid3{grid-template-columns:1fr;}
+    .grid2{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+<nav id="nav">
+  <h1>HelloLilly UX-wireframes<small>Rest of site · v1 · UX only, no UI</small></h1>
+</nav>
+<main id="stage"></main>
+</div>
+
+<script>
+const T = {
+ T1:'<span class="t t1">T1 REAL</span>', T2:'<span class="t t2">T2 THIN</span>',
+ T3:'<span class="t t3">T3 SHORTCUT</span>', T4:'<span class="t t4">T4 DEMO</span>',
+ T5:'<span class="t t5">T5 KONCEPT</span>', TB:'<span class="t tb">BYGGD</span>', TC:'<span class="t tb">PÅGÅR</span>'
+};
+const BD = '<div class="banner demo">⚠ Demo - exempeldata · Skärmen visar hur verktyget fungerar, inte riktig data</div>';
+const BK = '<div class="banner konc">◻ Koncept - kommande · En bild av verktyget, inte en skärm. Inget här går att klicka.</div>';
+const HELP = (slots)=>`<aside class="help"><h4>Hjälp just nu</h4>${slots.map(s=>`<div class="slot"><b>${s[0]}</b>${s[1]}</div>`).join('')}<p>Panelen fylls per situation. Blir verklig i takt med att fler verktyg skeppas (HelpfulNow).</p></aside>`;
+
+const SCREENS = [
+
+/* ================= HEM ================= */
+{id:'hem', grp:'Nav & hem', title:'Hem (hubben)', sv:'H1', tier:'T1',
+ body:`
+ <div class="wf"><label>En sak just nu (från Framstegsstöd)</label>
+   <div style="font-size:15px;font-weight:600;">Slutför matchanalysen för Head of Product, Kindred</div>
+   <div class="ln w60"></div>
+   <span class="btn">Fortsätt</span><span class="btn sec">Inte idag</span>
+ </div>
+ <div class="wf"><label>Ärliga siffror (bara riktiga)</label>
+   <div class="kv"><div class="stat"><b>3</b>nya matchande jobb</div><div class="stat"><b>2</b>ansökningar väntar svar</div><div class="stat"><b>1</b>övning kvar denna vecka</div></div>
+ </div>
+ <div class="wf"><label>Tysta ingångar - grupperade per behov, inte per kategori</label>
+   <div class="chips"><span class="chip">Sök &amp; matcha</span><span class="chip">Skapa material</span><span class="chip">Förbered dig</span><span class="chip">Ta kontakt</span><span class="chip">Ny riktning</span><span class="chip">Min coach</span></div>
+   <div class="ln w80"></div><div class="ln w60"></div>
+ </div>`,
+ flows:[['framsteg','Framstegsstöd (nästa steg)'],['ext','Jobbsök (byggd)'],['arende','Ärendevy']],
+ notes:['En enda stor handling, aldrig en instrumentpanel. Allt annat är tyst.',
+ 'Ingångar till T4/T5-verktyg bär sin etikett redan på kortet - navet lovar aldrig mer än sidan håller.',
+ 'Alla döda hjältknappar och tummar från demon dör här.']},
+
+/* ================= A. EXECUTION ================= */
+{id:'framsteg', grp:'A · Utförande', title:'Framstegsstöd', sv:'Progress Support · A1', tier:'T1',
+ body:`
+ <div class="cols"><div class="colmain">
+ <div class="wf"><label>Nästa steg (max 1 per dag)</label>
+   <div style="font-weight:600;">Skicka uppföljning till Bonnier News (dag 7)</div>
+   <span class="btn">Gör nu</span><span class="btn sec">Flytta till imorgon</span>
+ </div>
+ <div class="wf"><label>Aktivitet - loggas automatiskt av verktygen</label>
+   <div style="font-size:12px;">✓ Jobb godkänt: Head of Product, Kindred <small style="color:var(--mut)">· idag · <u>dölj</u></small></div>
+   <div style="font-size:12px;">✓ CV genererat (v3, engelska) <small style="color:var(--mut)">· igår · <u>dölj</u></small></div>
+   <div style="font-size:12px;">✓ Intervjuövning slutförd, 9 frågor <small style="color:var(--mut)">· må · <u>dölj</u></small></div>
+   <div class="ln w60"></div>
+ </div>
+ <div class="wf"><label>Veckovy</label>
+   <div class="chips"><span class="chip on">Denna vecka</span><span class="chip">Förra veckan</span><span class="chip">Under studier: 1 lätt marknadshandling/vecka</span></div>
+   <div class="ln w80"></div>
+ </div>
+ </div>${HELP([['Ton','Stödjande, aldrig övervakande'],['Mall','Uppföljningsmeddelande dag 7']])}</div>`,
+ flows:[['hem','Hem (nästa-steg-kortet)'],['arende','Ärendevy (samma logg)'],['ext','Omställning: veckokadensen läser härifrån']],
+ notes:['Ingen streak, ingen skuld. Personen kan dölja varje loggad post.',
+ 'Regelbaserad nästa-steg-logik (äldsta ofärdiga tråden vinner), ingen ML.',
+ 'Detta är datan som framtida inlärningslager lever på - varje vecka utan loggning är förlorad data.']},
+
+{id:'intervju', grp:'A · Utförande', title:'Intervjuträning', sv:'Interview Trainer · A2', tier:'T1',
+ body:`
+ <div class="cols"><div class="colmain">
+ <div class="wf"><label>Uppstart</label>
+   <span class="inp">Välj jobb: Head of Product, Kindred ▾</span>
+   <span class="inp">Stil: Kompetensbaserad ▾</span>
+   <span class="btn">Starta övning</span>
+   <div style="font-size:11px;color:var(--mut);margin-top:6px;">Detta är övning. Inget bedöms eller delas utan dig.</div>
+ </div>
+ <div class="wf"><label>Samtal - en fråga i taget</label>
+   <div class="bub">Berätta om ett tillfälle när du behövde prioritera bort en funktion nära lansering. Hur resonerade du?</div>
+   <div class="bub me"><div class="ln w80" style="margin:2px 0;"></div><div class="ln w60" style="margin:2px 0;"></div></div>
+   <div class="bub">Följdfråga: Hur reagerade teamet, och vad hade du gjort annorlunda?</div>
+   <span class="inp" style="width:60%;">Skriv ditt svar ...</span><span class="btn sec">🎙 Tala</span>
+ </div>
+ <div class="wf"><label>Efteråt: återkoppling (citerar dina egna svar)</label>
+   <div class="grid3"><div class="card"><h5>Starka ögonblick</h5><div class="ln"></div></div><div class="card"><h5>Svaga ögonblick</h5><div class="ln"></div></div><div class="card"><h5>En sak att öva</h5><div class="ln"></div></div></div>
+ </div>
+ </div>${HELP([['Coach','Vanliga frågor för rollen'],['Video','Så läser rekryterare svar'],['Övning','Självförtroende före intervju']])}</div>`,
+ flows:[['prep','Intervjuförberedelse (matar in verkliga krav)'],['framsteg','Framstegsstöd (loggas)'],['ext','Matchanalys (jobbet + gapen)']],
+ notes:['En fråga synlig åt gången - språkapp-känslan, aldrig ett formulär.',
+ 'Sju stilar är EN prompt-parameter, inte sju funktioner.',
+ 'Talat läge via webbläsarens röst först (gratis, sv-SE). Ingen inspelnings-UI - den falska dör oersatt.',
+ 'Återkopplingen citerar personens faktiska svar, hittar aldrig på (ärlighetsgrinden).']},
+
+{id:'bild', grp:'A · Utförande', title:'Bildstöd', sv:'Image Studio · A3', tier:'T3',
+ body:`
+ <div class="steps"><span class="st on">1 Ladda upp</span><span class="st">2 Förbättra</span><span class="st">3 Beskär &amp; exportera</span></div>
+ <div class="wf"><label>Före / efter - obligatorisk jämförelse</label>
+   <div class="grid2"><div class="imgph">Ditt foto (före)</div><div class="imgph">Förbättrat (efter)</div></div>
+   <div class="chips" style="margin-top:8px;"><span class="chip">Förbättringsstyrka ▂▄▆ (tak före kusliga zonen)</span><span class="chip">Byt bakgrund</span></div>
+   <span class="btn">Det är fortfarande jag - godkänn</span><span class="btn sec">Justera</span>
+ </div>
+ <div class="wf"><label>Mallar - rätt beskärning för ändamålet</label>
+   <div class="grid3"><div class="imgph" style="min-height:60px;">LinkedIn</div><div class="imgph" style="min-height:60px;">CV</div><div class="imgph" style="min-height:60px;">Neutral</div></div>
+   <div style="font-size:11px;color:var(--mut);margin-top:6px;">En lugn bakgrund och bra ljus betyder mer än kameran.</div>
+ </div>`,
+ flows:[['linkedin','LinkedIn-stöd (profilbilden)'],['ext','CV-byggaren (byggd)']],
+ notes:['Etiken i UX: samma ansikte, bättre fotografi. Godkännandet mot före/efter är grinden.',
+ 'Ingen syntes, inga identitetsändringar - reglaget tar fysiskt stopp före den zonen.',
+ 'Tre steg, stort förhandsvisningsyta. Litet verktyg, stor demo-effekt.']},
+
+/* ================= B. OPPORTUNITY ================= */
+{id:'foretag', grp:'B · Möjligheter', title:'Företagslista', sv:'Company List · B1', tier:'T1',
+ body:`
+ <div class="wf"><label>Lägg till</label><span class="inp">Sök företag ...</span><span class="btn sec">+ Lägg till manuellt</span><span class="chip">eller: från vilken jobbrad som helst i Jobbsök</span></div>
+ <div class="wf"><label>Mina företag - kortet är avfyrningsrampen</label>
+ <div class="grid2">
+   <div class="card"><h5>Bonnier News <span class="chip" style="float:right;">Kontaktad</span></h5><small>Varför relevant: växer inom digitala prenumerationer (ur dossiern)</small><div class="ln w40"></div><small>3 öppna roller · senast: uppföljning planerad</small><div class="chips"><span class="chip">Undersök</span><span class="chip">Spontanansökan</span><span class="chip">Kontaktplan</span></div></div>
+   <div class="card"><h5>Kindred Group <span class="chip" style="float:right;">Intresserad</span></h5><small>Varför relevant: <span class="ln w40" style="display:inline-block;height:8px;"></span></small><div class="ln w40"></div><small>1 öppen roll · senast: research körd</small><div class="chips"><span class="chip">Undersök</span><span class="chip">Spontanansökan</span><span class="chip">Kontaktplan</span></div></div>
+ </div></div>`,
+ flows:[['spontan','Spontanansökningar'],['kontakt','Kontaktplan'],['research','Researchstöd (dossier på ett klick)'],['radar','Jobbradar (föreslår hit senare)']],
+ notes:['Billigaste riktiga verktyget: ren CRUD + befintlig A1-researcher.',
+ 'Kortets tre handlingar designas NU för B2/E2 - detta är deras hem.',
+ 'Status: Intresserad / Kontaktad / Väntar / Stängd.']},
+
+{id:'spontan', grp:'B · Möjligheter', title:'Spontanansökningar', sv:'Blind Applications · B2', tier:'T1',
+ body:`
+ <div class="cols"><div class="colmain">
+ <div class="steps"><span class="st on">1 Research</span><span class="st">2 Vinkel</span><span class="st">3 Mottagare</span><span class="st">4 Meddelande</span><span class="st">5 Uppföljning</span></div>
+ <div class="wf"><label>Steg 3: Mottagare - du anger, systemet letar aldrig upp personer</label>
+   <span class="inp">Namn eller roll, t.ex. "Produktchef" ...</span><span class="inp">E-post (om du har)</span>
+   <div style="font-size:11px;color:var(--mut);">Tips på hur du hittar rätt person - men letandet är ditt.</div>
+ </div>
+ <div class="wf"><label>Steg 4: Meddelande (samma ärlighetsstöd som Personligt brev)</label>
+   <div class="ln w80"></div><div class="ln w60"></div><div class="ln w40"></div>
+   <div class="chips"><span class="chip">Stöds av ditt CV ✓</span><span class="chip">⚠ Ej belagt - ta bort eller belägg</span></div>
+   <span class="btn sec">Spara &amp; fortsätt senare</span>
+ </div>
+ </div>${HELP([['Research','Dossiern från steg 1'],['Vinkel','CV-vinkeln som passar (gap-analys)'],['Exempel','Så skrev någon i liknande läge']])}</div>`,
+ flows:[['foretag','Företagslista (startas från kortet)'],['research','Researchstöd'],['kontakt','Kontaktplan (uppföljningen landar där)']],
+ notes:['Fem steg, varje steg klart i en sittning, allt återupptagbart.',
+ 'Mottagaren skrivs av personen - ingen skrapning, permanent.',
+ 'Färre men bättre försök är hela poängen - flödet ska kännas omsorgsfullt, inte snabbt.']},
+
+{id:'radar', grp:'B · Möjligheter', title:'Jobbradar', sv:'Job Radar · B3', tier:'T2',
+ body:`
+ <div class="wf"><label>Veckans signaler - varje signal slutar i EN handling</label>
+   <span class="sec-label" style="color:var(--real);border-color:var(--real);">VERKLIG · annonstakt</span>
+   <div class="card" style="margin-bottom:8px;"><h5>Bonnier News: 6 annonser denna månad (snitt: 2)</h5><small>Observerat i jobbdatan · Källa: Platsbanken</small><div><span class="btn sec">Lägg i Företagslista</span></div></div>
+   <span class="sec-label" style="color:var(--real);border-color:var(--real);">VERKLIG · branschpress</span>
+   <div class="card"><h5>"Mediehus satsar på ny streamingtjänst i Norden"</h5><small>Sammanfattat ur RSS · Källa: DI (länk)</small><div><span class="btn sec">Lägg i Företagslista</span></div></div>
+ </div>
+ <div class="wf"><label>Kommande signaltyper</label>
+   <span class="sec-label konc">KONCEPT - KOMMANDE</span>
+   <div class="grid2">
+     <div class="imgph" style="min-height:70px;"><span><span class="callout">1</span>Upphandlingar</span></div>
+     <div class="imgph" style="min-height:70px;"><span><span class="callout">2</span>Investeringar</span></div>
+     <div class="imgph" style="min-height:70px;"><span><span class="callout">3</span>Ledningsförändringar</span></div>
+     <div class="imgph" style="min-height:70px;"><span><span class="callout">4</span>Spontanlämpliga</span></div>
+   </div>
+   <div style="font-size:11px;color:var(--mut);margin-top:6px;"><span class="callout">1</span>Frysta bilder med en förklaring var - billigare och ärligare än interaktiva attrapper.</div>
+ </div>`,
+ flows:[['foretag','Företagslista'],['ext','Jobbsök (byggd, samma jobbdata)']],
+ notes:['Två verkliga signaltyper räcker för att demonstrera hela signal-till-handling-idén.',
+ 'Etikett per sektion är tillåtet; fusk per kontroll är det aldrig.',
+ 'Annonstakt-deltat är en ÄRLIG signal - beräknad ur data vi redan hämtar.']},
+
+/* ================= D. PREPARATION ================= */
+{id:'research', grp:'D · Förberedelse', title:'Researchstöd', sv:'Research Helper · D1', tier:'T1',
+ body:`
+ <div class="cols"><div class="colmain">
+ <div class="wf"><label>Intag</label>
+   <span class="inp">Företag: Kindred Group</span><span class="inp">Roll: Head of Product</span>
+   <div class="chips"><span class="chip on">Inför ansökan</span><span class="chip">Inför intervju</span><span class="chip">Inför spontanansökan</span><span class="chip">Inför karriärbyte</span></div>
+   <span class="btn">Kör research</span>
+ </div>
+ <div class="wf"><label>Vad spelar roll här - sammanfattningen överst</label><div class="ln w80"></div><div class="ln w60"></div></div>
+ <div class="wf"><label>Fyra dossierer - hopfällbara, med källhänvisningar</label>
+   <div class="card" style="margin-bottom:6px;"><h5>▸ Företaget <small>(4 källor)</small></h5></div>
+   <div class="card" style="margin-bottom:6px;"><h5>▸ Rollen &amp; kraven <small>(3 källor)</small></h5></div>
+   <div class="card" style="margin-bottom:6px;"><h5>▾ Nischen - djupet <small>(5 källor)</small></h5><div class="ln w80"></div><div class="ln w60"></div></div>
+   <div class="card"><h5>▸ Vinklar &amp; frågor <small>(2 källor)</small></h5></div>
+   <span class="btn sec">Spara till ärendet</span>
+ </div>
+ </div>${HELP([['Nästa','Intervjuförberedelse hämtar detta'],['Mall','Frågor att ställa dem']])}</div>`,
+ flows:[['prep','Intervjuförberedelse'],['spontan','Spontanansökningar'],['ext','Omställning: karriärbytes-preset länkar dit']],
+ notes:['Ren kabeldragning - backend byggd och live-verifierad. Bästa värde-per-dag på hela brädet.',
+ 'Syftes-preset väljer vilka dossier-sektioner som visas först, inget mer.']},
+
+{id:'prep', grp:'D · Förberedelse', title:'Intervjuförberedelse (intag)', sv:'Interview Prep steg 1-3 · D2', tier:'T1',
+ body:`
+ <div class="wf"><label>Intag</label><span class="inp">Välj jobb: Head of Product, Kindred ▾</span><span class="btn">Förbered</span></div>
+ <div class="wf"><label>Avkodaren: de verkliga kraven bakom annonsen</label>
+   <div class="card" style="margin-bottom:6px;"><h5>Annonsen säger: "datadriven"</h5><small>Betyder troligen: <span class="ln w60" style="display:inline-block;height:8px;"></span></small></div>
+   <div class="card"><h5>Annonsen säger: "hands-on ledare"</h5><small>Betyder troligen: <span class="ln w40" style="display:inline-block;height:8px;"></span></small></div>
+ </div>
+ <div class="wf"><label>Research-vyn</label><div class="ln w80"></div><span class="btn sec">Öppna dossiern</span></div>
+ <div class="wf"><label>Steg 4-6 (förberedelsepaket, kort, ticker, eftersnack)</label>
+   <span class="sec-label konc">KONCEPT - KOMMANDE</span>
+   <div class="imgph" style="min-height:70px;">Bild av förberedelsepaketet · blir verkligt enligt intervjuprep-planens egen ordning</div>
+ </div>`,
+ flows:[['intervju','Intervjuträning (tar emot kraven)'],['research','Researchstöd']],
+ notes:['Backend för steg 1-3 är byggd - detta gör den synlig och matar Intervjuträning.',
+ 'Steg 4-6 ägs av intervjuprep-konceptet; här bara en koncept-panel som pekar dit.']},
+
+/* ================= E. NETWORK ================= */
+{id:'linkedin', grp:'E · Nätverk', title:'LinkedIn-stöd', sv:'LinkedIn Helper · E1', tier:'T1',
+ body:`
+ <div class="wf"><label>Två rutor - din text och förslaget</label>
+   <div class="grid2">
+     <div class="card"><h5>Din text</h5><div class="ln w80"></div><div class="ln w60"></div><div class="ln w40"></div></div>
+     <div class="card"><h5>Förslag</h5><div class="ln w80"></div><div class="ln w60"></div><small>Varför detta läser bättre: <span class="ln w40" style="display:inline-block;height:8px;"></span></small></div>
+   </div>
+   <div class="chips"><span class="chip on">Ton: professionell</span><span class="chip">Mottagare: rekryterare</span><span class="chip">Typ: inlägg</span></div>
+ </div>
+ <div class="wf"><label>Det-är-bra-läget</label>
+   <div style="text-align:center;padding:8px;font-weight:600;">✓ Detta är inte fel. Detta är rimligt. Detta är kollat.</div>
+ </div>
+ <div class="wf"><label>Publicera-steget - verktyget följer dig till knappen och stannar där</label>
+   <span class="btn">Kopiera texten</span>
+   <div class="chips"><span class="chip">Var: klistra in som inlägg</span><span class="chip">När: vardag förmiddag</span><span class="chip">Förvänta: 2-3 dagar till svar</span><span class="chip">Uppföljning: så här</span></div>
+ </div>`,
+ flows:[['kontakt','Kontaktplan (meddelanden delar redigerare)'],['bild','Bildstöd (profilbilden)'],['framsteg','Framstegsstöd (loggas)']],
+ notes:['Tryggheten ÄR produkten - det-är-bra-läget ska vara stort och varmt.',
+ 'Slutar vid sändknappen. Personens eget finger postar. Ingen API, inga agenter.',
+ 'Granskande hållning, inte genererande - samma writer-skelett, annan posture.']},
+
+{id:'kontakt', grp:'E · Nätverk', title:'Kontaktplan', sv:'Outreach Plan · E2', tier:'T1',
+ body:`
+ <div class="wf"><label>Kanban - samma mentala modell som jobblistan</label>
+ <div class="kan">
+   <div class="col"><b>Planerad</b><div class="kc">Anna L · Bonnier<br><small>varm intro · utkast klart</small></div><div class="kc">Rekryterare · Kindred<br><small>kall · vänta på varma först</small></div></div>
+   <div class="col"><b>Skickad</b><div class="kc">Johan P · fd kollega<br><small>uppföljning: dag 7</small></div></div>
+   <div class="col"><b>Svar</b><div class="kc" style="border-style:dashed;color:var(--mut);">-</div></div>
+   <div class="col"><b>Klar</b><div class="kc" style="border-style:dashed;color:var(--mut);">-</div></div>
+ </div></div>
+ <div class="wf"><label>Vid utkastet - de oskrivna reglerna dyker upp just då</label>
+   <div class="ln w80"></div>
+   <div style="font-size:11px;color:var(--mut);">💡 Vänta 7 dagar före uppföljning. Nämn er gemensamma kontakt tidigt. Undvik att be om jobb i första meddelandet.</div>
+ </div>`,
+ flows:[['foretag','Företagslista'],['linkedin','LinkedIn-stöd'],['framsteg','Framstegsstöd (uppföljningsdatum blir nästa steg)']],
+ notes:['Regelbaserad ordning (varm före kall, dag 7) - AI:n skriver meddelanden, väljer aldrig människor.',
+ 'Social vägledning inline i skrivögonblicket, aldrig som separat guidesida.']},
+
+{id:'natverk', grp:'E · Nätverk', title:'Nätverksmatch', sv:'Network Match · E3', tier:'T4', banner:'demo',
+ body:`
+ <div class="wf"><label>Sök</label><span class="inp">Företag: Kindred Group</span><span class="btn">Finns någon väg in?</span></div>
+ <div class="wf"><label>Grafen löser upp sig (attrapp)</label>
+   <div class="grid3">
+     <div class="card"><h5>Coach som känner fältet</h5><small>Peter Platshållare · headhunting · 12 fall i branschen</small></div>
+     <div class="card"><h5>Peer med erfarenhet</h5><small>Anonymiserad, med samtycke · "jobbade där 2 år"</small></div>
+     <div class="card"><h5>Mall som passar</h5><small>Varm intro via gemensam kontakt</small></div>
+   </div>
+ </div>
+ <div class="note-real">Verklig söm: raden "känner en coach fältet?" kan bli verklig så fort kompetenstabellen (Coachnätverk) har riktiga rader - etiketterad per sektion.</div>`,
+ flows:[['coachnat','Coachnätverk (samma kompetenstabell)'],['kontakt','Kontaktplan']],
+ notes:['Skärmens jobb: sälja konceptet till HelloLilly och definiera datakontraktet.',
+ 'Fullt interaktiv attrapp - banner på, tills grafdatan finns.']},
+
+/* ================= F. COACH ================= */
+{id:'arende', grp:'F · Coach', title:'Ärendevy', sv:'Case Record · F1', tier:'T1',
+ body:`
+ <div class="wf"><label>Filter</label><div class="chips"><span class="chip on">Allt</span><span class="chip">CV</span><span class="chip">Ansökningar</span><span class="chip">Jobb</span><span class="chip">Research</span><span class="chip">Studieplan</span><span class="chip">Aktivitet</span></div></div>
+ <div class="wf"><label>Kronologisk ryggrad - en levande delad bild, inte en cockpit</label>
+   <div style="font-size:12px;">▪ Idag · Matchanalys körd: Head of Product, Kindred</div>
+   <div style="font-size:12px;">▪ Igår · CV v3 genererat (engelska)</div>
+   <div style="font-size:12px;">▪ Må · Jobb godkänt + research sparad</div>
+   <div class="ln w60"></div><div class="ln w40"></div>
+ </div>
+ <div class="wf"><label>Coachanteckningar</label>
+   <div style="font-size:12px;color:var(--mut);border:1px dashed var(--line);border-radius:6px;padding:8px;">Tom tills en riktig coach finns - synligt och ärligt märkt, aldrig attrapp.</div>
+ </div>`,
+ flows:[['framsteg','Framstegsstöd (samma händelser)'],['ext','Omställning: studie- och finansieringsplaner landar här']],
+ notes:['Det ÄR ärendet - en läsvy över case-delarna, inget nytt datalager.',
+ 'Coachvarianten är samma skärm med en rollflagga, skeppas när pilotcoachen finns.']},
+
+{id:'hubb', grp:'F · Coach', title:'Kunskapshubb', sv:'Knowledge Hub · F2', tier:'T2',
+ body:`
+ <div class="wf"><label>Biblioteket - ärligt antal (6 resurser, inte "320+")</label>
+   <div class="grid3">
+     <div class="card"><h5>PDF · Löneförhandling</h5><small>Status: Godkänd ✓</small></div>
+     <div class="card"><h5>Länk · STAR-metoden</h5><small>Status: Föreslagen</small></div>
+     <div class="card"><h5>Video · LinkedIn-profil</h5><small>Status: Föreslagen</small></div>
+   </div>
+   <span class="btn sec">+ Föreslå resurs</span>
+ </div>
+ <div class="wf"><label>Assistenten under varje resurs - hubbens hela poäng</label>
+   <div class="bub">Vad säger den här videon? Hur använder jag den för min situation?</div>
+   <div class="bub me" style="max-width:50%;"><div class="ln w80" style="margin:2px 0;"></div></div>
+ </div>`,
+ flows:[['ext','Coach godkänner (när pilot finns)'],['aterkoppling','Återkoppling (föreslå &amp; rösta)']],
+ notes:['Litet och ärligt slår stort och falskt - hela HelloLilly-rösten.',
+ 'Godkännandestatus synlig per post; "Föreslagen" är ett ärligt vänteläge, inte ett fejk.']},
+
+{id:'coachnat', grp:'F · Coach', title:'Coachnätverk', sv:'Coach Network · F3', tier:'T4', banner:'demo',
+ body:`
+ <div class="wf"><label>Sök kompetens</label><span class="inp">Fält, gåva eller språk ...</span><div class="chips"><span class="chip">Vård</span><span class="chip">NPF</span><span class="chip">Självförtroende</span><span class="chip">Headhunting</span></div></div>
+ <div class="wf"><label>Attrapp-ensemblen - samma fyra på varje coachskärm</label>
+   <div class="grid2">
+     <div class="card"><h5>Karin Platshållare</h5><small>Har placerat 40 sjuksköterskor · vård &amp; omsorg</small></div>
+     <div class="card"><h5>Jonas Platshållare</h5><small>Autism &amp; ADHD · strukturstöd</small></div>
+     <div class="card"><h5>Amina Platshållare</h5><small>Återuppbygger självförtroende · långtidssökande</small></div>
+     <div class="card"><h5>Peter Platshållare</h5><small>Headhunting &amp; chefsroller</small></div>
+   </div>
+ </div>
+ <div class="note-real">Underliggande kompetenstabellen är VERKLIG struktur. När en pilotcoach fyller i en rad byts en ensemblemedlem ut och bannern åker av - data ändras, inte kod.</div>`,
+ flows:[['natverk','Nätverksmatch (läser samma tabell)'],['granskning','Coachgranskning']],
+ notes:['Ensemblen speglar pappret ordagrant: sjuksköterske-placeraren, NPF-specialisten, självförtroende-coachen, headhuntern.',
+ 'Mänsklig förankring är MVP:ns bevis - frontend byggs fullt ut, etiketten håller den ärlig.']},
+
+{id:'granskning', grp:'F · Coach', title:'Coachgranskning', sv:'Coach Review · F4', tier:'T4',
+ body:`
+ <div class="wf"><label>Begär granskning - detta flöde är VERKLIGT (sparas i lagret)</label>
+   <span class="inp">Välj artefakt: CV v3 ▾</span><span class="inp">Din fråga till coacherna ...</span><span class="btn">Skicka</span>
+ </div>
+ <div class="wf"><label>Svar</label>
+   <span class="sec-label demo">DEMO - EXEMPELDATA</span>
+   <div class="card" style="margin-bottom:6px;"><h5>Karin Platshållare</h5><small>Stödjande, konstruktiv - aldrig dömande. <span class="ln w60" style="display:inline-block;height:8px;"></span></small></div>
+   <div class="card"><h5>Peter Platshållare</h5><small><span class="ln w80" style="display:inline-block;height:8px;"></span></small></div>
+ </div>`,
+ flows:[['coachnat','Coachnätverk'],['arende','Ärendevy (begäran syns där)']],
+ notes:['Blandad skärm gjord ärlig: begäran verklig, svaren etiketterade per sektion.',
+ 'Vippar till verklig med data, inte kod - som allt i F-kategorin.']},
+
+{id:'mote', grp:'F · Coach', title:'Mötesstöd', sv:'Live Support · F5', tier:'T5', banner:'konc',
+ body:`
+ <div class="wf"><label>Koncept-panel - en fryst bild av verktyget mitt i användning</label>
+   <div class="imgph" style="min-height:200px; flex-direction:column; gap:8px;">
+     <div><span class="callout">1</span>Samtyckessteget syns FÖRE allt annat</div>
+     <div><span class="callout">2</span>Transkriptet rullar under mötet</div>
+     <div><span class="callout">3</span>Efteråt: sammanfattning + uppdaterad Ärendevy</div>
+   </div>
+   <div style="font-size:11px;color:var(--mut);margin-top:8px;">Blir verkligt: efter coachpiloten. En bild säljer hela verktyget - och en bild kan inte ljuga om att vara klickbar.</div>
+ </div>`,
+ flows:[['arende','Ärendevy (sammanfattningen landar där)']],
+ notes:['Parkerad bakom coachpiloten - mötesintelligens före ett enda riktigt möte är fel ordning.',
+ 'Whisper självhostat + writer när det byggs; samtycke som post FÖRE någon bearbetning.']},
+
+{id:'aterkoppling', grp:'F · Coach', title:'Återkoppling', sv:'Feedback Loop · F6', tier:'T1',
+ body:`
+ <div class="wf"><label>En riktig omröstning - resultat visas EFTER din röst (aldrig före)</label>
+   <div style="font-weight:600;margin-bottom:6px;">Vilket verktyg hjälpte dig mest denna vecka?</div>
+   <div class="chips"><span class="chip">Intervjuträning</span><span class="chip">Jobbsök</span><span class="chip">CV-byggaren</span></div>
+   <span class="btn">Rösta</span>
+   <div style="font-size:11px;color:var(--mut);margin-top:4px;">Efter röstning: staplarna visas. Före: aldrig - synliga resultat styr rösten (Pulse-regeln).</div>
+ </div>
+ <div class="wf"><label>Förslag &amp; röster</label>
+   <div style="font-size:12px;">▲ 4 · "Kunna exportera CV som docx" <small style="color:var(--mut)">· föreslagen av dig</small></div>
+   <div class="ln w60"></div>
+   <span class="inp" style="width:60%;">Föreslå en förbättring ...</span><span class="btn sec">Skicka</span>
+ </div>`,
+ flows:[['hubb','Kunskapshubb (föreslå resurser)'],['ext','HelloLilly ser var många fastnar']],
+ notes:['Den falska omröstningen från demon dör här, ersatt av EN riktig.',
+ 'Halv dags backend - ren CRUD på lagret.']},
+
+/* ================= G. LEARNING ================= */
+{id:'hive', grp:'G · Lärande', title:'Kunskapssystem', sv:'Knowledge Hive · G1', tier:'T4', banner:'demo',
+ body:`
+ <div class="note-real">VERKLIG rad: Vad kupan redan samlar - <b>1 ärende · 214 aktiviteter · 38 beslut · 12 research-körningar</b> (riktiga antal ur lagret, live). Den enda verkliga raden gör löftet trovärdigt.</div>
+ <div class="wf"><label>Attrapp: vad lagret KOMMER se</label>
+   <div class="grid2">
+     <div class="card"><h5>Råd som föregick placeringar</h5><div class="ln w80"></div><div class="ln w60"></div></div>
+     <div class="card"><h5>Vilket stöd hjälper vilka hinder</h5><div class="ln w80"></div><div class="ln w40"></div></div>
+   </div>
+ </div>`,
+ flows:[['resultat','Resultatmotor'],['framsteg','Framstegsstöd (matar kupan)']],
+ notes:['Pappret självt bygger detta sist (A8) - det KRÄVER ackumulerad verklig användning.',
+ 'Attrapp med banner + en sann sifferrad. Aldrig fejkad analys presenterad som beräknad.']},
+
+{id:'resultat', grp:'G · Lärande', title:'Resultatmotor', sv:'Outcome Engine · G2', tier:'T4', banner:'demo',
+ body:`
+ <div class="wf"><label>Attrapp: kopplingen handling → resultat</label>
+   <div class="grid3">
+     <div class="card"><h5>Aktiviteter → intervjuer</h5><div class="ln w60"></div></div>
+     <div class="card"><h5>Coachinsatser → momentum</h5><div class="ln w60"></div></div>
+     <div class="card"><h5>Vägar → jobb eller utbildning</h5><div class="ln w60"></div></div>
+   </div>
+ </div>
+ <div class="wf"><label>Ton</label><div style="font-size:12px;color:var(--mut);">Aldrig människor reducerade till statistik - organisationen lär sig systematiskt av arbetet som redan görs.</div></div>`,
+ flows:[['hive','Kunskapssystem']],
+ notes:['Samma disciplin som G1: fixtur, banner, vänta på verklig data.']},
+
+/* ================= COMMUNITY + LEVERANS ================= */
+{id:'community', grp:'Community & leverans', title:'Community', sv:'Forum, peers, vouching', tier:'T4', banner:'demo',
+ body:`
+ <div class="wf"><label>En tråd</label>
+   <div class="card" style="margin-bottom:6px;"><h5>Hur hanterar ni tystnad efter andra intervjun?</h5><small>7 svar · senast idag</small></div>
+   <div class="bub"><div class="ln w80" style="margin:2px 0;"></div></div>
+ </div>
+ <div class="wf"><label>Peer-berättelse + vouching</label>
+   <div class="grid2">
+     <div class="card"><h5>"Så tog jag mig ur efter 14 månader"</h5><small>Berättelse, delad med samtycke</small></div>
+     <div class="card"><h5>Jag känner en snickare</h5><small>Intro, referens, ärlig åsikt - inkubator-mekaniken</small></div>
+   </div>
+ </div>`,
+ flows:[['hubb','Kunskapshubb'],['ext','Senare beslut: open source-forum vs eget (INTE nu)']],
+ notes:['En skärm som köper tid: visionen demonstreras, beslutet Discourse/NodeBB vs eget skjuts medvetet.',
+ 'OnlyiGaming-lärdomen: ett community-lager är en egen produkt - underskatta aldrig.']},
+
+{id:'pwa', grp:'Community & leverans', title:'Telefonen (PWA)', sv:'H2', tier:'T2',
+ body:`
+ <div class="wf"><label>Installerbar webb - appkänsla utan appbutik</label>
+   <div style="display:flex; gap:14px; align-items:flex-start;">
+     <div class="imgph" style="width:150px;min-height:260px;">Hemskärms-ikon<br>+ helskärm</div>
+     <div style="flex:1;">
+       <div class="card" style="margin-bottom:8px;"><h5>Påminnelse (i appen)</h5><small>"Din uppföljning till Bonnier är idag"</small></div>
+       <div class="card"><h5>Samma en-sak-just-nu</h5><small>Hela huben, responsiv - mallarna ger det gratis</small></div>
+     </div>
+   </div>
+   <div style="font-size:11px;color:var(--mut);margin-top:8px;">Nativ app: bara om verklig användning kräver något PWA:n inte kan. Pappret säger själv: responsiv webb räcker för start.</div>
+ </div>`,
+ flows:[['hem','Hem'],['framsteg','Framstegsstöd (påminnelserna)']],
+ notes:['Push-notiser skjuts upp; påminnelseytan i appen först.',
+ 'Mest värde per timme i hela plan-svansen: manifest + installbarhet på befintlig responsivitet.']},
+];
+
+/* built / in-flight items shown in nav for orientation */
+const BUILT = [
+ {title:'Jobbsök', tag:'TB'},{title:'Matchanalys', tag:'TC'},{title:'CV-byggaren', tag:'TC'},
+ {title:'Personligt brev', tag:'TC'},{title:'Ansökningskoll', tag:'TC'},{title:'Omställning (egen plan M0-M8)', tag:'TB'}
+];
+
+const GROUPS = ['Nav & hem','A · Utförande','B · Möjligheter','D · Förberedelse','E · Nätverk','F · Coach','G · Lärande','Community & leverans'];
+
+const nav = document.getElementById('nav');
+GROUPS.forEach(g=>{
+  const d=document.createElement('div'); d.className='nav-grp';
+  d.innerHTML=`<span>${g}</span>`+SCREENS.filter(s=>s.grp===g).map(s=>
+    `<button class="nav-item" data-id="${s.id}">${s.title} ${T[s.tier]}</button>`).join('');
+  nav.appendChild(d);
+});
+const df=document.createElement('div'); df.className='nav-grp';
+df.innerHTML='<span>Redan planerat (frontieren)</span>'+BUILT.map(b=>`<div class="nav-item dead">${b.title} ${T[b.tag]}</div>`).join('');
+nav.appendChild(df);
+
+const stage=document.getElementById('stage');
+function show(id){
+  const s=SCREENS.find(x=>x.id===id)||SCREENS[0];
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('on', b.dataset.id===s.id));
+  const tierNames={T1:'T1 REAL - fungerar på riktigt',T2:'T2 WIRED-THIN - verklig funktion, medvetet smal',T3:'T3 SHORTCUT - open source/genväg bakom vår UI',T4:'T4 LABELLED DEMO - attrapp med banner',T5:'T5 KONCEPT-PANEL - en bild, ingen skärm'};
+  stage.innerHTML=`
+   <div class="screen-head"><h2>${s.title}</h2><span class="sv">${s.sv}</span>${T[s.tier]}</div>
+   <div class="tierline">${tierNames[s.tier]}</div>
+   ${s.banner==='demo'?BD:s.banner==='konc'?BK:''}
+   <div class="frame">${s.body}</div>
+   <div class="flows"><b>Korslänkar:</b> ${s.flows.map(f=>f[0]==='ext'?`<span class="flowchip ext">${f[1]}</span>`:`<span class="flowchip" data-go="${f[0]}">→ ${f[1]}</span>`).join('')}</div>
+   <div class="uxnotes"><h4>UX-beslut &amp; öppna frågor</h4><ul>${s.notes.map(n=>`<li>${n}</li>`).join('')}</ul></div>`;
+  stage.querySelectorAll('[data-go]').forEach(c=>c.onclick=()=>show(c.dataset.go));
+  window.scrollTo(0,0);
+}
+document.querySelectorAll('.nav-item[data-id]').forEach(b=>b.onclick=()=>show(b.dataset.id));
+show('hem');
+</script>
+</body>
+</html>
