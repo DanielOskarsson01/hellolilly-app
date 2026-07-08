@@ -6,9 +6,9 @@
 **Spec:** `docs/superpowers/specs/2026-07-08-innan-du-skickar-presend-design.md` · **Plan:** `docs/superpowers/plans/2026-07-08-innan-du-skickar-presend.md`
 
 ## Result
-- **Tests:** baseline 201 pass on `main`; final **220 pass / 0 fail / 1 skipped** (1 pre-existing env-conditional skip). **Fresh-clone holds** — the suite passes with **no `node_modules`** (220/0), so a clean checkout is green.
-- **Execution:** subagent-driven, 8 tasks (Task 1 dropped in pre-flight — see below), fresh implementer + independent task reviewer per task, plus a final whole-branch review (verdict: *ready to merge with Minor fixes; no Critical/Important*).
-- **11 commits** on the branch: `719b0d9` (spec+plan) → `74ec8d2` (screen fix). No merge.
+- **Tests:** baseline 201 pass on `main`; final **221 pass / 0 fail / 1 skipped** (1 pre-existing env-conditional skip; includes the two post-review honesty fixes below). **Fresh-clone holds** — the suite passes with **no `node_modules`**, so a clean checkout is green.
+- **Execution:** subagent-driven, 8 tasks (Task 1 dropped in pre-flight — see below), fresh implementer + independent task reviewer per task, a final whole-branch review (verdict: *ready to merge with Minor fixes; no Critical/Important*), then **two honesty fixes applied + independently reviewed** (findings §ns 1–2 below).
+- Branch tip after fixes: `551bad6`. Spec+plan at `719b0d9`. No merge.
 
 ## What shipped
 - **4 pure client logic modules** (`src/lib/`), each with co-located `node --test` tests: `presendCoverage` (Part 1), `presendKeywords` (scan + basis-finder), `presendReadiness` (tone), `presendLetterFit`.
@@ -29,10 +29,10 @@
 ## Honesty invariants (final review confirmed all hold)
 Draft-coverage is a real DRAFT read (not the bank); the server align guardrail is unbypassable and truth-preserving/reversible; no number/percentage; letter-fit never fabricates (`addressed` is `null` where undeterminable, real `unsupported_by_cv` surfaced); §0 distinction preserved (the `.presubj` strip, draft-vs-background framing, every fix links OUT to `#match`, no fill-gap loop); ephemeral except the explicit align; `#ansokningskoll` untouched.
 
-## Final-review findings (all Minor — your triage; NOT yet actioned)
-1. **Server-side term↔basis relatedness is not enforced** (`keyword-judge.cjs`). The server guards `datafactRef`-preservation + reversibility, but the check that the *term* relates to the basis fact's text lives only in the **client** basis-finder. A direct API caller could pair an unrelated `term` with a referenced basis and get it appended. The underlying claim (`datafactRef`) stays true and reversible, so the stated invariant holds — but if the server is meant to be the *sole* unbypassable honesty gate, it should also require lexical overlap between `term` and the basis fact. **Decision needed:** accept-with-comment (client pre-filter is the relatedness gate; server guards the truth-link) **or** add server-side overlap enforcement. *Recommendation: add the server-side check — it directly honors "enforced where it can't be bypassed."*
-2. **Align errors render as honesty refusals** (`presend.jsx` align `catch`). A network/500 shows the same "we won't add that word — your CV doesn't support it" copy as a genuine truth-based refusal. Cheap fix: a distinct `error` UI state. *Recommendation: fix (small honesty-of-UX improvement).*
-3. `presendCoverage` `else`→`missing` fallthrough lacks a clarifying comment (maintainability).
+## Final-review findings + dispositions
+1. **[FIXED — `bf289db`] Server-side term↔basis relatedness enforced.** `applyAlign` now refuses unless ≥1 token (≥3 chars) of `term` is a substring of the basis datafact's text — a rule byte-identical to the client `findBasis`, sitting in the only path to the write. Closes the API bypass hole (the endpoint smoke test's aligned case had used an *unrelated* term that only passed because the check didn't exist; corrected to a related pair). Independently reviewed: guardrail holds server-side, nothing weakened.
+2. **[FIXED — `551bad6`] Align errors no longer render as honesty refusals.** A thrown/transport failure now sets a distinct `error` row state with neutral, retryable copy ("Något gick fel — det gick inte att spara just nu. Försök igen.") — never the truth-based "your CV doesn't support it." The genuine judge-returned `refused` path is untouched; tokens-only CSS. Independently reviewed.
+3. `presendCoverage` `else`→`missing` fallthrough lacks a clarifying comment (maintainability — left for independent review).
 4. Design-faithful raw hex text-colors + some raw px in the CSS block (no exact token equivalents; documented ports).
 5. A now-dead defensive `else` branch in `presend.jsx` after the `coreReady` guard (harmless).
 
