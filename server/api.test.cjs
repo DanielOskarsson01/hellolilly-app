@@ -445,15 +445,19 @@ test('POST /cv/align-keyword aligned round-trip: ok:true + term persisted in cvD
   const { host, caseId } = alignKeywordFixture();
   const handle = createApiHandler(host, { preferencesPath: null, llm: null });
   const res = mockRes();
-  await handle(makeReq('POST', `/api/case/${caseId}/cv/align-keyword`, { term: 'Scrum', basisDatafactId: 'datafact_k1' }), res);
+  // 'agile' is a token of 'agile transformation' (length >= 3) and is a substring of the
+  // basis datafact text 'Led agile transformation across three squads.' — lexically related,
+  // so the server relatedness guard passes and the term is aligned. (Changed from 'Scrum'
+  // which has no token overlap with the basis text and would correctly be refused.)
+  await handle(makeReq('POST', `/api/case/${caseId}/cv/align-keyword`, { term: 'agile transformation', basisDatafactId: 'datafact_k1' }), res);
   assert.equal(res._status, 200);
   assert.equal(res._body.ok, true);
   assert.equal(res._body.result.outcome, 'aligned');
-  assert.equal(res._body.result.term, 'Scrum');
+  assert.equal(res._body.result.term, 'agile transformation');
   // term must be persisted in the stored cvDraft in the EXACT case supplied
   const updated = host.store.getCase(caseId);
   const itemText = updated.cvDraft.data.sections[0].items[0].text;
-  assert.ok(itemText.includes('Scrum'), `expected 'Scrum' (exact case) in "${itemText}"`);
+  assert.ok(itemText.includes('agile transformation'), `expected 'agile transformation' in "${itemText}"`);
 });
 
 test('POST /cv/align-keyword refused round-trip: ok:false + nothing written', async () => {

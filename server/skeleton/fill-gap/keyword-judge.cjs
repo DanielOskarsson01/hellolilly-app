@@ -67,6 +67,19 @@ async function applyAlign(store, { caseId, term, basisDatafactId }) {
     return { outcome: 'aligned', term, datafactId: basisDatafactId };
   }
 
+  // Guard 5: the term must be lexically related to the basis datafact's text.
+  // Mirrors the client-side findBasis() in src/lib/presendKeywords.mjs exactly:
+  //   tokens = term.toLowerCase().split(/\W+/).filter(t => t.length >= 3)
+  //   related iff toks.some(tok => basisText.toLowerCase().includes(tok))
+  // This closes the server-side bypass hole: a direct API caller cannot align an
+  // unrelated term onto a valid-but-referenced basis.
+  const termTokens = term.toLowerCase().split(/\W+/).filter((t) => t.length >= 3);
+  const basisText = String(basis.text || '').toLowerCase();
+  const isRelated = termTokens.some((tok) => basisText.includes(tok));
+  if (!isRelated) {
+    return refuse("That term isn't supported by the referenced fact.");
+  }
+
   // Append the ad term conservatively. No LLM — deterministic, reversible.
   const aligned = `${target.text} (${term})`;
 

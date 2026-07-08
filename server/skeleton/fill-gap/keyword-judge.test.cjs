@@ -62,6 +62,17 @@ test('a false "alignable" pointing at a non-existent datafact → refused (canno
   assert.equal(res.outcome, 'refused');
 });
 
+test('unrelated term against valid in-draft basis → refused, NOTHING written (relatedness guardrail)', async () => {
+  // The basis datafact text is about affiliates/marketing. 'Kubernetes' shares no token
+  // (length >= 3) with that text — server must refuse, not align.
+  const s = fixtureStore();
+  const before = s._read().text;
+  const res = await applyAlign(s, { caseId: 'c1', term: 'Kubernetes', basisDatafactId: 'df_aff' });
+  assert.equal(res.outcome, 'refused', 'unrelated term must be refused');
+  assert.match(res.reason, /support|fact|related|term/i, 'reason mentions the guardrail');
+  assert.equal(s._read().text, before, 'nothing written on refuse');
+});
+
 test('idempotent: term already present → aligned outcome, no double-append, priorText not overwritten', async () => {
   const s = fixtureStore();
   // First align to inject the term.
