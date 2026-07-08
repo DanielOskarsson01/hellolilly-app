@@ -16,7 +16,7 @@ export function computeDraftCoverage({ fit, cvDraft, decodedRole }) {
     if (r.status === 'match' && evId && cvIds.has(evId)) status = 'answered';
     else if (r.status === 'match') status = 'weak';        // in the bank, not used by the draft
     else if (r.status === 'partial') status = 'weak';
-    else status = 'missing';
+    else status = 'missing';        // 'missing', and the fallthrough for any unrecognised fit.status
     const traced = status === 'answered' ? cvItems.find(i => i.datafactRef && i.datafactRef.id === evId) : null;
     return {
       reqId,

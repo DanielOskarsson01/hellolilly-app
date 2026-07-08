@@ -67,7 +67,7 @@ async function applyAlign(store, { caseId, term, basisDatafactId }) {
     return { outcome: 'aligned', term, datafactId: basisDatafactId };
   }
 
-  // Guard 5: the term must be lexically related to the basis datafact's text.
+  // Guard 4: the term must be lexically related to the basis datafact's text.
   // Mirrors the client-side findBasis() in src/lib/presendKeywords.mjs exactly:
   //   tokens = term.toLowerCase().split(/\W+/).filter(t => t.length >= 3)
   //   related iff toks.some(tok => basisText.toLowerCase().includes(tok))
@@ -83,7 +83,7 @@ async function applyAlign(store, { caseId, term, basisDatafactId }) {
   // Append the ad term conservatively. No LLM — deterministic, reversible.
   const aligned = `${target.text} (${term})`;
 
-  // Guard 4: the aligned wording must pass the writing-rules honesty gate.
+  // Guard 5: the aligned wording must pass the writing-rules honesty gate.
   // check() returns { ok: boolean, violations: Array<{ phrase, snippet }> }.
   const gate = check({ text: aligned });
   if (!gate.ok) {
