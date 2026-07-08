@@ -63,7 +63,7 @@ function CheckedState({ parts, actions }) {
   const letter = computeLetterFit({ coverLetter: parts.coverLetter, decodedRole: parts.decodedRole });
   const readiness = computeReadiness({ coverage, keyword: kw, letter });
 
-  // Per-keyword UI state: { [term]: 'idle'|'busy'|'aligned'|'refused' }
+  // Per-keyword UI state: { [term]: 'idle'|'busy'|'aligned'|'refused'|'error' }
   const [kwState, setKwState] = React.useState({});
 
   const alignKeyword = async (m) => {
@@ -73,8 +73,8 @@ function CheckedState({ parts, actions }) {
       const r = await actions.alignKeyword({ term: m.term, basisDatafactId: m.basisDatafactId });
       setKwState((s) => ({ ...s, [key]: r.outcome }));
     } catch (_) {
-      // If the action throws, treat as refused
-      setKwState((s) => ({ ...s, [key]: 'refused' }));
+      // Transport/server failure — NOT a truth judgment about the CV
+      setKwState((s) => ({ ...s, [key]: 'error' }));
     }
   };
 
@@ -287,7 +287,7 @@ function CheckedState({ parts, actions }) {
               const st = kwState[key] || 'idle';
               return (
                 <div
-                  className={`kw ${st === 'aligned' ? 'kw--aligned' : ''} ${st === 'refused' ? 'kw--refused' : ''}`}
+                  className={`kw ${st === 'aligned' ? 'kw--aligned' : ''} ${st === 'refused' ? 'kw--refused' : ''} ${st === 'error' ? 'kw--error' : ''}`}
                   key={i}
                 >
                   <div className="kw__pair">
@@ -322,6 +322,20 @@ function CheckedState({ parts, actions }) {
                           <Icon name="target" size={13} sw={2.4} />
                           {tr({ sv: 'Bryggan i Matchanalys', en: 'The bridge in Match analysis' })}
                         </a>
+                      </div>
+                    </div>
+                  ) : st === 'error' ? (
+                    <div className="kw__res kw__res--error">
+                      <Icon name="refresh" size={17} sw={2.4} />
+                      <div className="kw__resbody">
+                        <b>{tr({ sv: 'Något gick fel', en: 'Something went wrong' })}</b>
+                        {tr({ sv: 'Det gick inte att spara just nu. Försök igen.', en: "Couldn't save just now. Try again." })}
+                        <button
+                          className="kw__retrylink"
+                          onClick={() => alignKeyword(m)}
+                        >
+                          {tr({ sv: 'Försök igen', en: 'Try again' })}
+                        </button>
                       </div>
                     </div>
                   ) : (
