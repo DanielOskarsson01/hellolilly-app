@@ -4047,3 +4047,218 @@ body.ll-template { background: var(--ll-cream); }
   .cvrev__rail { position: static; }
 }
 .flag__done { display: inline-flex; align-items: center; gap: 5px; font-size: var(--fs-xs); color: var(--ll-green); font-weight: var(--fw-semibold); }
+
+/* ============================================================
+   HelloLilly — Innan du skickar (pre-send fit-check)
+   Ported from design/handoff-presend/design/ll-presend.css.
+   Tokens-only (no raw hex). .presend-harness OMITTED (design-review only).
+   Token mappings vs design source:
+     #F4FBF7 → var(--ll-green-soft)   (light-green aligned bg)
+     #FFF9F6 → var(--ll-coral-soft)   (light-coral refused bg)
+   ============================================================ */
+
+/* ---------- What we're reading — the DRAFT under review ---------- */
+.presubj {
+  display: flex; gap: var(--sp-4); align-items: center; flex-wrap: wrap;
+  padding: var(--sp-3) var(--sp-4); margin-bottom: var(--sp-4);
+  background: var(--ll-blue-tint-2); border: 1px solid var(--ll-border);
+  border-radius: var(--r-md);
+}
+.presubj__lead { display: flex; align-items: center; gap: var(--sp-2); flex: 0 0 auto; }
+.presubj__lead-l { font-family: var(--font-display); font-weight: var(--fw-bold); font-size: var(--fs-xs); color: var(--ll-ink-mute); text-transform: uppercase; letter-spacing: .06em; }
+.presubj__docs { display: flex; gap: var(--sp-2); flex-wrap: wrap; flex: 0 0 auto; }
+.predoc {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 6px 12px; border-radius: var(--r-pill);
+  background: var(--ll-white); border: 1px solid var(--ll-border);
+  font-family: var(--font-display); font-weight: var(--fw-bold); font-size: var(--fs-sm); color: var(--ll-ink);
+}
+.predoc svg { color: var(--ll-blue); flex: 0 0 auto; }
+.predoc__tag { font-size: var(--fs-2xs); font-weight: var(--fw-bold); color: var(--ll-green); background: var(--ll-green-soft); padding: 1px 7px; border-radius: var(--r-pill); }
+.presubj__contrast { flex: 1 1 260px; min-width: 240px; font-size: var(--fs-sm); color: var(--ll-ink-soft); line-height: var(--lh-normal); }
+.presubj__contrast b { color: var(--ll-ink); font-weight: var(--fw-bold); }
+.presubj__contrast .presubj__ex { color: var(--ll-blue); font-weight: var(--fw-bold); text-decoration: none; }
+.presubj__contrast .presubj__ex:hover { text-decoration: underline; }
+
+/* ---------- Send-readiness band (top of the checked state)
+   Deliberately withholds a number. A qualitative status + the honesty line,
+   in the spirit of Matchanalys refusing a match-% before analysis. ---------- */
+.rband {
+  display: flex; gap: var(--sp-5); align-items: flex-start; flex-wrap: wrap;
+}
+.rband__lead { display: flex; gap: var(--sp-4); align-items: center; flex: 1 1 320px; min-width: 280px; }
+.rband__ic {
+  width: 60px; height: 60px; border-radius: var(--r-md); flex: 0 0 auto;
+  display: grid; place-items: center;
+}
+.rband__b { min-width: 0; }
+.rband__eyebrow {
+  font-family: var(--font-display); font-weight: var(--fw-bold);
+  font-size: var(--fs-2xs); letter-spacing: var(--tracking-eyebrow, .07em);
+  text-transform: uppercase; color: var(--ll-ink-mute); margin-bottom: 4px;
+}
+.rband__status {
+  font-family: var(--font-display); font-weight: var(--fw-black);
+  font-size: var(--fs-2xl); line-height: var(--lh-tight);
+  letter-spacing: var(--tracking-tight); margin: 0;
+}
+.rband__sub { font-size: var(--fs-sm); color: var(--ll-ink-soft); line-height: var(--lh-normal); margin-top: 6px; max-width: 46ch; }
+
+/* tone: ready (green) · almost (amber) · work (coral) */
+.rband--ready  .rband__ic { background: var(--ll-green-soft); color: var(--ll-green); }
+.rband--ready  .rband__status { color: #1c7a48; }
+.rband--almost .rband__ic { background: var(--ll-amber-soft); color: #b07212; }
+.rband--almost .rband__status { color: #9a5f0e; }
+.rband--work   .rband__ic { background: var(--ll-coral-soft); color: var(--ll-coral); }
+.rband--work   .rband__status { color: #b5421f; }
+
+/* at-a-glance mini checklist on the right of the band */
+.rband__glance { display: grid; gap: var(--sp-2); flex: 0 1 300px; min-width: 240px; }
+.rgl {
+  display: flex; align-items: center; gap: var(--sp-2);
+  font-size: var(--fs-sm); color: var(--ll-ink);
+  padding: var(--sp-2) var(--sp-3); border-radius: var(--r-sm); background: var(--ll-blue-tint-2);
+}
+.rgl__ic { flex: 0 0 auto; display: grid; place-items: center; }
+.rgl__ic--ok   { color: var(--ll-green); }
+.rgl__ic--warn { color: #b07212; }
+.rgl__ic--info { color: var(--ll-blue); }
+.rgl__t { flex: 1; min-width: 0; }
+.rgl__v { font-weight: var(--fw-bold); white-space: nowrap; }
+
+/* ---------- The honesty line — the feature, made unmissable ---------- */
+.honestline {
+  display: flex; gap: var(--sp-3); align-items: flex-start;
+  margin-top: var(--sp-4); padding: var(--sp-3) var(--sp-4);
+  background: var(--ll-blue-tint); border-radius: var(--r-sm);
+  border-left: 3px solid var(--ll-blue);
+}
+.honestline svg { flex: 0 0 auto; color: var(--ll-blue); margin-top: 1px; }
+.honestline__b { font-size: var(--fs-sm); color: var(--ll-ink); line-height: var(--lh-normal); }
+.honestline__b b { color: var(--ll-blue-deep); }
+
+/* ---------- Coverage summary strip (requirement coverage header) ---------- */
+.cov { margin: 0 0 var(--sp-4); }
+.cov__top { display: flex; align-items: baseline; gap: var(--sp-2); flex-wrap: wrap; }
+.cov__count { font-family: var(--font-display); font-weight: var(--fw-black); font-size: var(--fs-xl); color: var(--ll-blue-deep); letter-spacing: var(--tracking-tight); }
+.cov__count .num { color: var(--ll-green); }
+.cov__label { font-size: var(--fs-sm); color: var(--ll-ink-soft); }
+.cov__bar { display: flex; height: 10px; border-radius: var(--r-pill); overflow: hidden; margin-top: var(--sp-3); background: var(--ll-border); gap: 2px; }
+.cov__seg { height: 100%; }
+.cov__seg--answered { background: var(--ll-green); }
+.cov__seg--weak { background: var(--ll-amber); }
+.cov__seg--missing { background: var(--ll-coral); }
+.cov__legend { display: flex; gap: var(--sp-4); flex-wrap: wrap; margin-top: var(--sp-3); }
+.cov__leg { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-xs); color: var(--ll-ink-soft); font-weight: var(--fw-semibold); }
+.cov__dot { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; }
+.cov__dot--answered { background: var(--ll-green); }
+.cov__dot--weak { background: var(--ll-amber); }
+.cov__dot--missing { background: var(--ll-coral); }
+
+/* requirement-coverage rows reuse .caprow; add the missing-status icon + tags */
+.caprow__ic--missing { background: var(--ll-coral-soft); color: var(--ll-coral); }
+.caprow__ic--answered { background: var(--ll-green-soft); color: var(--ll-green); }
+.caprow__ic--weak { background: var(--ll-amber-soft); color: #b07212; }
+.caprow__wt {
+  display: inline-block; margin-left: 8px; font-size: var(--fs-2xs); font-weight: var(--fw-bold);
+  color: var(--ll-ink-mute); vertical-align: middle;
+}
+.caprow__lack { font-size: var(--fs-sm); color: var(--ll-ink-soft); line-height: var(--lh-normal); margin-top: 2px; }
+.caprow__fix {
+  display: inline-flex; align-items: center; gap: 5px; margin-top: 8px;
+  font-family: var(--font-display); font-weight: var(--fw-bold); font-size: var(--fs-sm);
+  color: var(--ll-blue); background: none; border: none; padding: 0; cursor: pointer; text-decoration: none;
+}
+.caprow__fix:hover { color: var(--ll-blue-strong); text-decoration: underline; }
+.reqtag {
+  flex: 0 0 auto; align-self: flex-start; font-size: var(--fs-2xs); font-weight: var(--fw-bold);
+  padding: 3px 9px; border-radius: var(--r-pill); white-space: nowrap;
+}
+.reqtag--answered { background: var(--ll-green-soft); color: #1c7a48; }
+.reqtag--weak { background: var(--ll-amber-soft); color: #9a5f0e; }
+.reqtag--missing { background: var(--ll-coral-soft); color: #b5421f; }
+
+/* ---------- Keyword alignment (CV ONLY) ---------- */
+.kw-scope {
+  display: flex; gap: var(--sp-2); align-items: center;
+  font-size: var(--fs-xs); font-weight: var(--fw-bold); color: var(--ll-blue-deep);
+  background: var(--ll-blue-tint-2); border-radius: var(--r-sm);
+  padding: var(--sp-2) var(--sp-3); margin-bottom: var(--sp-3);
+}
+.kw-scope svg { color: var(--ll-blue); flex: 0 0 auto; }
+.kw { border: 1px solid var(--ll-border); border-radius: var(--r-sm); padding: var(--sp-4); background: var(--ll-white); }
+.kw + .kw { margin-top: var(--sp-3); }
+/* Token mappings: #F4FBF7 → var(--ll-green-soft); #FFF9F6 → var(--ll-coral-soft) */
+.kw--aligned { border-color: var(--ll-green); background: var(--ll-green-soft); }
+.kw--refused { border-color: var(--ll-coral); background: var(--ll-coral-soft); }
+.kw--error  { border-color: var(--ll-border-strong); background: var(--ll-blue-tint-2); }
+.kw__pair { display: flex; gap: var(--sp-2); align-items: center; flex-wrap: wrap; }
+.kw__term {
+  font-family: var(--font-display); font-weight: var(--fw-bold); font-size: var(--fs-base);
+  color: var(--ll-ink); padding: 3px 10px; border-radius: var(--r-xs);
+  background: var(--ll-blue-tint); border: 1px solid var(--ll-border);
+}
+.kw__arrow { color: var(--ll-ink-mute); flex: 0 0 auto; }
+.kw__cv { font-size: var(--fs-sm); color: var(--ll-ink-soft); }
+.kw__cv b { color: var(--ll-ink); font-weight: var(--fw-bold); }
+.kw__why { font-size: var(--fs-sm); color: var(--ll-ink-soft); line-height: var(--lh-normal); margin: var(--sp-2) 0 var(--sp-3); }
+.kw__acts { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; }
+.kw__res {
+  display: flex; gap: var(--sp-2); align-items: flex-start;
+  padding: var(--sp-3); border-radius: var(--r-sm); margin-top: var(--sp-3);
+  font-size: var(--fs-sm); line-height: var(--lh-normal);
+}
+.kw__res--ok { background: var(--ll-green-soft); color: #1c7a48; }
+.kw__res--refused { background: var(--ll-coral-soft); color: #b5421f; }
+.kw__res--error { background: var(--ll-blue-tint-2); color: var(--ll-ink-soft); border: 1px solid var(--ll-border-strong); }
+.kw__res svg { flex: 0 0 auto; margin-top: 1px; }
+.kw__res b { display: block; font-weight: var(--fw-extrabold); }
+.kw__resbody { min-width: 0; }
+.kw__retrylink {
+  display: inline-block; margin-top: 6px;
+  font-family: var(--font-display); font-weight: var(--fw-bold); font-size: var(--fs-sm);
+  color: var(--ll-blue); background: none; border: none; padding: 0; cursor: pointer; text-decoration: underline;
+}
+.kw__retrylink:hover { color: var(--ll-blue-deep); }
+.kw__reflink {
+  display: inline-flex; align-items: center; gap: 5px; margin-top: 6px;
+  font-family: var(--font-display); font-weight: var(--fw-bold); font-size: var(--fs-sm);
+  color: var(--ll-blue); text-decoration: none;
+}
+.kw__reflink:hover { text-decoration: underline; }
+
+/* ---------- Cover-letter requirement-fit (NOT keyword) ---------- */
+.lfit-note {
+  display: flex; gap: var(--sp-3); align-items: flex-start;
+  padding: var(--sp-3) var(--sp-4); border-radius: var(--r-sm);
+  background: var(--ll-lilac-soft); margin-bottom: var(--sp-4);
+}
+.lfit-note svg { flex: 0 0 auto; color: var(--ll-lilac); margin-top: 1px; }
+.lfit-note__b { font-size: var(--fs-sm); color: var(--ll-ink); line-height: var(--lh-normal); }
+.lfit-note__b b { color: var(--ll-blue-deep); }
+.lfit { display: grid; gap: 0; }
+.lrow { display: flex; gap: var(--sp-3); padding: var(--sp-3) 0; border-top: 1px solid var(--ll-border); align-items: flex-start; }
+.lrow:first-of-type { border-top: none; }
+.lrow__ic { width: 24px; height: 24px; border-radius: 50%; flex: 0 0 auto; display: grid; place-items: center; }
+.lrow__ic--yes { background: var(--ll-green-soft); color: var(--ll-green); }
+.lrow__ic--no  { background: var(--ll-amber-soft); color: #b07212; }
+.lrow__b { flex: 1; min-width: 0; }
+.lrow__t { font-family: var(--font-display); font-weight: var(--fw-bold); font-size: var(--fs-base); color: var(--ll-ink); }
+.lrow__q { font-size: var(--fs-sm); color: var(--ll-ink-soft); line-height: var(--lh-normal); margin-top: 2px; font-style: italic; }
+.lrow__miss { font-size: var(--fs-sm); color: var(--ll-ink-soft); line-height: var(--lh-normal); margin-top: 2px; }
+
+/* the letter's own honesty flag (unsupported_by_cv) */
+.lflag {
+  display: flex; gap: var(--sp-3); align-items: flex-start; margin-top: var(--sp-4);
+  padding: var(--sp-3) var(--sp-4); border-radius: var(--r-sm);
+  background: var(--ll-amber-soft); border-left: 3px solid var(--ll-amber);
+}
+.lflag svg { flex: 0 0 auto; color: #b07212; margin-top: 1px; }
+.lflag__b { font-size: var(--fs-sm); color: var(--ll-ink); line-height: var(--lh-normal); }
+.lflag__b b { color: #9a5f0e; }
+
+/* ---------- Footer next-steps row ---------- */
+.presend-foot {
+  display: flex; gap: var(--sp-3); align-items: center; flex-wrap: wrap;
+}
+.presend-foot__note { font-size: var(--fs-xs); color: var(--ll-ink-mute); flex: 1 1 220px; min-width: 200px; }

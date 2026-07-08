@@ -77,6 +77,7 @@ export function useCase(caseId) {
       generate: wrap('generate', () => caseApi.generate(caseId)),
       answerGap: wrap('answerGap', (gapId, payload) => caseApi.answerGap(caseId, gapId, payload)),
       saveLetterDraft: wrap('saveLetterDraft', (payload) => caseApi.saveCoverLetterDraft(caseId, payload)),
+      alignKeyword: wrap('alignKeyword', (payload) => caseApi.alignKeyword(caseId, payload)),
     };
   }, [caseId]);
 

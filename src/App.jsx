@@ -15,6 +15,7 @@ import { Community } from './screens/community.jsx';
 import { JobSearch } from './screens/jobSearch.jsx';
 import { HelpfulNow } from './components/helpfulNow.jsx';
 import { HelpfulLayover } from './components/helpfulLayover.jsx';
+import { InnanDuSkickar } from './screens/presend.jsx';
 
 const LL_ROUTES = {
   home: { c: () => <HomeExpanded />, title: 'Hem' },
@@ -28,6 +29,7 @@ const LL_ROUTES = {
   coach: { c: () => <CoachWorkspace />, title: 'Coachvy' },
   jobbsok: { c: () => <JobSearch />, title: 'Jobbsök', template: true },
   match: { c: () => <JobMatchReview />, title: 'Matchanalys', template: true },
+  'innan-du-skickar': { c: () => <InnanDuSkickar />, title: 'Innan du skickar', template: true },
   calendar: { c: () => <CalendarView />, title: 'Kalender' },
   community: { c: () => <Community />, title: 'Community' },
 };

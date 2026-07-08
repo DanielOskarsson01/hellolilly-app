@@ -25,8 +25,9 @@ const NAV_GROUPS = [
   { id:'ansok',    label:'Ansök',     icon:'pen',       items: [
     { id:'cv',             label:'CV-byggare' },
     { id:'letter',         label:'Personligt brev' },
-    { id:'ansokningskoll', label:'Ansökningskoll' },
-    { id:'review',         label:'Coachgranskning' },
+    { id:'ansokningskoll',    label:'Ansökningskoll' },
+    { id:'innan-du-skickar', label:'Innan du skickar' },
+    { id:'review',            label:'Coachgranskning' },
     { id:'studio',         label:'Bildstöd' },
   ]},
   { id:'intervju', label:'Intervju',  icon:'mic',       items: [

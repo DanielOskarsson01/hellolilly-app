@@ -154,6 +154,12 @@ const TOOL_SPECS = {
     does:['Finds missing keywords', 'Flags weakly answered requirements', 'Shows what to improve before sending'],
     inputs:['Job advert', 'CV', 'Cover letter'], outputs:['Checklist', 'Gap fixes', 'Send readiness'],
   },
+  'innan-du-skickar': {
+    phase:'Foundation', problem:'Relevance', title:'Innan du skickar', sv:'Innan du skickar',
+    why:'An honest pre-send fit-check of your finished draft — not a promise about ATS or employer decisions.',
+    does:['Checks requirement coverage in the CV draft', 'Spots literal keyword gaps (CV only)', 'Gives qualitative send-readiness without a score'],
+    inputs:['CV draft', 'Cover letter draft', 'Job advert'], outputs:['Coverage read', 'Keyword gaps', 'Send-readiness tone'],
+  },
   activity: {
     phase:'Foundation', problem:'Confidence + reporting', title:'Progress Support / My Activity', sv:'Framstegsstod / Min aktivitet',
     why:'Logs real work automatically and makes reporting supportive instead of stressful.',
