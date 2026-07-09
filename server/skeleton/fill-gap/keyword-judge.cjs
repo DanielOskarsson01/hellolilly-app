@@ -96,16 +96,19 @@ async function applyAlign(store, llm, { caseId, term, basisDatafactId }) {
   // Guard 4: the term must genuinely relate to the basis datafact — enforced server-side
   // so a direct API caller cannot align an unrelated term onto a valid-but-referenced basis.
   //
-  // Lexical overlap is a CONSERVATIVE PRE-FILTER, never the sole test: a token (>=3 chars)
-  // of the term appearing in the basis text is a high-confidence "related" signal, so we
-  // fast-accept and skip the LLM. Absence of overlap is NOT proof of unrelatedness — a term
-  // can honestly relate to a fact while sharing zero words ("leadership" ↔ "Managed a team
-  // of twelve engineers") — so for word-disjoint pairs we defer to the relatedness judge
-  // rather than refuse on lexical grounds alone. A refusal therefore always requires the
-  // judge to decline; the pre-filter can only fast-accept.
+  // Lexical overlap is a CONSERVATIVE PRE-FILTER, never the sole test: a term token that
+  // matches a basis token AS A WHOLE WORD is a high-confidence "related" signal, so we
+  // fast-accept and skip the LLM. The match is token EQUALITY, never substring containment —
+  // "java" must NOT fast-accept against a basis mentioning "javascript" (different technology,
+  // an acceptance the judge never ruled on). A substring-only match is treated exactly like a
+  // word-disjoint pair: it defers to the judge. Absence of a whole-word match is NOT proof of
+  // unrelatedness either — a term can honestly relate to a fact while sharing zero words
+  // ("leadership" ↔ "Managed a team of twelve engineers") — so those also defer to the judge
+  // rather than refuse on lexical grounds alone. A refusal therefore always requires the judge
+  // to decline; the pre-filter can only fast-accept.
   const termTokens = term.toLowerCase().split(/\W+/).filter((t) => t.length >= 3);
-  const basisText = String(basis.text || '').toLowerCase();
-  const lexicallyRelated = termTokens.some((tok) => basisText.includes(tok));
+  const basisTokens = new Set(String(basis.text || '').toLowerCase().split(/\W+/).filter((t) => t.length >= 3));
+  const lexicallyRelated = termTokens.some((tok) => basisTokens.has(tok));
   if (!lexicallyRelated) {
     const verdict = await judgeRelatedness({ term, basisText: basis.text }, llm);
     if (!verdict.related) {

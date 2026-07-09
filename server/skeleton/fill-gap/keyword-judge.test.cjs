@@ -8,9 +8,9 @@ const { applyAlign } = require('./keyword-judge.cjs');
 // Persists deep copies so the test verifies actual write-through, not object identity.
 function fixtureStore() {
   const cvDraft = { data: { language: 'en', sections: [ { key:'exp', items: [
-    { datafactRef: { kind:'datafact', id:'df_aff' }, text: 'Built the affiliates department at ComeOn.' },
+    { datafactRef: { kind:'datafact', id:'df_aff' }, text: 'Built the marketing department at ComeOn.' },
   ] } ] } };
-  const datafacts = { df_aff: { id:'df_aff', kind:'datafact', type:'job_result', text:'Built the affiliates department at ComeOn.' } };
+  const datafacts = { df_aff: { id:'df_aff', kind:'datafact', type:'job_result', text:'Built the marketing department at ComeOn.' } };
   const caseObj = { meta: { id:'c1' }, cvDraft };
   return {
     caseId: 'c1',
@@ -63,7 +63,7 @@ test('a false "alignable" pointing at a non-existent datafact → refused (canno
 });
 
 test('unrelated term against valid in-draft basis → refused, NOTHING written (relatedness guardrail)', async () => {
-  // The basis datafact text is about affiliates/marketing. 'Kubernetes' shares no token
+  // The basis datafact text is about marketing. 'Kubernetes' shares no token
   // (length >= 3) with that text — server must refuse, not align.
   const s = fixtureStore();
   const before = s._read().text;
@@ -119,6 +119,54 @@ test('word-disjoint and UNRELATED pair → the judge refuses and NOTHING is writ
   assert.equal(judgeCalls, 1, 'judge consulted for the word-disjoint pair');
   assert.equal(res.outcome, 'refused', 'an unrelated pair is never accepted');
   assert.equal(s._read().text, before, 'nothing written on refuse');
+});
+
+// A basis containing "JavaScript" as a whole word. The term "Java" is a SUBSTRING of
+// "JavaScript" but a different technology — the pre-filter must NOT fast-accept on substring
+// containment. It must defer to the judge like any word-disjoint pair, so an unrelated pair
+// the judge never approved is never written.
+function jsFixtureStore() {
+  const cvDraft = { data: { language: 'en', sections: [ { key:'exp', items: [
+    { datafactRef: { kind:'datafact', id:'df_js' }, text: 'Built the frontend in JavaScript and React.' },
+  ] } ] } };
+  const datafacts = { df_js: { id:'df_js', kind:'datafact', type:'job_result', text:'Built the frontend in JavaScript and React.' } };
+  const caseObj = { meta: { id:'c1' }, cvDraft };
+  return {
+    caseId: 'c1',
+    getCase: () => caseObj,
+    getDatafact: (id) => datafacts[id] || null,
+    writePart: (_c, part, data) => { caseObj[part] = { status:'ready', data: JSON.parse(JSON.stringify(data)) }; },
+    _read: () => {
+      const stored = caseObj.cvDraft;
+      return (stored && stored.status === 'ready' ? stored.data : caseObj.cvDraft.data).sections[0].items[0];
+    },
+  };
+}
+
+test('SUBSTRING-only match (Java vs JavaScript) does NOT fast-accept — it defers to the judge, who refuses', async () => {
+  // 'java' is a substring of 'javascript' but not a whole-word token of the basis. The
+  // pre-filter must not fast-accept it; it defers to the judge, who (unrelated) refuses.
+  const s = jsFixtureStore();
+  let judgeCalls = 0;
+  const llm = { completeJSON: async () => { judgeCalls += 1; return { related: false, reason: 'Java (the language) is not JavaScript' }; } };
+  const before = s._read().text;
+  const res = await applyAlign(s, llm, { caseId: 'c1', term: 'Java', basisDatafactId: 'df_js' });
+  assert.equal(judgeCalls, 1, 'substring-only match must NOT fast-accept — it must consult the judge');
+  assert.equal(res.outcome, 'refused', 'an unrelated pair the judge rejected is never accepted');
+  assert.equal(s._read().text, before, 'nothing written on refuse');
+});
+
+test('whole-word token match still fast-accepts WITHOUT the judge (fast-accept-only property preserved)', async () => {
+  // 'react' is a whole-word token of the basis, so 'React hooks' fast-accepts via the
+  // pre-filter and the judge is never consulted — the optimization is intact.
+  const s = jsFixtureStore();
+  let judgeCalls = 0;
+  const llm = { completeJSON: async () => { judgeCalls += 1; return { related: false, reason: 'should never be called' }; } };
+  const res = await applyAlign(s, llm, { caseId: 'c1', term: 'React hooks', basisDatafactId: 'df_js' });
+  assert.equal(judgeCalls, 0, 'whole-word token match fast-accepts — the judge must NOT be consulted');
+  assert.equal(res.outcome, 'aligned', 'a whole-word lexical match aligns on the fast path');
+  assert.match(s._read().text.toLowerCase(), /react hooks/, 'term written into the draft');
+  assert.ok(s._read().priorText, 'reversible: prior text stored (proves it wrote via align, not idempotency)');
 });
 
 test('idempotent: term already present → aligned outcome, no double-append, priorText not overwritten', async () => {
