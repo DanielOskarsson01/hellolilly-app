@@ -476,6 +476,31 @@ test('POST /cv/align-keyword refused round-trip: ok:false + nothing written', as
   assert.equal(after, before, 'refused path must not modify the cvDraft');
 });
 
+test('POST /cv/align-keyword idempotent re-align (term already present) writes NO second activity record', async () => {
+  const { host, caseId } = alignKeywordFixture();
+  const handle = createApiHandler(host, { preferencesPath: null, llm: null });
+  const countAligned = () => host.store.listRecords('activity').filter((a) => a.type === 'keyword_aligned').length;
+
+  // First align: 'agile leadership' is NOT yet in the item text ('Led agile transformation
+  // across three squads.') but shares the token 'agile' with the basis datafact, so it is a
+  // REAL write → ok:true, changed:true, exactly one keyword_aligned record.
+  let res = mockRes();
+  await handle(makeReq('POST', `/api/case/${caseId}/cv/align-keyword`, { term: 'agile leadership', basisDatafactId: 'datafact_k1' }), res);
+  assert.equal(res._body.ok, true);
+  assert.equal(res._body.result.outcome, 'aligned');
+  assert.equal(res._body.result.changed, true, 'first align actually wrote the term');
+  assert.equal(countAligned(), 1, 'one record for the confirmed write');
+
+  // Second align of the SAME term: now present → applyAlign no-ops (no writePart).
+  // The honesty invariant (record IFF a confirmed state change) requires NO second record.
+  res = mockRes();
+  await handle(makeReq('POST', `/api/case/${caseId}/cv/align-keyword`, { term: 'agile leadership', basisDatafactId: 'datafact_k1' }), res);
+  assert.equal(res._body.ok, true, 'idempotent re-align is still a success for the client (the term IS aligned)');
+  assert.equal(res._body.result.outcome, 'aligned');
+  assert.equal(res._body.result.changed, false, 'no state change on the idempotent path');
+  assert.equal(countAligned(), 1, 'no second activity record for a no-op re-align');
+});
+
 test('POST /api/case/:id/letter-draft writes a durable coverLetterDraft, readable via GET case', async () => {
   const host = createHost();
   const c = host.store.createCase({ company: 'Acme', role: 'CMO' });

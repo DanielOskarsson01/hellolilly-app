@@ -265,7 +265,10 @@ function createApiHandler(host, { preferencesPath, llm } = {}) {
         // Threads the same `llm` as the gap/answer path (host.llm does not exist —
         // see createApiHandler). Powers applyAlign's term↔basis relatedness judge.
         const result = await applyAlign(host.store, llm, { caseId, term: body.term, basisDatafactId: body.basisDatafactId });
-        if (result.outcome === 'aligned') {
+        // Emit ONLY when an actual write happened (result.changed). An idempotent re-align
+        // of an already-present term returns outcome:'aligned' with changed:false and must
+        // NOT log an activity record — a record exists IFF a confirmed state change occurred.
+        if (result.outcome === 'aligned' && result.changed) {
           logActivity(host.store, { type: 'keyword_aligned', caseId, label: `Nyckelord infört: ${result.term}`,
             meta: { term: result.term, datafactId: result.datafactId } });
         }

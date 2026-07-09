@@ -41,6 +41,7 @@ test('valid basis → aligned: term now present, datafactRef unchanged, priorTex
   const s = fixtureStore();
   const res = await applyAlign(s, null, { caseId: 'c1', term: 'affiliate marketing', basisDatafactId: 'df_aff' });
   assert.equal(res.outcome, 'aligned');
+  assert.equal(res.changed, true, 'a real align reports changed:true (a write happened)');
   const item = s._read();
   assert.match(item.text.toLowerCase(), /affiliate marketing/, 'ad term written into the draft');
   assert.equal(item.datafactRef.id, 'df_aff', 'underlying truth (datafactRef) unchanged');
@@ -174,6 +175,7 @@ test('idempotent: term already present → aligned outcome, no double-append, pr
   // First align to inject the term.
   const res1 = await applyAlign(s, null, { caseId: 'c1', term: 'affiliate marketing', basisDatafactId: 'df_aff' });
   assert.equal(res1.outcome, 'aligned');
+  assert.equal(res1.changed, true, 'first align performed a real write');
   const afterFirstAlign = s._read().text;
   const priorAfterFirst = s._read().priorText;
   assert.match(afterFirstAlign, /affiliate marketing/, 'term present after first align');
@@ -181,6 +183,7 @@ test('idempotent: term already present → aligned outcome, no double-append, pr
   // Second align with the same term should be a no-op (term already present).
   const res2 = await applyAlign(s, null, { caseId: 'c1', term: 'affiliate marketing', basisDatafactId: 'df_aff' });
   assert.equal(res2.outcome, 'aligned', 'idempotent call succeeds');
+  assert.equal(res2.changed, false, 'idempotent call performed no write (no state change)');
   const afterSecondAlign = s._read().text;
   const priorAfterSecond = s._read().priorText;
 

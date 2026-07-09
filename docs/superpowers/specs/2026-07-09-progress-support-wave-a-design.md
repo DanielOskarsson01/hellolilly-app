@@ -203,7 +203,7 @@ The scope's "one gap to close." With action-level emit it is simply a `logActivi
 
 ### 2.5 The keyword-align emit
 
-`applyAlign` (`server/skeleton/fill-gap/keyword-judge.cjs`) calls `store.writePart('cvDraft', …)` **only** on the aligned path (`:132-134`), after passing five guards including the honesty gate; every refusal returns `{ outcome:'refused' }` with **no write**. The handler therefore emits `keyword_aligned` **only when `result.outcome === 'aligned'`** — a refused align (no supporting fact, term unrelated, or aligned wording fails the gate) writes neither the CV nor an activity record. This is the second face of the mandated test (§2.6).
+`applyAlign` (`server/skeleton/fill-gap/keyword-judge.cjs`) calls `store.writePart('cvDraft', …)` **only** on the aligned path, after passing five guards including the honesty gate; every refusal returns `{ outcome:'refused' }` with **no write**. It also returns a **`changed`** flag: `true` when a real write happened, `false` on the idempotent no-op (the term is already present — `outcome:'aligned'` but no `writePart`). The handler therefore emits `keyword_aligned` **only when `result.outcome === 'aligned'` AND `result.changed`** — a refused align (no supporting fact, term unrelated, or aligned wording fails the gate) writes neither the CV nor an activity record, and an idempotent re-align of an already-present term (a no-op) writes no activity record either. This is the second face of the mandated test (§2.6): a record exists IFF a confirmed state change occurred, never for an attempt or a no-op. (Correctness fix from the independent whole-branch review — the idempotent path previously emitted on a no-op.)
 
 ### 2.6 The honesty invariant, the convention, and the "remember to emit" guard
 
