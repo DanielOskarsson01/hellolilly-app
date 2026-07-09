@@ -5,6 +5,9 @@ dist/
 .env.local
 .env.*.local
 
+# Backup files (editor/manual .bak, .bak2, …)
+*.bak*
+
 # Store snapshot (local state, never commit)
 server/data/
 
