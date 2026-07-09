@@ -39,6 +39,33 @@ Nearly every Kind-3 tool needs "a new kind of record the store has no home for" 
 - **Design** — "Daniel (pilotcoach)" is a real-data attribution, not a demo state; the Coach Review response section loses its demo label.
 - **Planner** — Coach Review moves from SIM to real-via-bridge; the Coach Network directory stays SIM.
 
+## D10 - Reuse review of an external outbound-communication design (five adopted, one rejected, five parked)
+
+**Date:** 2026-07-09. **Status:** decided by Daniel. (D10 is the next decision number after D9, clear of both this addendum's D1-D5 line and the Omställning area's D4-D8 range.)
+
+Daniel reviewed an external outbound-communication design of his own — a separate product, a separate repo — for reusable ideas. This decision records what transferred. Nothing here touches work in progress (Wave A, Wave B, interview-prep); every adoption lands on the still-unbuilt Wave 2+ tools. The external project is referenced only at this level — no name, no file paths.
+
+**Adopted (five; specced in `REST_OF_SITE_RECONCILED_DESIGN.md` and `REST_OF_SITE_DATA_CONTRACT_ADDENDUM.md`):**
+1. **E1 verdict discipline** — every LinkedIn Helper check ends in exactly one verdict (SEND / SEND WITH ONE REVISION / HOLD); when it is SEND the tool offers nothing further, because permission to stop IS the product; one revised version per pass, never a menu; Pass 3 is hard-coded affirmation, never a model call; low-stakes honesty is mandatory.
+2. **Intake before compose (B2 + E2)** — when the person is frozen (no draft, no clear direction) a short capacity/intent intake runs before ONE draft is built; capacity constraints are hard and "not today" is a legitimate, closable outcome, never rendered as failure; the tool gets the person to write rather than writing for them.
+3. **E2 social rule named per fix** — every revision names, in one sentence and at the moment of the fix, the unwritten social rule it applied ("first messages ask for advice, not jobs"); a per-person pattern library is deferred, not built now.
+4. **voiceProfile (STORED, addendum §18b)** — a user-editable record of how the person *sounds* (register, formality, phrases, language mix), consumed only by drafting paths and never by checkers (input-separation rule, normative).
+5. **outreach contact-class register (addendum §6, also available to B2's recipient step)** — an optional recruiter / former-colleague / cold-senior / referral hint informing register and which social rules apply; honest default in its copy: toward recruiters the person is senior talent, not a supplicant, and not replying to low-effort outreach is a valid choice.
+
+**Rejected (one):** a landed-outcome track record ("your last N messages landed fine") is REFUSED for outbound. Cold outreach mostly receives no reply and that is normal; a landed-statistics surface would render normal silence as failure feedback to exactly the population these tools protect. The mechanism works for inbound reply-checking products; it does not port here. (Also recorded in E1's refused list.)
+
+**Parked, not lost (five; inputs to the later architecture-rules work, one line each):**
+1. An **anti-blame output gate** as a tested requirement — prose-producing tools speak in mechanism-language, never trait attributions.
+2. An **injection envelope** for untrusted pasted/fetched text entering prompts.
+3. **Maker/checker context separation** named as a standing invariant (the voiceProfile input-separation rule is its first local instance).
+4. An **eval corpus with zero-tolerance classes** for prose-producing tools.
+5. An **AI Act governance review** of the coach-facing surfaces.
+
+**What each stream does with this:**
+- **Build** — nothing new in flight; the five adoptions land when the Wave 2+ tools (E1, E2, B2) and their data shapes are built; the parked five are inputs to the architecture-rules session, not this build.
+- **Design** — E1's single-verdict UX, the frozen-person intake, and the per-fix social-rule line are design commitments now.
+- **Planner** — treat the parked five as named work items for the architecture-rules wave.
+
 ## Persona note (already in the seed, restated because it interacts with D3)
 New/rebuilt screens use the real persona (Daniel Oskarsson, iGaming/marketing) with real data. The Amir Hassan fixture persona survives ONLY inside labelled demo screens. No new Amir content.
 

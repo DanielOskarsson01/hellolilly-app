@@ -88,7 +88,7 @@
 - **Envelope:** `draft` is envelope-shaped when AI-drafted (same reuse as §5).
 - **Fields:**
   - required: `id`, `owner`, `name`, `relationship` (`'warm' | 'cold'`), `lane` (`'planned' | 'sent' | 'replied' | 'done'`), `createdAt`, `updatedAt`
-  - optional: `role`, `companyRef`, `whyThem`, `channel` (`'linkedin'|'email'|'phone'|'other'`), `priority` (int; rule-derived: warm before cold — system-suggested, user-overridable), `draft` (envelope: `{status, data:{ language, text, unsupported_by_cv:[…] }}`), `avoidNote`, `followUpOn` (default sent+7d, editable), `sentAt`, `repliedAt`, `archived`
+  - optional: `role`, `companyRef`, `whyThem`, `channel` (`'linkedin'|'email'|'phone'|'other'`), `contactClass` (register hint, added by D10: `'recruiter'|'former_colleague'|'cold_senior'|'referral'|'other'` — informs the draft's register and which social rules apply; **the same field is available to B2's recipient step, §5**; honest default carried in its copy: toward recruiters the person is senior talent, not a supplicant, and not replying to low-effort outreach is a valid choice), `priority` (int; rule-derived: warm before cold — system-suggested, user-overridable), `draft` (envelope: `{status, data:{ language, text, unsupported_by_cv:[…] }}`), `avoidNote`, `followUpOn` (default sent+7d, editable), `sentAt`, `repliedAt`, `archived`
 - **Writable:** user — everything except timestamps/refs/`priority` initial value (may override `priority`). AI — `draft.data` via writer (gated); never chooses contacts or order. System — timestamps, default `followUpOn`, activity emission.
 - **Deletion:** `done` lane + `archived`; no hard delete at MVP.
 - **Feeds Progress Support:** yes (`outreach.*`; follow-ups become next-steps — the wireframe's explicit flow). **Learning layer:** yes (sequence × reply outcomes).
@@ -244,6 +244,19 @@
 - **Deletion:** removed when the tool ships real.
 - **Feeds:** no/never.
 
+### 18b. voiceProfile — STORED (collection `voiceProfile`) — added by D10
+
+- **Purpose:** how the person *sounds*, as distinct from what is *true* about them (datafacts). A small, user-editable record — register, formality, phrases they would and would never use, language mix — consumed by drafting paths (E1, E2, B2 writer calls) so suggestions stay in the person's voice instead of drifting into AI-speak. It is style, never claims: datafacts remain the sole source of what may be asserted.
+- **Id:** `voiceProfile_<8hex>`. **Owner/case:** owner-scoped, case-free; singleton per owner (one active record — the person's voice, not a per-message setting).
+- **Envelope:** none — the person authors every field; there is no AI-produced payload to wrap.
+- **Fields:**
+  - required: `id`, `owner`, `createdAt`, `updatedAt`
+  - optional (all user-set): `register` (e.g. warm-direct, plainspoken, formal-professional), `formality` (small enum/scale), `phrasesUse` (string[] — turns of phrase they own), `phrasesAvoid` (string[] — words they would never use), `languageMix` (e.g. Swedish primary; English terms of art acceptable)
+- **Writable:** user — every field (set via UI). AI — **nothing** (an LLM never writes to this shape). System — timestamps only.
+- **Input-separation rule (normative):** drafting paths (E1, E2, B2 writer calls) receive the voice profile; **checking/judging paths NEVER do** — voice is not the checker's business, risk is, and a checker that sees voice starts grading it. (This is the local application of the maker/checker separation parked as a standing invariant in D10.)
+- **Deletion:** user-clearable/editable in place; no hard delete needed (singleton).
+- **Feeds Progress Support:** no (editing one's voice is a profile edit, not a logged milestone — same as datafacts). **Learning layer:** no (user-owned style; not a built pipe, and the input-separation rule keeps it out of judging paths).
+
 ## 19. homeSummary — DERIVED (endpoint `GET /api/home`; never stored)
 
 - **Purpose:** everything Home needs in one honest read: the next-step card, true counts, and tool-entry states. Derived because every number on Home must be recomputed from source-of-truth at read time — a stored summary could go stale and lie, and the repo makes the derivation cheap (SQLite + small collections).
@@ -266,7 +279,7 @@ Not in the required list but demanded by F1/Wave 1; recorded here so it is defin
 
 ## 20. New id kinds (extend `KINDS` in `server/skeleton/ids.cjs`)
 
-`activity · plannerItem · company · companyResearch · blindApplication · outreachContact · researchRequest · interviewSession · interviewAnswer · imageAsset · resource · feedback · poll · coach · reviewRequest · signal · demoFixture · conceptPanel`
+`activity · plannerItem · company · companyResearch · blindApplication · outreachContact · researchRequest · interviewSession · interviewAnswer · imageAsset · resource · feedback · poll · coach · reviewRequest · signal · demoFixture · conceptPanel · voiceProfile` *(voiceProfile added by D10)*
 
 (`job` already exists from the job-search store extension.)
 
