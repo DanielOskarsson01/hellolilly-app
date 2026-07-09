@@ -543,3 +543,78 @@ test('generic collection CRUD round-trips; activity rejects client writes', asyn
   assert.equal(res._status, 200);
   assert.deepEqual(res._body.records, []);
 });
+
+// --- Task 4: action → activity emits ---
+
+test('case_created emits one activity record with company/role meta', async () => {
+  const host = createHost({});
+  const handle = createApiHandler(host, {});
+  const res = mockRes();
+  await handle(makeReq('POST', '/api/case', { company: 'Acme', role: 'PM' }), res);
+  assert.equal(res._status, 201);
+  const acts = host.store.listRecords('activity');
+  assert.equal(acts.length, 1);
+  assert.equal(acts[0].type, 'case_created');
+  assert.equal(acts[0].caseId, res._body.case.meta.id);
+  assert.match(acts[0].label, /Ärende skapat: Acme · PM/);
+  assert.deepEqual(acts[0].meta, { company: 'Acme', role: 'PM' });
+});
+
+test('job decide emits job_approved / job_rejected / job_reopened', async () => {
+  const host = createHost({});
+  const handle = createApiHandler(host, {});
+  host.store.putRecord('jobs', { id: 'job_1', title: 'CMO', company: 'Acme', decision: 'new' });
+
+  let res = mockRes();
+  await handle(makeReq('POST', '/api/job/job_1/decide', { decision: 'approved' }), res);
+  res = mockRes();
+  await handle(makeReq('POST', '/api/job/job_1/decide', { decision: 'rejected', reason: 'location' }), res);
+  res = mockRes();
+  await handle(makeReq('POST', '/api/job/job_1/decide', { decision: 'new' }), res);
+
+  const types = host.store.listRecords('activity').map((a) => a.type);
+  assert.deepEqual(types, ['job_approved', 'job_rejected', 'job_reopened']);
+  const rejected = host.store.listRecords('activity').find((a) => a.type === 'job_rejected');
+  assert.equal(rejected.meta.reason, 'location');
+  assert.equal(rejected.meta.company, 'Acme');
+});
+
+test('job link emits job_linked scoped to the case', async () => {
+  const host = createHost({});
+  const handle = createApiHandler(host, {});
+  const c = host.store.createCase({ company: 'Acme', role: 'PM' }); // direct store call: no emit (emits live in handlers)
+  host.store.putRecord('jobs', { id: 'job_1', title: 'CMO', decision: 'approved' }); // bulk upsert: no emit
+  const res = mockRes();
+  await handle(makeReq('POST', '/api/job/job_1/case', { caseId: c.meta.id }), res);
+  const links = host.store.listRecords('activity').filter((a) => a.type === 'job_linked');
+  assert.equal(links.length, 1);
+  assert.equal(links[0].caseId, c.meta.id);
+  assert.equal(links[0].meta.jobId, 'job_1');
+});
+
+test('letter-draft emits letter_draft_saved with paragraph count', async () => {
+  const host = createHost({});
+  const handle = createApiHandler(host, {});
+  const c = host.store.createCase({ company: 'Acme', role: 'PM' });
+  const res = mockRes();
+  await handle(makeReq('POST', `/api/case/${c.meta.id}/letter-draft`,
+    { language: 'sv', paragraphs: ['Para ett.', 'Para tva.'], decisions: {} }), res);
+  assert.equal(res._status, 200);
+  const acts = host.store.listRecords('activity').filter((a) => a.type === 'letter_draft_saved');
+  assert.equal(acts.length, 1);
+  assert.deepEqual(acts[0].meta, { paragraphCount: 2, language: 'sv' });
+});
+
+test('analyze emits one analysis_run with gapsFound', async () => {
+  const llm = { completeJSON: async () => ({ capability: { requirements: [], overall: 'ok' }, preference: { narrative: '' }, gaps: [] }) };
+  const host = createHost({ llm });
+  const handle = createApiHandler(host, { llm });
+  const c = host.store.createCase({ company: 'Acme', role: 'PM' });
+  host.store.writePart(c.meta.id, 'decodedRole', { narrative: '', requirements: [{ id: 'decodedRequirement_1', requirement: 'X', rationale: '', weight: 1 }] });
+  const res = mockRes();
+  await handle(makeReq('POST', `/api/case/${c.meta.id}/analyze`), res);
+  assert.equal(res._status, 200);
+  const acts = host.store.listRecords('activity').filter((a) => a.type === 'analysis_run');
+  assert.equal(acts.length, 1);
+  assert.equal(typeof acts[0].meta.gapsFound, 'number');
+});
