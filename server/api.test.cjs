@@ -656,15 +656,33 @@ test('MANDATED: a gate-thrown mutation writes NO activity record', async () => {
   const before = host.store.listRecords('activity').length; // 1 (case_created)
 
   // A letter draft containing a banned phrase ('synergy') makes writePart's gate throw.
-  // The letter_draft_saved emit sits AFTER writePart, so it is never reached.
+  // The letter_draft_saved emit sits AFTER writePart, so it is never reached. This asserts
+  // the MANDATED INVARIANT ONLY — a rejected mutation writes no activity record — decoupled
+  // from HOW the handler surfaces the rejection (it now returns 500; see the next test).
+  // Awaiting handle without assert.rejects also proves the handler resolves, never hangs.
   res = mockRes();
-  await assert.rejects(
-    handle(makeReq('POST', `/api/case/${caseId}/letter-draft`,
-      { language: 'sv', paragraphs: ['We have great synergy here.'], decisions: {} }), res),
-  );
+  await handle(makeReq('POST', `/api/case/${caseId}/letter-draft`,
+    { language: 'sv', paragraphs: ['We have great synergy here.'], decisions: {} }), res);
   const after = host.store.listRecords('activity');
   assert.equal(after.length, before); // unchanged — still just case_created
   assert.equal(after.filter((a) => a.type === 'letter_draft_saved').length, 0);
+});
+
+test('/letter-draft returns 500 on a gate-thrown draft — an honest error, never a hung socket', async () => {
+  const host = createHost({});
+  const handle = createApiHandler(host, {});
+  let res = mockRes();
+  await handle(makeReq('POST', '/api/case', { company: 'Acme', role: 'PM' }), res);
+  const caseId = res._body.case.meta.id;
+
+  // A banned phrase makes writePart's gate throw; the handler must CATCH it and respond 500,
+  // not leave the request hanging (pre-hardening this was an unhandled rejection / no response).
+  res = mockRes();
+  await handle(makeReq('POST', `/api/case/${caseId}/letter-draft`,
+    { language: 'sv', paragraphs: ['We have great synergy here.'], decisions: {} }), res);
+  assert.equal(res._status, 500);
+  assert.equal(res._body.ok, false);
+  assert.equal(host.store.listRecords('activity').filter((a) => a.type === 'letter_draft_saved').length, 0);
 });
 
 test('MANDATED: a refused keyword-align writes NO activity record', async () => {
