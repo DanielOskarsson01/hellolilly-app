@@ -218,7 +218,9 @@ function createApiHandler(host, { preferencesPath, llm } = {}) {
     if (req.method === 'POST' && action === '/cv/align-keyword') {
       try {
         const body = await readJson(req);
-        const result = await applyAlign(host.store, { caseId, term: body.term, basisDatafactId: body.basisDatafactId });
+        // Threads the same `llm` as the gap/answer path (host.llm does not exist —
+        // see createApiHandler). Powers applyAlign's term↔basis relatedness judge.
+        const result = await applyAlign(host.store, llm, { caseId, term: body.term, basisDatafactId: body.basisDatafactId });
         sendJson(res, 200, { ok: result.outcome === 'aligned', result });
       } catch (err) {
         sendJson(res, 500, { ok: false, error: err.message });

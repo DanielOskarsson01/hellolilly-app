@@ -22,13 +22,39 @@ function hasTerm(text, term) {
   return new RegExp(`\\b${escaped}\\b`, 'i').test(text);
 }
 
+const RELATEDNESS_SYSTEM = `You decide whether a keyword TERM is genuinely supported by one specific FACT from a candidate's CV.
+"Supported" means the fact is real evidence that the term honestly applies — the term names a skill, tool, domain,
+seniority, or responsibility that the fact actually demonstrates, EVEN IF the term and the fact share no words
+(e.g. the term "leadership" is supported by "Managed a team of twelve engineers"). If the fact does NOT support
+the term — unrelated, or only coincidentally worded — return related:false. Do NOT be generous: when genuinely
+unsure, return related:false. Output STRICT JSON: { "related": boolean, "reason": string }.`;
+
+// Semantic relatedness judge. Only consulted when the lexical pre-filter fails to find
+// overlap — a term can honestly relate to a fact while sharing zero words, and refusing
+// those on lexical grounds alone would false-refuse legitimate pairs. When no llm is
+// available (e.g. no ANTHROPIC_API_KEY), the relatedness cannot be verified, so we refuse
+// conservatively rather than align an unverified pair.
+async function judgeRelatedness({ term, basisText }, llm) {
+  if (!llm || typeof llm.completeJSON !== 'function') {
+    return { related: false, reason: 'no judge available to verify relatedness' };
+  }
+  const out = await llm.completeJSON({
+    system: RELATEDNESS_SYSTEM,
+    model: 'claude-opus-4-8',
+    maxTokens: 200,
+    prompt: [`TERM: ${term}`, `FACT: ${basisText || ''}`].join('\n\n'),
+  });
+  return { related: !!(out && out.related), reason: (out && out.reason) || '' };
+}
+
 /**
  * Apply keyword alignment.
  * @param {object} store  — must implement getCase(caseId), getDatafact(id), writePart(caseId, part, data)
+ * @param {object|null} llm  — optional LLM (completeJSON); powers the term↔basis relatedness judge
  * @param {{ caseId: string, term: string, basisDatafactId: string|null }} opts
  * @returns {Promise<{ outcome:'aligned'|'refused', reason?: string, term: string, datafactId?: string }>}
  */
-async function applyAlign(store, { caseId, term, basisDatafactId }) {
+async function applyAlign(store, llm, { caseId, term, basisDatafactId }) {
   const refuse = (reason) => ({ outcome: 'refused', reason, term });
 
   // Guard 1: must have a term and a declared basis.
@@ -67,17 +93,24 @@ async function applyAlign(store, { caseId, term, basisDatafactId }) {
     return { outcome: 'aligned', term, datafactId: basisDatafactId };
   }
 
-  // Guard 4: the term must be lexically related to the basis datafact's text.
-  // Mirrors the client-side findBasis() in src/lib/presendKeywords.mjs exactly:
-  //   tokens = term.toLowerCase().split(/\W+/).filter(t => t.length >= 3)
-  //   related iff toks.some(tok => basisText.toLowerCase().includes(tok))
-  // This closes the server-side bypass hole: a direct API caller cannot align an
-  // unrelated term onto a valid-but-referenced basis.
+  // Guard 4: the term must genuinely relate to the basis datafact — enforced server-side
+  // so a direct API caller cannot align an unrelated term onto a valid-but-referenced basis.
+  //
+  // Lexical overlap is a CONSERVATIVE PRE-FILTER, never the sole test: a token (>=3 chars)
+  // of the term appearing in the basis text is a high-confidence "related" signal, so we
+  // fast-accept and skip the LLM. Absence of overlap is NOT proof of unrelatedness — a term
+  // can honestly relate to a fact while sharing zero words ("leadership" ↔ "Managed a team
+  // of twelve engineers") — so for word-disjoint pairs we defer to the relatedness judge
+  // rather than refuse on lexical grounds alone. A refusal therefore always requires the
+  // judge to decline; the pre-filter can only fast-accept.
   const termTokens = term.toLowerCase().split(/\W+/).filter((t) => t.length >= 3);
   const basisText = String(basis.text || '').toLowerCase();
-  const isRelated = termTokens.some((tok) => basisText.includes(tok));
-  if (!isRelated) {
-    return refuse("That term isn't supported by the referenced fact.");
+  const lexicallyRelated = termTokens.some((tok) => basisText.includes(tok));
+  if (!lexicallyRelated) {
+    const verdict = await judgeRelatedness({ term, basisText: basis.text }, llm);
+    if (!verdict.related) {
+      return refuse("That term isn't supported by the referenced fact.");
+    }
   }
 
   // Append the ad term conservatively. No LLM — deterministic, reversible.
