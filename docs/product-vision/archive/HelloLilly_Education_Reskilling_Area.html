@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>HelloLilly - Education & Re-Skilling Area</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700;9..144,900&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
+:root{
+  --ink:#15181C;--ink2:#3B424B;--muted:#6A7280;--faint:#9AA1AB;--line:#E4E7EC;--line2:#EEF0F3;
+  --paper:#FFFFFF;--wash:#F7F8FA;--wash2:#F1F3F6;
+  --brand:#0A66C2;--brand-d:#084C92;--brand-wash:#EAF2FB;
+  --teal:#0E7A72;--teal-wash:#E6F2F1;--amber:#B45309;--amber-wash:#FBF0E2;
+  --violet:#6D28D9;--violet-wash:#F1EAFB;--green:#1F7A44;--green-wash:#E7F4EC;
+  --red:#B42318;--red-wash:#FDECEA;--gold:#B7791F;
+  --r:14px;--r-sm:9px;
+  --shadow:0 1px 2px rgba(16,24,40,.05), 0 6px 20px rgba(16,24,40,.05);
+  --shadow-lift:0 10px 34px rgba(16,24,40,.10);
+}
+@page{ size:A4; margin:18mm 20mm 16mm 20mm; background:#fff; }
+*{ box-sizing:border-box; margin:0; padding:0; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+html{ font-size:15px; }
+body{ font-family:'Inter',system-ui,sans-serif; color:var(--ink); background:#fff; line-height:1.6; -webkit-font-smoothing:antialiased; }
+.page{ page-break-before:always; break-before:page; position:relative; padding-top:2mm; }
+.page:first-child{ page-break-before:avoid; break-before:avoid; }
+.cover{ page-break-before:avoid; margin:-18mm -20mm 0 -20mm; padding:0; }
+.fig, .card, .darkbox, .callout, .stat, .mock, table.t, .toc-row, .stagecard, .featurecard, .ladder-row, .flowstep{ break-inside:avoid; page-break-inside:avoid; }
+h2,h3,h4{ break-after:avoid; page-break-after:avoid; }
+.foot{ display:flex; justify-content:space-between; align-items:center; font:500 10px/1 'JetBrains Mono',monospace; color:var(--faint); letter-spacing:.04em; border-top:1px solid var(--line2); padding-top:8px; margin-top:26px; }
+.foot .dot{ width:5px;height:5px;border-radius:50%;background:var(--brand);display:inline-block;margin-right:7px;vertical-align:middle; }
+h1,h2,h3,h4{ font-family:'Fraunces',Georgia,serif; color:var(--ink); line-height:1.1; letter-spacing:-.01em; }
+.serif{ font-family:'Fraunces',Georgia,serif; }
+.mono{ font-family:'JetBrains Mono',monospace; }
+.sec-no{ font:700 12px/1 'JetBrains Mono',monospace; color:var(--brand); letter-spacing:.1em; }
+.sec-kicker{ font:600 11px/1 'JetBrains Mono',monospace; color:var(--muted); letter-spacing:.16em; text-transform:uppercase; margin-bottom:12px; }
+h2.sec-title{ font-size:34px; font-weight:900; margin-bottom:6px; }
+.sec-lede{ font-size:15.5px; color:var(--ink2); max-width:62ch; margin:14px 0 22px; line-height:1.62; }
+.sec-head{ border-bottom:2px solid var(--ink); padding-bottom:16px; margin-bottom:26px; display:flex; align-items:flex-end; justify-content:space-between; gap:20px; }
+.sec-head .l{ flex:1; }
+h3.blk{ font-size:20px; font-weight:700; margin:22px 0 8px; letter-spacing:-.01em; }
+h4.blk{ font-size:15px; font-weight:700; font-family:'Inter',sans-serif; margin:16px 0 5px; color:var(--ink); }
+p{ font-size:14px; color:var(--ink2); margin-bottom:11px; line-height:1.64; }
+p.tight{ margin-bottom:6px; }
+strong,b{ color:var(--ink); font-weight:700; }
+em{ font-style:italic; }
+a{ color:var(--brand); text-decoration:none; }
+.lead-in{ font-weight:700; color:var(--ink); }
+ul.clean,ol.clean{ margin:10px 0 14px; padding-left:0; list-style:none; }
+ul.clean li,ol.clean li{ font-size:14px; color:var(--ink2); margin-bottom:8px; padding-left:26px; position:relative; line-height:1.58; }
+ul.clean li::before{ content:''; position:absolute; left:6px; top:9px; width:6px; height:6px; border-radius:50%; background:var(--brand); }
+ol.clean{ counter-reset:c; }
+ol.clean li{ counter-increment:c; }
+ol.clean li::before{ content:counter(c); position:absolute; left:0; top:0; width:19px; height:19px; border-radius:50%; background:var(--brand); color:#fff; font:700 10px/19px 'JetBrains Mono',monospace; text-align:center; }
+.pill{ display:inline-flex; align-items:center; gap:6px; font:700 10.5px/1 'JetBrains Mono',monospace; letter-spacing:.05em; text-transform:uppercase; padding:5px 10px; border-radius:100px; border:1px solid transparent; white-space:nowrap; }
+.pill.blue{ background:var(--brand-wash); color:var(--brand-d); border-color:#CFE2F6; }
+.pill.teal{ background:var(--teal-wash); color:var(--teal); border-color:#C4E3E0; }
+.pill.amber{ background:var(--amber-wash); color:var(--amber); border-color:#EEDBBF; }
+.pill.violet{ background:var(--violet-wash); color:var(--violet); border-color:#DFCEF6; }
+.pill.green{ background:var(--green-wash); color:var(--green); border-color:#C4E5D0; }
+.pill.red{ background:var(--red-wash); color:var(--red); border-color:#F3CFC9; }
+.pill.ink{ background:#20242A; color:#fff; }
+.pill.ghost{ background:var(--wash); color:var(--muted); border-color:var(--line); }
+.card{ background:var(--paper); border:1px solid var(--line); border-radius:var(--r); padding:18px 20px; }
+.card.wash{ background:var(--wash); }
+.card.tint-blue{ background:var(--brand-wash); border-color:#CFE2F6; }
+.card.tint-green{ background:var(--green-wash); border-color:#C4E5D0; }
+.card.tint-red{ background:var(--red-wash); border-color:#F3CFC9; }
+.card.tint-amber{ background:var(--amber-wash); border-color:#EEDBBF; }
+.card.tint-violet{ background:var(--violet-wash); border-color:#DFCEF6; }
+.grid{ display:grid; gap:14px; }
+.g2{ grid-template-columns:1fr 1fr; }
+.g3{ grid-template-columns:1fr 1fr 1fr; }
+.g4{ grid-template-columns:repeat(4,1fr); }
+.callout{ border-left:4px solid var(--brand); background:var(--wash); border-radius:0 var(--r) var(--r) 0; padding:16px 20px; margin:18px 0; }
+.callout .k{ font:700 10px/1 'JetBrains Mono',monospace; letter-spacing:.14em; text-transform:uppercase; color:var(--brand); margin-bottom:8px; }
+.callout.big{ border-left-color:var(--ink); }
+.callout.big .big-line{ font-family:'Fraunces',serif; font-size:20px; font-weight:700; color:var(--ink); line-height:1.3; }
+.darkbox{ background:#181C22; color:#E8EBEF; border-radius:var(--r); padding:22px 24px; }
+.darkbox .k{ font:700 10px/1 'JetBrains Mono',monospace; letter-spacing:.16em; text-transform:uppercase; color:#8B93A0; margin-bottom:10px; }
+.darkbox .q{ font-family:'Fraunces',serif; font-size:20px; font-weight:700; line-height:1.34; }
+.darkbox .q .hl{ color:#6FB2F0; }
+.darkbox p{ color:#C4C9D1; }
+.stat{ background:var(--paper); border:1px solid var(--line); border-radius:var(--r); padding:15px 16px; }
+.stat .v{ font-family:'Fraunces',serif; font-weight:900; font-size:27px; line-height:1; letter-spacing:-.02em; }
+.stat .v.blue{ color:var(--brand); } .stat .v.green{ color:var(--green); } .stat .v.red{ color:var(--red); } .stat .v.violet{ color:var(--violet); }
+.stat .l{ font-size:12px; color:var(--ink2); margin-top:8px; line-height:1.4; font-weight:500; }
+.stat .s{ font:500 9.5px/1.3 'JetBrains Mono',monospace; color:var(--faint); margin-top:8px; }
+table.t{ width:100%; border-collapse:collapse; margin:6px 0 14px; font-size:12.5px; }
+table.t th{ text-align:left; font:600 9.5px/1.3 'JetBrains Mono',monospace; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); background:var(--wash); padding:9px 11px; border-bottom:1px solid var(--line); }
+table.t td{ padding:9px 11px; border-bottom:1px solid var(--line2); color:var(--ink2); vertical-align:top; line-height:1.45; }
+table.t tr:last-child td{ border-bottom:none; }
+table.t td.em{ font-weight:600; color:var(--ink); }
+table.t .mono{ font-family:'JetBrains Mono',monospace; font-size:11px; }
+.fig{ margin:16px 0 6px; }
+.figcap{ font:500 11px/1.5 'Inter',sans-serif; color:var(--muted); margin-top:9px; padding-left:2px; }
+.figcap b{ color:var(--ink2); }
+.fig-label{ display:inline-flex; align-items:center; gap:7px; font:700 10px/1 'JetBrains Mono',monospace; letter-spacing:.1em; text-transform:uppercase; color:var(--brand); margin-bottom:11px; }
+.fig-label::before{ content:'FIG'; background:var(--brand); color:#fff; padding:3px 6px; border-radius:4px; font-size:9px; }
+.mock{ border:1px solid var(--line); border-radius:12px; overflow:hidden; box-shadow:var(--shadow-lift); background:#fff; }
+.mock-bar{ background:var(--wash2); border-bottom:1px solid var(--line); padding:9px 13px; display:flex; align-items:center; gap:7px; }
+.mock-bar .dot{ width:9px; height:9px; border-radius:50%; }
+.mock-bar .u{ margin-left:10px; font:500 10.5px/1 'JetBrains Mono',monospace; color:var(--faint); background:#fff; border:1px solid var(--line); border-radius:5px; padding:4px 10px; flex:1; }
+.mock-body{ background:#fff; }
+.av{ border-radius:50%; display:flex; align-items:center; justify-content:center; font-family:'Inter',sans-serif; font-weight:700; color:#fff; flex-shrink:0; }
+.av.sq{ border-radius:9px; }
+.vf{ display:inline-flex; align-items:center; gap:4px; font:600 10px/1 'Inter',sans-serif; color:var(--teal); }
+.vf svg{ width:12px; height:12px; }
+.cover-wrap{ height:297mm; display:flex; flex-direction:column; }
+.cover-top{ flex:1; padding:34mm 22mm 0; display:flex; flex-direction:column; }
+.cover-strip{ height:15mm; background:var(--ink); display:flex; align-items:center; padding:0 22mm; gap:22px; }
+.cover-strip .s{ font:600 10px/1 'JetBrains Mono',monospace; letter-spacing:.14em; text-transform:uppercase; color:#9AA1AB; }
+.cover-strip .s b{ color:#fff; }
+.toc-row{ display:flex; align-items:baseline; gap:12px; padding:9px 0; border-bottom:1px solid var(--line2); }
+.toc-row .n{ font:700 12px/1 'JetBrains Mono',monospace; color:var(--brand); width:26px; flex-shrink:0; }
+.toc-row .t{ font-size:14px; font-weight:600; color:var(--ink); }
+.toc-row .d{ flex:1; border-bottom:1px dotted var(--line); transform:translateY(-4px); }
+.toc-row .p{ font:600 11px/1 'JetBrains Mono',monospace; color:var(--muted); }
+.toc-row .t small{ display:block; font:400 11px/1.3 'Inter',sans-serif; color:var(--muted); margin-top:2px; }
+.row{ display:flex; gap:14px; }
+.mt0{margin-top:0}.mt8{margin-top:8px}.mt14{margin-top:14px}.mt20{margin-top:20px}
+.mb0{margin-bottom:0}.mb6{margin-bottom:6px}.mb14{margin-bottom:14px}
+.center{text-align:center}
+.divider{ height:1px; background:var(--line); margin:20px 0; border:none; }
+</style>
+</head>
+<body>
+
+<!-- ============ COVER ============ -->
+<section class="cover">
+ <div class="cover-wrap">
+  <div class="cover-top">
+    <div class="mono" style="font-size:12px;color:var(--brand);letter-spacing:.24em;text-transform:uppercase;font-weight:700">HelloLilly &nbsp;·&nbsp; Jobseeker Product Vision</div>
+    <div style="margin-top:40mm">
+      <div class="mono" style="font-size:11px;color:var(--muted);letter-spacing:.2em;text-transform:uppercase;font-weight:700;margin-bottom:20px">New product area</div>
+      <h1 style="font-size:74px;font-weight:900;line-height:0.98;letter-spacing:-.03em">Education &amp;<br>Re-Skilling</h1>
+      <p style="font-family:'Fraunces',serif;font-size:23px;font-style:italic;color:var(--ink2);max-width:34ch;margin-top:26px;line-height:1.4">The gap loop tells a person what they are missing. This area tells them how to get it - honestly, demand-first, with the fast route always on the table.</p>
+    </div>
+    <div style="margin-top:auto;margin-bottom:18mm;display:flex;gap:8px;flex-wrap:wrap">
+      <span class="pill blue">Design draft</span>
+      <span class="pill teal">Grounded in evidence</span>
+      <span class="pill violet">Fourth move in the journey</span>
+      <span class="pill ghost">Reuses the A1 / A2 architecture</span>
+    </div>
+  </div>
+  <div class="cover-strip">
+    <div class="s">STATUS <b>Draft for review</b></div>
+    <div class="s">DATE <b>2026-06-30</b></div>
+    <div class="s" style="margin-left:auto">GROUNDED IN <b>Job-seeker pain-points brief</b></div>
+  </div>
+ </div>
+</section>
+
+<!-- ============ CONTENTS ============ -->
+<section class="page">
+  <div class="sec-head">
+    <div class="l">
+      <div class="sec-kicker">What this document is</div>
+      <h2 class="sec-title">The move the master vision misses</h2>
+      <p class="sec-lede">The Jobseeker Product Vision is built around presenting <em>who a person already is</em> - CV, gaps, interviews. It barely addresses the case where the real blocker is a skills gap that has to be closed. This area fills that hole.</p>
+    </div>
+    <div class="sec-no">00</div>
+  </div>
+
+  <div class="darkbox mb14">
+    <div class="k">The one-line summary</div>
+    <div class="q">The gap loop tells a person <span class="hl">what they are missing</span>; this area tells them <span class="hl">how to get it</span> - honestly, demand-first, with the fast "apply anyway" route always on the table.</div>
+    <p style="margin-top:12px;margin-bottom:0">Same decode &rarr; datafact &rarr; submodule &rarr; screen architecture as A1 and A2, just pointed at courses instead of CV bullets.</p>
+  </div>
+
+  <h3 class="blk">Contents</h3>
+  <div style="columns:2;column-gap:34px">
+    <div style="break-inside:avoid"><div class="toc-row"><span class="n">01</span><span class="t">Where it fits<small>The fourth move, triggered by the honest gap</small></span></div></div>
+    <div style="break-inside:avoid"><div class="toc-row"><span class="n">02</span><span class="t">The evidence, and its cautions<small>What justifies the area, and what constrains it</small></span></div></div>
+    <div style="break-inside:avoid"><div class="toc-row"><span class="n">03</span><span class="t">The toolset<small>Six tools derived from the evidence</small></span></div></div>
+    <div style="break-inside:avoid"><div class="toc-row"><span class="n">04</span><span class="t">The screen<small>How it looks, on the existing architecture</small></span></div></div>
+    <div style="break-inside:avoid"><div class="toc-row"><span class="n">05</span><span class="t">Honest-design guardrails<small>Six rules baked in, from the evidence</small></span></div></div>
+    <div style="break-inside:avoid"><div class="toc-row"><span class="n">06</span><span class="t">MVP slice &amp; the one open question<small>What ships first, and the single build blocker</small></span></div></div>
+  </div>
+
+  <div class="foot"><span><span class="dot"></span>Education &amp; Re-Skilling Area · Draft</span><span>00 · Overview</span></div>
+</section>
+
+<!-- ============ 01 WHERE IT FITS ============ -->
+<section class="page">
+  <div class="sec-head">
+    <div class="l">
+      <div class="sec-kicker">Section 01</div>
+      <h2 class="sec-title">Where it fits</h2>
+      <p class="sec-lede">This is the fourth move in the candidate journey, triggered by the third. The A2 / A3 loop already produces the perfect trigger: the honest outcome where a requirement no reframe can truthfully cover.</p>
+    </div>
+    <div class="sec-no">01</div>
+  </div>
+
+  <div class="fig">
+    <div class="fig-label">The candidate journey, and the branch that was a dead end</div>
+    <svg viewBox="0 0 720 250" style="width:100%;height:auto;font-family:'Inter',sans-serif">
+      <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="5" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9 z" fill="#0A66C2"/></marker>
+      <marker id="arR" markerWidth="9" markerHeight="9" refX="5" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9 z" fill="#B45309"/></marker></defs>
+
+      <!-- A1 -->
+      <rect x="14" y="34" width="150" height="66" rx="12" fill="#E7F4EC" stroke="#C4E5D0"/>
+      <text x="89" y="58" font-size="10.5" font-weight="800" fill="#1F7A44" text-anchor="middle" font-family="'JetBrains Mono'">A1 · DECODE</text>
+      <text x="89" y="76" font-size="10.5" fill="#3B424B" text-anchor="middle">Decode the job:</text>
+      <text x="89" y="90" font-size="10.5" fill="#3B424B" text-anchor="middle">the real requirements</text>
+
+      <!-- A2 -->
+      <rect x="196" y="34" width="150" height="66" rx="12" fill="#EAF2FB" stroke="#CFE2F6"/>
+      <text x="271" y="58" font-size="10.5" font-weight="800" fill="#084C92" text-anchor="middle" font-family="'JetBrains Mono'">A2 · ANALYSE</text>
+      <text x="271" y="76" font-size="10.5" fill="#3B424B" text-anchor="middle">Analyse fit,</text>
+      <text x="271" y="90" font-size="10.5" fill="#3B424B" text-anchor="middle">name the gaps</text>
+
+      <!-- A3 -->
+      <rect x="378" y="34" width="150" height="66" rx="12" fill="#FBF0E2" stroke="#EEDBBF"/>
+      <text x="453" y="58" font-size="10.5" font-weight="800" fill="#B45309" text-anchor="middle" font-family="'JetBrains Mono'">A3 · FILL (LOOP)</text>
+      <text x="453" y="76" font-size="10.5" fill="#3B424B" text-anchor="middle">Fill gaps from</text>
+      <text x="453" y="90" font-size="10.5" fill="#3B424B" text-anchor="middle">real experience</text>
+      <!-- loop arrow on A3 -->
+      <path d="M420 100 q-14 22 12 22 q26 0 12 -22" fill="none" stroke="#B45309" stroke-width="1.6" marker-end="url(#arR)"/>
+
+      <!-- arrows across the top row -->
+      <path d="M166 67 L193 67" stroke="#0A66C2" stroke-width="2" marker-end="url(#ar)"/>
+      <path d="M348 67 L375 67" stroke="#0A66C2" stroke-width="2" marker-end="url(#ar)"/>
+
+      <!-- branch down from A3 -->
+      <path d="M453 145 L453 176" stroke="#B42318" stroke-width="2" marker-end="url(#arR)" stroke-dasharray="0"/>
+      <text x="466" y="164" font-size="10" fill="#B42318" font-style="italic">gap CANNOT be bridged from real experience</text>
+
+      <!-- Education node (dark, highlighted) -->
+      <rect x="150" y="182" width="420" height="56" rx="13" fill="#181C22"/>
+      <text x="360" y="207" font-size="13" font-weight="800" fill="#fff" text-anchor="middle" font-family="'JetBrains Mono'">EDUCATION &amp; RE-SKILLING AREA</text>
+      <text x="360" y="226" font-size="11" fill="#8FB9EA" text-anchor="middle" font-style="italic">"this gap needs new skills - here is the path to get them"</text>
+    </svg>
+    <div class="figcap"><b>Today the honest "stays a gap" outcome is a dead end.</b> This area turns it into an action path: evaluate whether a course closes it, which course, and whether it is worth it.</div>
+  </div>
+
+  <div class="callout">
+    <div class="k">The trigger already exists</div>
+    <p class="mb0" style="font-size:13.5px">A2 / A3 already produce the honest verdict that a requirement cannot be covered by reframing or adjacent proof. That verdict is the exact signal this area consumes. Nothing new has to be invented to start it - only somewhere for the signal to go.</p>
+  </div>
+
+  <div class="foot"><span><span class="dot"></span>Education &amp; Re-Skilling Area · Draft</span><span>01 · Where it fits</span></div>
+</section>
+
+<!-- ============ 02 EVIDENCE ============ -->
+<section class="page">
+  <div class="sec-head">
+    <div class="l">
+      <div class="sec-kicker">Section 02</div>
+      <h2 class="sec-title">The evidence, and its cautions</h2>
+      <p class="sec-lede">The evidence brief makes re-skilling a first-class need - and forces a set of hard constraints. The numbers are real, but they arrive slowly and only when training is targeted to genuine demand.</p>
+    </div>
+    <div class="sec-no">02</div>
+  </div>
+
+  <div class="grid g4 mb14">
+    <div class="stat"><div class="v green">81-90%</div><div class="l">Employed one year after a YH course, with good course-to-job match</div><div class="s">SWEDISH YH DATA · §4.4</div></div>
+    <div class="stat"><div class="v blue">+7%</div><div class="l">Arbetsformedlingen labour-market training vs Komvux - shorter, better aligned</div><div class="s">§4.5</div></div>
+    <div class="stat"><div class="v violet">2+ yrs</div><div class="l">Before training returns appear; near-zero in the short run</div><div class="s">HONEST TIMELINE · §4.1</div></div>
+    <div class="stat"><div class="v">+3%</div><div class="l">Komvux vocational income effect, measured at five years</div><div class="s">§4.4</div></div>
+  </div>
+
+  <h3 class="blk">What the evidence establishes - and the caution each one forces</h3>
+  <div class="grid g2">
+    <div class="card tint-green">
+      <h4 class="blk mt0" style="font-size:15px">Skills gaps are a real, distinct blocker</h4>
+      <p class="tight mb0" style="font-size:12.5px">Separate from CV quality or confidence. For many harder-to-place people, retraining is the actual route back. <span class="mono" style="font-size:10px;color:var(--muted)">§4</span></p>
+    </div>
+    <div class="card tint-amber">
+      <h4 class="blk mt0" style="font-size:15px">Returns are real but slow, with lock-in</h4>
+      <p class="tight mb0" style="font-size:12.5px">Training cuts job-search during the course and pays off years later. <b>The tool must set honest timelines and never over-promise.</b> <span class="mono" style="font-size:10px;color:var(--muted)">§4.1, §8</span></p>
+    </div>
+    <div class="card tint-blue">
+      <h4 class="blk mt0" style="font-size:15px">Targeting to real demand is decisive</h4>
+      <p class="tight mb0" style="font-size:12.5px">Training clears cost-benefit only with strong demand and careful targeting to bottleneck occupations. <b>Recommend by demand signal, not catalogue browsing.</b> <span class="mono" style="font-size:10px;color:var(--muted)">§4.3, §7.2</span></p>
+    </div>
+    <div class="card tint-violet">
+      <h4 class="blk mt0" style="font-size:15px">Validering can shorten the path</h4>
+      <p class="tight mb0" style="font-size:12.5px">Prior-learning recognition avoids redundant training. <b>Check "can this be validated?" before recommending a full course.</b> <span class="mono" style="font-size:10px;color:var(--muted)">§4.7</span></p>
+    </div>
+    <div class="card">
+      <h4 class="blk mt0" style="font-size:15px">Taxonomies enable the match</h4>
+      <p class="tight mb0" style="font-size:12.5px">ESCO / O*NET give a structured way to map person to course to role. Skill classifiers extract demanded skills from ads, but need expert validation. <span class="mono" style="font-size:10px;color:var(--muted)">§4.6</span></p>
+    </div>
+    <div class="card">
+      <h4 class="blk mt0" style="font-size:15px">Do not make it digital-first for everyone</h4>
+      <p class="tight mb0" style="font-size:12.5px">Low digital literacy widens inequality. A blended human-plus-guided-digital route is required for some users. <span class="mono" style="font-size:10px;color:var(--muted)">§3.4, §5.5</span></p>
+    </div>
+  </div>
+
+  <div class="foot"><span><span class="dot"></span>Education &amp; Re-Skilling Area · Draft</span><span>02 · The evidence</span></div>
+</section>
+
+<!-- ============ 03 TOOLSET ============ -->
+<section class="page">
+  <div class="sec-head">
+    <div class="l">
+      <div class="sec-kicker">Section 03</div>
+      <h2 class="sec-title">The toolset</h2>
+      <p class="sec-lede">Six tools, each one a user need plus the evidence behind it. Tools 1, 3 and 5 are the core MVP; 2 underpins them; 4 and 6 are fast-follows.</p>
+    </div>
+    <div class="sec-no">03</div>
+  </div>
+
+  <table class="t">
+    <thead><tr><th style="width:26px">#</th><th style="width:150px">Tool</th><th>User need</th><th>What it does</th><th style="width:80px">Priority</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="mono">1</td>
+        <td class="em">Course-Fit Evaluator</td>
+        <td>"I have an unbridgeable gap - do I need a course, and which one?"</td>
+        <td>Takes A2's missing / partial requirements + the person's datafacts + a catalogue + demand signal, and ranks the few courses that actually close the decisive gaps.</td>
+        <td><span class="pill blue">Core MVP</span></td>
+      </tr>
+      <tr>
+        <td class="mono">2</td>
+        <td class="em">Skills-Gap mapper</td>
+        <td>"What exactly am I missing, in real terms?"</td>
+        <td>Maps decoded requirements and candidate evidence onto an ESCO / O*NET frame, so gaps are named as skills, not vague asks.</td>
+        <td><span class="pill ghost">Underpins</span></td>
+      </tr>
+      <tr>
+        <td class="mono">3</td>
+        <td class="em">Demand Signal</td>
+        <td>"Is this worth retraining for?"</td>
+        <td>Pulls local and role demand - vacancy data, bottleneck-occupation lists - so recommendations target real demand, not just available courses.</td>
+        <td><span class="pill blue">Core MVP</span></td>
+      </tr>
+      <tr>
+        <td class="mono">4</td>
+        <td class="em">Validering check</td>
+        <td>"Do I even need the course, or can my experience be recognised?"</td>
+        <td>Flags where prior learning could be formally recognised - to shorten or skip training - before recommending a full programme.</td>
+        <td><span class="pill teal">Fast-follow</span></td>
+      </tr>
+      <tr>
+        <td class="mono">5</td>
+        <td class="em">Pathway outcomes<br>+ honest timeline</td>
+        <td>"Will this actually pay off, and when?"</td>
+        <td>Shows the route's evidence (YH employment rate, expected lag) and an honest ramp time - contrasting "fast: apply now" vs "slow: retrain".</td>
+        <td><span class="pill blue">Core MVP</span></td>
+      </tr>
+      <tr>
+        <td class="mono">6</td>
+        <td class="em">Blended / low-friction mode</td>
+        <td>"I'm not comfortable with digital systems or forms."</td>
+        <td>Spoken / guided mode plus a coach hand-off for the same flow, so the education path is not gated by digital literacy.</td>
+        <td><span class="pill teal">Fast-follow</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout big">
+    <div class="k">The MVP slice</div>
+    <div class="big-line">One <span class="mono" style="font-size:15px;color:var(--brand)">course-fit</span> submodule (tools 1 + 2 + 5) reading A2's gaps, rendered on a new screen with the apply-vs-retrain fork and honest timelines. Demand and validering start lightweight; blended mode follows.</div>
+  </div>
+
+  <div class="foot"><span><span class="dot"></span>Education &amp; Re-Skilling Area · Draft</span><span>03 · The toolset</span></div>
+</section>
+
+<!-- ============ 04 THE SCREEN ============ -->
+<section class="page">
+  <div class="sec-head">
+    <div class="l">
+      <div class="sec-kicker">Section 04</div>
+      <h2 class="sec-title">The screen</h2>
+      <p class="sec-lede">Reachable from the analysis screen (Ansokningskoll) and from A3 when a gap is marked "stays a gap". The whole point is the fork - people must see the trade-off, not be pushed to train.</p>
+    </div>
+    <div class="sec-no">04</div>
+  </div>
+
+  <div class="fig">
+    <div class="fig-label">"Close this gap with learning" - the new panel, on the analysis screen</div>
+    <div class="mock">
+      <div class="mock-bar">
+        <span class="dot" style="background:#ED6A5E"></span><span class="dot" style="background:#F5BF4F"></span><span class="dot" style="background:#61C554"></span>
+        <span class="u">hellolilly.se/ansokningskoll/kompetenslyft</span>
+      </div>
+      <div class="mock-body">
+        <!-- the gap that stays a gap -->
+        <div style="padding:14px 18px;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:center;background:var(--wash)">
+          <span class="av sq" style="width:40px;height:40px;background:var(--red);font-size:15px">!</span>
+          <div style="flex:1">
+            <div class="mono" style="font-size:9px;color:var(--red);font-weight:700;letter-spacing:.1em;margin-bottom:3px">STAYS A GAP · FROM MATCH ANALYSIS</div>
+            <div style="font-family:'Fraunces',serif;font-size:16px;font-weight:700;line-height:1.15">Target role: Underskoterska (protected title)</div>
+            <div style="font-size:11px;color:var(--muted)">Missing 6 of 8 required vard- och omsorg course credits - cannot be covered by reframing your experience</div>
+          </div>
+          <span class="pill amber" style="align-self:flex-start">Demand: high</span>
+        </div>
+
+        <!-- recommendations header -->
+        <div style="padding:13px 18px 4px">
+          <div class="mono" style="font-size:9.5px;color:var(--brand);font-weight:700;letter-spacing:.1em">CLOSE THIS GAP WITH LEARNING &nbsp;·&nbsp; 3 ROUTES, RANKED</div>
+        </div>
+
+        <!-- rec 1: validering first -->
+        <div style="padding:6px 18px 10px">
+          <div style="border:1px solid #C4E3E0;background:var(--teal-wash);border-radius:10px;padding:11px 13px;margin-bottom:9px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+              <span class="pill teal" style="padding:3px 8px;font-size:8.5px">Check first</span>
+              <span style="font-size:12.5px;font-weight:700;color:var(--ink)">Validering - recognise what you already have</span>
+              <span style="margin-left:auto;font:600 10px/1 'JetBrains Mono',monospace;color:var(--teal)">could remove 3-4 courses</span>
+            </div>
+            <div style="font-size:11.5px;color:var(--ink2);line-height:1.45">Your 6 years as vardbitrade may already cover part of the requirement. Book a validering before enrolling, so you are not sent to study something you have effectively already done.</div>
+          </div>
+
+          <!-- rec 2: komvux -->
+          <div style="border:1px solid #CFE2F6;background:#fff;border-radius:10px;padding:11px 13px;margin-bottom:9px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+              <span class="av sq" style="width:24px;height:24px;background:var(--brand);font-size:8px">KX</span>
+              <span style="font-size:12.5px;font-weight:700;color:var(--ink)">Komvux - Vard och omsorg</span>
+              <span class="pill blue" style="padding:3px 8px;font-size:8.5px;margin-left:auto">Best fit</span>
+            </div>
+            <div style="display:flex;gap:0;border-top:1px solid var(--line2);border-bottom:1px solid var(--line2);margin:2px 0 7px">
+              <div style="flex:1;padding:7px 0;text-align:center;border-right:1px solid var(--line2)"><div style="font-family:'Fraunces',serif;font-size:15px;font-weight:900;color:var(--green)">~+3%</div><div style="font-size:8.5px;color:var(--muted)">income at 5 yrs</div></div>
+              <div style="flex:1;padding:7px 0;text-align:center;border-right:1px solid var(--line2)"><div style="font-family:'Fraunces',serif;font-size:15px;font-weight:900;color:var(--violet)">1.5-2 yrs</div><div style="font-size:8.5px;color:var(--muted)">honest ramp</div></div>
+              <div style="flex:1;padding:7px 0;text-align:center"><div style="font-family:'Fraunces',serif;font-size:15px;font-weight:900;color:var(--amber)">HIGH</div><div style="font-size:8.5px;color:var(--muted)">local demand</div></div>
+            </div>
+            <div style="font-size:11px;color:var(--ink2);line-height:1.4"><b>Why:</b> closes 6 of 6 remaining credits for the protected title, in a shortage occupation near you. Free, part-time option available.</div>
+          </div>
+
+          <!-- rec 3: AF training -->
+          <div style="border:1px solid var(--line);background:#fff;border-radius:10px;padding:11px 13px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+              <span class="av sq" style="width:24px;height:24px;background:var(--amber);font-size:8px">AF</span>
+              <span style="font-size:12.5px;font-weight:700;color:var(--ink)">Arbetsformedlingen - labour-market training</span>
+              <span style="margin-left:auto;font:600 10px/1 'JetBrains Mono',monospace;color:var(--amber)">+7% vs Komvux</span>
+            </div>
+            <div style="font-size:11px;color:var(--ink2);line-height:1.4">Shorter and more employer-aligned where a matching course is running. Availability varies by period - flagged, not promised.</div>
+          </div>
+        </div>
+
+        <!-- THE FORK -->
+        <div style="padding:12px 18px 16px;background:var(--wash);border-top:1px solid var(--line)">
+          <div class="mono" style="font-size:9px;color:var(--muted);font-weight:700;letter-spacing:.12em;margin-bottom:9px">YOUR CHOICE - BOTH ROUTES ARE REAL</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div style="background:#fff;border:1.5px solid #C4E5D0;border-radius:10px;padding:11px 13px">
+              <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px"><span style="width:8px;height:8px;border-radius:50%;background:#22C55E"></span><span style="font-size:12px;font-weight:800;color:var(--green)">Apply now anyway</span></div>
+              <div style="font-size:10.5px;color:var(--ink2);line-height:1.4">Fast, lower fit. Apply to <b>vardbitrade</b> roles you already qualify for while you decide.</div>
+              <div class="mono" style="font-size:8.5px;color:var(--green);margin-top:6px;font-weight:700">SEE 14 OPEN ROLES &rarr;</div>
+            </div>
+            <div style="background:#fff;border:1.5px solid #DFCEF6;border-radius:10px;padding:11px 13px">
+              <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px"><span style="width:8px;height:8px;border-radius:50%;background:#6D28D9"></span><span style="font-size:12px;font-weight:800;color:var(--violet)">Retrain</span></div>
+              <div style="font-size:10.5px;color:var(--ink2);line-height:1.4">Slow, higher fit. Get the protected title, then the role you actually want.</div>
+              <div class="mono" style="font-size:8.5px;color:var(--violet);margin-top:6px;font-weight:700">START WITH VALIDERING &rarr;</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="figcap"><b>The fork is the feature.</b> The evidence says people must see "apply now, lower fit" set beside "retrain, slower, higher fit" and choose - never be nudged onto a course they may not need. Every recommendation cites why it closes the gap, what the outcome and honest timeline are, and offers validering before a full programme.</div>
+  </div>
+
+  <div class="foot"><span><span class="dot"></span>Education &amp; Re-Skilling Area · Draft</span><span>04 · The screen</span></div>
+</section>
+
+<!-- ============ 04b HOW WE BUILD ============ -->
+<section class="page">
+  <div class="sec-head">
+    <div class="l">
+      <div class="sec-kicker">Section 04 · continued</div>
+      <h2 class="sec-title">On the existing architecture</h2>
+      <p class="sec-lede">Reuse the HelloLilly framework exactly as A1 / A2 do. No new infrastructure - a cloned submodule, a data lookup, and a new screen.</p>
+    </div>
+    <div class="sec-no">04</div>
+  </div>
+
+  <div class="grid g2">
+    <div class="card">
+      <div class="pill ghost mb6">Backend submodule</div>
+      <h4 class="blk mt0" style="font-size:16px"><span class="mono" style="color:var(--brand)">course-fit</span></h4>
+      <p class="tight" style="font-size:12.5px"><span class="mono" style="font-size:11px">reads: ['meta','decodedRole','gaps']</span><br><span class="mono" style="font-size:11px">writes: ['learningPlan']</span></p>
+      <p class="tight mb0" style="font-size:12.5px">Cloned from the <span class="mono" style="font-size:11px">decoder</span> scaffold. For each unbridgeable gap, calls the LLM with the gap, the skills frame, the datafacts, the matched courses, and the demand signal, and emits a ranked <span class="mono" style="font-size:11px">learningPlan</span>.</p>
+    </div>
+    <div class="card wash">
+      <div class="pill ink mb6">The honest guardrail is in the contract</div>
+      <p class="tight mb0" style="font-size:12.5px">Every recommendation must cite <em>why</em> - the gap it closes, the demand, the evidence - and must offer the "validate instead of retrain" and "apply now anyway" alternatives. Never a bare "take this course."</p>
+    </div>
+  </div>
+
+  <h3 class="blk">The learningPlan shape</h3>
+  <div class="card" style="background:#181C22;border:none;padding:16px 18px">
+    <div class="mono" style="font-size:11px;color:#8FB9EA;line-height:1.7">learningPlan: [{ gapRef, recommendation: <span style="color:#7FD8A0">'course'</span> | <span style="color:#7FD8A0">'validate'</span> | <span style="color:#7FD8A0">'reframe-instead'</span>,<br>&nbsp;&nbsp;course?, provider, expectedOutcome, rampTime, demandLevel, evidenceNote }]</div>
+  </div>
+
+  <h3 class="blk">Data sources - the part needing a targeted follow-up</h3>
+  <ul class="clean">
+    <li><b>Skills frame:</b> ESCO (EU, Swedish-localised) and / or O*NET.</li>
+    <li><b>Course catalogue:</b> YH (MYH), Komvux, SFI, Arbetsformedlingen labour-market training - ideally via their open data / APIs.</li>
+    <li><b>Demand signal:</b> vacancy data (the existing LinkedIn job-fetch infra) plus Arbetsformedlingen occupation-outlook (bristyrken).</li>
+    <li><b>Validering:</b> MYH / Swedish Council for Higher Education recognition routes - informational first, integrated later.</li>
+  </ul>
+
+  <div class="callout">
+    <div class="k">Crosslinking - per the vision's central idea</div>
+    <p class="mb0" style="font-size:13px">The learning plan crosslinks to coaches with relevant field knowledge, peers who took the same path, course reviews, and the person's Company / Job list. Help appears next to the decision.</p>
+  </div>
+
+  <div class="foot"><span><span class="dot"></span>Education &amp; Re-Skilling Area · Draft</span><span>04 · Architecture</span></div>
+</section>
+
+<!-- ============ 05 GUARDRAILS ============ -->
+<section class="page">
+  <div class="sec-head">
+    <div class="l">
+      <div class="sec-kicker">Section 05</div>
+      <h2 class="sec-title">Honest-design guardrails</h2>
+      <p class="sec-lede">Six rules, baked in from the evidence. They are what keep the area from becoming a course-marketing funnel - which the evidence says would fail the people it is meant to help.</p>
+    </div>
+    <div class="sec-no">05</div>
+  </div>
+
+  <div class="darkbox mb14">
+    <div class="k">The load-bearing rule</div>
+    <div class="q">Re-skilling is <span class="hl">one option, never the default.</span> The fast "apply now anyway" route sits beside "retrain" - and the person decides.</div>
+    <p style="margin-top:10px;margin-bottom:0">The evidence is blunt: targeting beats volume. A tool that pushes everyone to train fails the people who did not need to.</p>
+  </div>
+
+  <div class="grid g2">
+    <div class="card tint-amber"><h4 class="blk mt0" style="font-size:14.5px">1 · Never over-promise</h4><p class="tight mb0" style="font-size:12px">Training is slow and period-dependent. Show the lag and the demand caveat. Do not justify it on a 6-12 month horizon. <span class="mono" style="font-size:10px;color:var(--muted)">§7.2, §8</span></p></div>
+    <div class="card tint-blue"><h4 class="blk mt0" style="font-size:14.5px">2 · Target demand, not catalogue</h4><p class="tight mb0" style="font-size:12px">No recommendation without a demand signal behind it. <span class="mono" style="font-size:10px;color:var(--muted)">§4.3</span></p></div>
+    <div class="card tint-violet"><h4 class="blk mt0" style="font-size:14.5px">3 · Validate before retrain</h4><p class="tight mb0" style="font-size:12px">Always check prior-learning recognition first. <span class="mono" style="font-size:10px;color:var(--muted)">§4.7</span></p></div>
+    <div class="card tint-green"><h4 class="blk mt0" style="font-size:14.5px">4 · Offer the non-training route</h4><p class="tight mb0" style="font-size:12px">Surface "apply now" alongside "retrain". Re-skilling is one option, not the default. <span class="mono" style="font-size:10px;color:var(--muted)">§2.5</span></p></div>
+    <div class="card"><h4 class="blk mt0" style="font-size:14.5px">5 · Do not assume digital comfort</h4><p class="tight mb0" style="font-size:12px">Blended / spoken mode plus coach hand-off for low-digital-literacy users. <span class="mono" style="font-size:10px;color:var(--muted)">§5.5</span></p></div>
+    <div class="card"><h4 class="blk mt0" style="font-size:14.5px">6 · It augments coaches</h4><p class="tight mb0" style="font-size:12px">The robustly effective interventions are human-centred. This tool feeds the coach conversation, it does not replace it. <span class="mono" style="font-size:10px;color:var(--muted)">§8</span></p></div>
+  </div>
+
+  <div class="foot"><span><span class="dot"></span>Education &amp; Re-Skilling Area · Draft</span><span>05 · Guardrails</span></div>
+</section>
+
+<!-- ============ 06 MVP + OPEN QUESTION ============ -->
+<section class="page">
+  <div class="sec-head">
+    <div class="l">
+      <div class="sec-kicker">Section 06</div>
+      <h2 class="sec-title">MVP slice &amp; the one open question</h2>
+      <p class="sec-lede">The area consumes A2 / A3's gaps, so it ships after the A2 MVP. Everything reuses the framework except one build-blocking unknown.</p>
+    </div>
+    <div class="sec-no">06</div>
+  </div>
+
+  <div class="grid g2 mb14">
+    <div class="card tint-green">
+      <div class="pill green mb6">Ships first</div>
+      <h4 class="blk mt0" style="font-size:16px">The MVP</h4>
+      <p class="tight mb0" style="font-size:12.5px">The <span class="mono" style="font-size:11px">course-fit</span> submodule (tools 1 + 2 + 5) reading A2's gaps into a <span class="mono" style="font-size:11px">learningPlan</span> on the new screen, with the apply-vs-retrain fork and honest timelines. Demand (3) and validering (4) start lightweight / informational; blended mode (6) is a fast-follow.</p>
+    </div>
+    <div class="card">
+      <div class="pill ghost mb6">Build order</div>
+      <h4 class="blk mt0" style="font-size:16px">After the A2 MVP</h4>
+      <p class="tight mb0" style="font-size:12.5px">It depends on A2 / A3 existing, because it consumes <span class="mono" style="font-size:11px">gaps</span>. It is the natural next area once the gap loop starts producing unbridgeable gaps - not before.</p>
+    </div>
+  </div>
+
+  <div class="darkbox">
+    <div class="k">The single open follow-up</div>
+    <div class="q">Do MYH / YH, Komvux, SFI, or Arbetsformedlingen expose an <span class="hl">open course API</span> and an <span class="hl">occupation-demand feed</span> we can call?</div>
+    <p style="margin-top:12px;margin-bottom:0">That is the one build-blocking unknown; everything else reuses the framework. It is worth a short, scoped lookup - not another full deep-research run - before Step 1 of this area.</p>
+  </div>
+
+  <div class="callout big" style="margin-top:22px">
+    <div class="k">In one line</div>
+    <div class="big-line">Same decode &rarr; datafact &rarr; submodule &rarr; screen architecture - just pointed at courses instead of CV bullets, with the fast "apply anyway" route always on the table.</div>
+  </div>
+
+  <div class="foot"><span><span class="dot"></span>Education &amp; Re-Skilling Area · Draft</span><span>06 · MVP &amp; open question</span></div>
+</section>
+
+</body>
+</html>
