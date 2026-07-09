@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>HelloLilly · Courses &amp; Funding — The 2026 Facts</title>
+<style>
+:root {
+  --blue-deepest: #0E2244;
+  --blue-deep: #1B3A6B;
+  --blue-bright: #2E5AAC;
+  --blue-soft: #4A78C4;
+  --blue-pale: #E8EEF7;
+  --blue-mist: #F4F7FC;
+  --text: #1A2238;
+  --text-soft: #485066;
+  --muted: #7A879C;
+  --line: #D5DEEC;
+  --line-soft: #E8EDF5;
+  --accent: #C8895D;
+  --paper: #FBFAF7;
+  --serif: 'Lora', 'Times New Roman', Georgia, serif;
+  --sans: 'Poppins', 'Helvetica Neue', Arial, sans-serif;
+}
+@page {
+  size: A4;
+  margin: 22mm 22mm 22mm 22mm;
+  @bottom-left { content: "HelloLilly · Courses & Funding · 2026"; font-family: 'Poppins', sans-serif; font-size: 8.5pt; color: #7A879C; letter-spacing: 0.04em; }
+  @bottom-right { content: counter(page); font-family: 'Poppins', sans-serif; font-size: 8.5pt; color: #7A879C; }
+}
+@page divider { margin: 0; background: #0E2244; @bottom-left { content: none; } @bottom-right { content: none; } }
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; font-family: var(--sans); color: var(--text); font-size: 10.5pt; line-height: 1.55; background: white; -webkit-font-smoothing: antialiased; }
+p { margin: 0 0 9pt 0; hyphens: auto; orphans: 3; widows: 3; }
+p strong:first-child, li strong:first-child { color: var(--blue-deep); font-weight: 600; }
+table { width: 100%; border-collapse: collapse; margin: 4mm 0 5mm 0; font-size: 10.5pt; }
+table tr:first-child td { background: var(--blue-pale); font-family: var(--sans); font-weight: 600; font-size: 9.5pt; letter-spacing: 0.06em; text-transform: uppercase; color: var(--blue-deep); padding: 3.5mm 5mm; border-bottom: 1.2pt solid var(--blue-bright); }
+table td { padding: 3.5mm 5mm; vertical-align: top; border-bottom: 1px solid var(--line); line-height: 1.5; }
+table tr:not(:first-child) td:first-child { font-family: var(--sans); font-weight: 600; font-size: 10pt; color: var(--blue-deep); width: 34%; }
+.divider { page: divider; page-break-before: always; page-break-after: always; width: 210mm; height: 297mm;
+  background: linear-gradient(160deg, #0E2244 0%, #1B3A6B 55%, #2E5AAC 100%); color: white;
+  display: flex; flex-direction: column; justify-content: space-between; padding: 28mm 26mm; position: relative; overflow: hidden; }
+.divider::before { content: ""; position: absolute; top: -120mm; right: -120mm; width: 280mm; height: 280mm; border-radius: 50%;
+  background: radial-gradient(circle at center, rgba(74,120,196,0.35) 0%, rgba(46,90,172,0.0) 70%); }
+.divider::after { content: ""; position: absolute; bottom: -90mm; left: -90mm; width: 200mm; height: 200mm; border-radius: 50%;
+  background: radial-gradient(circle at center, rgba(200,137,93,0.15) 0%, rgba(200,137,93,0.0) 70%); }
+.divider-top { position: relative; z-index: 2; }
+.divider-brand { font-family: var(--serif); font-size: 14pt; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(255,255,255,0.85); margin-bottom: 4mm; }
+.divider-rule { width: 38mm; height: 1.2pt; background: rgba(255,255,255,0.55); margin-bottom: 7mm; }
+.divider-body { position: relative; z-index: 2; margin-top: auto; margin-bottom: auto; }
+.divider-eyebrow { font-family: var(--sans); font-size: 10pt; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; color: rgba(255,255,255,0.7); margin-bottom: 6mm; }
+.divider-title { font-family: var(--serif); font-weight: 300; font-size: 52pt; line-height: 1.02; letter-spacing: -0.015em; margin: 0 0 8mm 0; color: white; }
+.divider-title em { font-style: italic; font-weight: 400; color: rgba(255,255,255,0.92); }
+.divider-tagline { font-family: var(--serif); font-style: italic; font-size: 17pt; font-weight: 400; line-height: 1.4; color: rgba(255,255,255,0.88); max-width: 132mm; }
+.divider-footer { position: relative; z-index: 2; font-family: var(--sans); font-size: 9pt; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255,255,255,0.7); display: flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.25); padding-top: 5mm; }
+.section { page-break-before: always; }
+.section:last-of-type { page-break-after: avoid; }
+h1 { font-family: var(--serif); font-weight: 400; font-size: 32pt; line-height: 1.05; letter-spacing: -0.012em; color: var(--blue-deep); margin: 0 0 10mm 0; padding-bottom: 6mm; border-bottom: 1.5pt solid var(--blue-bright); position: relative; }
+h1.eyebrow-num::before { content: attr(data-num); display: block; font-family: var(--sans); font-size: 10pt; font-weight: 600; letter-spacing: 0.22em; color: var(--blue-bright); text-transform: uppercase; margin-bottom: 4mm; }
+h2 { font-family: var(--serif); font-size: 20pt; font-weight: 400; line-height: 1.2; color: var(--blue-deep); margin: 10mm 0 4mm 0; page-break-after: avoid; }
+h3 { font-family: var(--sans); font-size: 12pt; font-weight: 600; line-height: 1.3; color: var(--blue-bright); letter-spacing: 0.01em; margin: 7mm 0 2.5mm 0; page-break-after: avoid; }
+ul { margin: 0 0 6mm 0; padding-left: 7mm; list-style: none; }
+ul li { margin-bottom: 2.5mm; position: relative; line-height: 1.5; }
+ul li::before { content: ""; position: absolute; left: -5mm; top: 3.4mm; width: 1.6mm; height: 1.6mm; border-radius: 50%; background: var(--blue-bright); }
+.section-eyebrow { font-family: var(--sans); font-size: 9.5pt; font-weight: 600; letter-spacing: 0.22em; color: var(--blue-bright); text-transform: uppercase; display: block; margin-bottom: 4mm; }
+.lead { font-family: var(--serif); font-size: 12pt; line-height: 1.5; color: var(--text); margin-bottom: 5mm; }
+.section.flow h3 { margin-top: 6mm; }
+.principle { margin: 6mm 0; border-left: 2.5pt solid var(--accent); padding: 3mm 0 1mm 6mm; }
+.principle p { font-family: var(--serif); font-weight: 500; font-style: italic; font-size: 11.5pt; line-height: 1.45; color: var(--blue-deep); margin: 0 0 1.5mm 0; }
+.principle p:last-child { margin-bottom: 0; }
+.closing { margin-top: 9mm; padding: 6mm 8mm; border-left: 3pt solid var(--accent); background: var(--blue-mist); font-family: var(--serif); font-size: 13pt; font-style: italic; color: var(--blue-deep); line-height: 1.5; }
+.fork { display: flex; gap: 5mm; margin: 5mm 0 6mm 0; page-break-inside: avoid; }
+.fork .lane { flex: 1; border: 1px solid var(--line); border-top: 2.5pt solid var(--blue-bright); padding: 4mm 5mm; background: var(--blue-mist); }
+.fork .lane.retrain { border-top-color: var(--accent); }
+.fork .lane h4 { font-family: var(--sans); font-size: 10pt; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--blue-deep); margin: 0 0 2mm 0; }
+.fork .lane p { font-family: var(--serif); font-size: 10pt; line-height: 1.45; color: var(--text-soft); margin: 0; }
+.footnote { font-family: var(--sans); font-size: 8.5pt; color: var(--muted); line-height: 1.45; border-top: 1px solid var(--line); padding-top: 4mm; margin-top: 8mm; }
+</style>
+</head>
+<body>
+
+<!-- ============ DIVIDER ============ -->
+<section class="divider">
+  <div class="divider-top">
+    <div class="divider-brand">HelloLilly</div>
+    <div class="divider-rule"></div>
+  </div>
+  <div class="divider-body">
+    <div class="divider-eyebrow">Omställning · Practical Guide</div>
+    <div class="divider-title">Courses &amp;<br><em>Funding</em></div>
+    <div class="divider-tagline">The Swedish routes and the money, as the dated 2026 facts they are — what exists, who qualifies, what it pays, and how to be ready before the window opens.</div>
+  </div>
+  <div class="divider-footer">
+    <span>Vägar &amp; Pengar</span>
+    <span>Facts verified 7 July 2026</span>
+  </div>
+</section>
+
+<!-- ============ HOW TO READ ============ -->
+<section class="section flow">
+  <h1 class="eyebrow-num" data-num="Practical Guide">Courses &amp; Funding</h1>
+
+  <p class="lead">The strategy paper deliberately speaks in direction, not in numbers. This guide is the other half: the concrete Swedish routes and figures, each tagged to its year, because amounts, ages and windows change and a stale number is worse than none. Everything here was verified against the current public rules on 7 July 2026. When the system serves these facts, every claim traces to a source, and figures that have been retired are refused automatically.</p>
+
+  <p>One reminder frames everything in this guide, because the evidence is blunt about it: re-training pays off over years, not months, and for many people rapid placement with support is the honest better choice. So the fork stays on the table here too:</p>
+
+  <div class="fork">
+    <div class="lane">
+      <h4>Apply now anyway</h4>
+      <p>Faster, a lower fit. Often the honest better choice. Nothing in this guide is an argument against it.</p>
+    </div>
+    <div class="lane retrain">
+      <h4>Re-train</h4>
+      <p>Slower, a higher fit. What follows is the honest map of how to do it, fund it, and afford it — if it is the right fork for this life.</p>
+    </div>
+  </div>
+
+  <h2>The main route: Omställningsstudiestöd</h2>
+
+  <p>The transition study grant is the strongest funding instrument Sweden has for working-age career change — and the one the evidence says reaches the already-advantaged first, because a fixed budget handled first-come, first-served rewards whoever applies fastest and most completely. Knowing the mechanics below is exactly how the underserved catch up.</p>
+
+  <table>
+    <tr><td>The facts</td><td>2026 rules</td></tr>
+    <tr><td>Who</td><td>Ages 27 to 63, established in working life</td></tr>
+    <tr><td>Work condition</td><td>Worked at least 8 of the last 14 years, and at least 12 of the last 24 months</td></tr>
+    <tr><td>What it pays</td><td>80 per cent of your salary, capped at 5,773 kronor a week before tax (2026 level), with a top-up loan available for higher earners — though the loan part is not available over 60</td></tr>
+    <tr><td>How long</td><td>Up to 44 weeks of full-time study, and it can be drawn part-time to stretch further. Under 40, the education itself may be at most 80 weeks long</td></tr>
+    <tr><td>When to apply</td><td>Application windows open 1 April and 1 October at 20:00, with the digital queue opening 19:30. Applications are processed in the order they arrive</td></tr>
+    <tr><td>The budget reality</td><td>Roughly 44,000 funded places a year, and people continuing an already-granted plan have priority — so the window for first-timers is tighter than it looks</td></tr>
+  </table>
+
+  <h3>What actually decides the outcome</h3>
+  <ul>
+    <li><strong>Speed and completeness. </strong>Handling takes ten to twelve weeks or more, applications are processed first-come first-served, and an incomplete application is the leading cause of rejection. Filing a complete pack in the opening minutes is not neurotic. It is the strategy</li>
+    <li><strong>The motivation is the judged element. </strong>The application must convince CSN that the education strengthens your position in the labour market. This is the part worth drafting early and reviewing with a coach — it is exactly what the Funding Navigator prepares in advance</li>
+    <li><strong>The yttrande helps. </strong>A supporting statement from your omställningsorganisation strengthens the case. Ask for it before the window, not after</li>
+    <li><strong>You do not need to be admitted first. </strong>You can apply for the funding before you have a confirmed place on the education, so the two clocks can run in parallel</li>
+  </ul>
+
+  <div class="principle">
+    <p>The grant does not go to the most deserving. It goes to the most prepared. The whole point of the Funding Navigator is to make the underserved the most prepared people in the queue.</p>
+  </div>
+</section>
+
+<!-- ============ THE OTHER ROUTES ============ -->
+<section class="section flow">
+  <span class="section-eyebrow">Courses &amp; Funding</span>
+  <h2>When that route is closed: the alternatives</h2>
+
+  <p>Many long-term jobseekers will not meet the work condition above — twelve of the last twenty-four months in work is exactly what a long gap breaks. That is not a dead end. It is a different door, and the system's job is to open the right one instead of showing one marked <em>not for you</em>.</p>
+
+  <h3>Arbetsmarknadsutbildning — labour-market training via Arbetsförmedlingen</h3>
+  <ul>
+    <li>Free, short, and aimed directly at occupations where employers are actually short of people, with activity support while you train</li>
+    <li>You stay inside the job search rather than stepping out of it — and the evidence favours exactly this shape: shorter, demand-aligned training over longer academic routes</li>
+    <li>Where one of these fits the person's direction, the Education Matcher offers it first</li>
+  </ul>
+
+  <h3>Studiestartsstöd — the recruitment grant</h3>
+  <ul>
+    <li>Built for people with a short prior education and a long time out of work — precisely the group the transition grant tends to miss</li>
+    <li>Reached through the home municipality rather than applied for cold, so the first step is a conversation, not a form</li>
+    <li>Amounts and conditions are set nationally and change; the system shows the current year's figures and never quotes stale ones</li>
+  </ul>
+
+  <h3>Studiemedel — the ordinary study funding</h3>
+  <ul>
+    <li>The general grant-and-loan route through CSN, open far more widely than the transition grant, with age-dependent limits on the loan side</li>
+    <li>Slower money than the transition grant but without its queue — the honest fallback for a longer re-education</li>
+    <li>Current amounts live with CSN and are shown year-tagged in the tool, not memorised here</li>
+  </ul>
+
+  <h3>On sickness benefit: arbetsprövning</h3>
+  <ul>
+    <li>From 1 March 2026 there is a new instrument for testing work capacity during sickness absence — a gentler, formal way to try a return without betting the benefit on it</li>
+    <li>Most people it could help do not know it exists. The Transition Compass surfaces it as a matter of course when the driver is health</li>
+  </ul>
+
+  <h3>The free human guidance you are already owed</h3>
+  <ul>
+    <li>Every municipality provides free study and careers guidance for adults, and it is genuinely independent — nobody there earns anything from the course you pick</li>
+    <li>The system points to it by name rather than replacing it. A tool prepares the questions; the counsellor and the coach carry the judgement</li>
+  </ul>
+</section>
+
+<!-- ============ THE COURSES + BEING READY ============ -->
+<section class="section flow">
+  <span class="section-eyebrow">Courses &amp; Funding</span>
+  <h2>Where the courses come from</h2>
+
+  <p>Every course the system recommends is drawn from the national catalogue of publicly funded education — a single open, daily-updated source covering the whole publicly funded landscape: yrkeshögskola, komvux, folkhögskola, university, and labour-market training. Nothing is scraped, guessed or sponsored, and every recommendation traces back to a catalogue entry.</p>
+
+  <ul>
+    <li><strong>Yrkeshögskola </strong>- the workhorse of Swedish re-skilling: vocational, employer-designed, and short enough to be survivable. As one honestly tagged example of the outcome data the system shows: 81 per cent of the 2024 graduating cohort were in work — a descriptive figure for that cohort and year, not a promise, and never presented as proof the education caused the job</li>
+    <li><strong>Komvux </strong>- the route to formal eligibility: completing or topping up at gymnasium level, and the entry door many longer paths require</li>
+    <li><strong>Folkhögskola </strong>- a different pedagogy that suits people the ordinary classroom has failed, with routes to the same eligibility</li>
+    <li><strong>University </strong>- the long route, honestly framed: the deepest re-education and the largest cost in time out of the market, so it always appears beside its full price in months and money</li>
+    <li><strong>Labour-market training </strong>- covered on the previous page, and offered first where it fits</li>
+  </ul>
+
+  <p>Distance is shown in three honest, indicative sizes: a small gap closed in up to half a year, a genuine pivot in around a year, and a full re-education in up to three. Indications, never promises — the calculator turns them into this person's months and money.</p>
+
+  <h2>Being ready when the window opens</h2>
+
+  <p>This is the manual version of what the Funding Navigator automates — worth having on paper because the window rewards preparation, not merit.</p>
+
+  <ul>
+    <li>Settle the study choice and the direction well before the window — that decision should never be made in the queue</li>
+    <li>Gather the employment history the work condition will be checked against, so nothing is missing on the night</li>
+    <li>Draft the motivation early — the case that this education strengthens your position in the labour market — and have a coach review it</li>
+    <li>Request the yttrande from the omställningsorganisation in good time</li>
+    <li>Remember the funding application does not wait for an admission decision — run both clocks at once</li>
+    <li>Be in the digital queue when it opens at 19:30, file at 20:00, complete on the first attempt</li>
+  </ul>
+
+  <div class="closing">
+    None of these routes is the answer for everyone, and one of them — applying now, with support — involves no course at all. What this guide removes is the excuse the current system quietly relies on: that the money and the rules are too tangled for the people who need them most. They are not. They are just facts, and facts can be prepared for.
+  </div>
+
+  <div class="footnote">
+    All figures, ages, dates and conditions in this guide reflect the published 2026 rules and were verified against the public sources — CSN, Skolverket's national course catalogue, and Arbetsförmedlingen — on 7 July 2026. They will change; the system serves them year-tagged and refuses figures the sources have retired. This guide is the practical companion to the Re-Skilling &amp; Career Change deep-dive and to the integrated strategy paper, and supersedes the earlier course-guide insert, which was written against a superseded evidence brief and carried figures that have since been corrected or retired.
+  </div>
+</section>
+
+</body>
+</html>

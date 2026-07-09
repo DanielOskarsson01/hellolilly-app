@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>HelloLilly · Omställning — Re-Skilling &amp; Career Change (Deep-Dive)</title>
+<style>
+:root {
+  --blue-deepest: #0E2244;
+  --blue-deep: #1B3A6B;
+  --blue-bright: #2E5AAC;
+  --blue-soft: #4A78C4;
+  --blue-pale: #E8EEF7;
+  --blue-mist: #F4F7FC;
+  --text: #1A2238;
+  --text-soft: #485066;
+  --muted: #7A879C;
+  --line: #D5DEEC;
+  --line-soft: #E8EDF5;
+  --accent: #C8895D;
+  --paper: #FBFAF7;
+  --serif: 'Lora', 'Times New Roman', Georgia, serif;
+  --sans: 'Poppins', 'Helvetica Neue', Arial, sans-serif;
+}
+@page {
+  size: A4;
+  margin: 22mm 22mm 22mm 22mm;
+  @bottom-left { content: "HelloLilly · Omställning Deep-Dive"; font-family: 'Poppins', sans-serif; font-size: 8.5pt; color: #7A879C; letter-spacing: 0.04em; }
+  @bottom-right { content: counter(page); font-family: 'Poppins', sans-serif; font-size: 8.5pt; color: #7A879C; }
+}
+@page divider { margin: 0; background: #0E2244; @bottom-left { content: none; } @bottom-right { content: none; } }
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; font-family: var(--sans); color: var(--text); font-size: 10.5pt; line-height: 1.55; background: white; -webkit-font-smoothing: antialiased; }
+p { margin: 0 0 9pt 0; hyphens: auto; orphans: 3; widows: 3; }
+p strong:first-child, li strong:first-child { color: var(--blue-deep); font-weight: 600; }
+.divider { page: divider; page-break-before: always; page-break-after: always; width: 210mm; height: 297mm;
+  background: linear-gradient(160deg, #0E2244 0%, #1B3A6B 55%, #2E5AAC 100%); color: white;
+  display: flex; flex-direction: column; justify-content: space-between; padding: 28mm 26mm; position: relative; overflow: hidden; }
+.divider::before { content: ""; position: absolute; top: -120mm; right: -120mm; width: 280mm; height: 280mm; border-radius: 50%;
+  background: radial-gradient(circle at center, rgba(74,120,196,0.35) 0%, rgba(46,90,172,0.0) 70%); }
+.divider::after { content: ""; position: absolute; bottom: -90mm; left: -90mm; width: 200mm; height: 200mm; border-radius: 50%;
+  background: radial-gradient(circle at center, rgba(200,137,93,0.15) 0%, rgba(200,137,93,0.0) 70%); }
+.divider-top { position: relative; z-index: 2; }
+.divider-brand { font-family: var(--serif); font-size: 14pt; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(255,255,255,0.85); margin-bottom: 4mm; }
+.divider-rule { width: 38mm; height: 1.2pt; background: rgba(255,255,255,0.55); margin-bottom: 7mm; }
+.divider-body { position: relative; z-index: 2; margin-top: auto; margin-bottom: auto; }
+.divider-eyebrow { font-family: var(--sans); font-size: 10pt; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; color: rgba(255,255,255,0.7); margin-bottom: 6mm; }
+.divider-title { font-family: var(--serif); font-weight: 300; font-size: 52pt; line-height: 1.02; letter-spacing: -0.015em; margin: 0 0 8mm 0; color: white; }
+.divider-title em { font-style: italic; font-weight: 400; color: rgba(255,255,255,0.92); }
+.divider-tagline { font-family: var(--serif); font-style: italic; font-size: 17pt; font-weight: 400; line-height: 1.4; color: rgba(255,255,255,0.88); max-width: 132mm; }
+.divider-footer { position: relative; z-index: 2; font-family: var(--sans); font-size: 9pt; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255,255,255,0.7); display: flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.25); padding-top: 5mm; }
+.section { page-break-before: always; }
+.section:last-of-type { page-break-after: avoid; }
+h1 { font-family: var(--serif); font-weight: 400; font-size: 32pt; line-height: 1.05; letter-spacing: -0.012em; color: var(--blue-deep); margin: 0 0 10mm 0; padding-bottom: 6mm; border-bottom: 1.5pt solid var(--blue-bright); position: relative; }
+h1.eyebrow-num::before { content: attr(data-num); display: block; font-family: var(--sans); font-size: 10pt; font-weight: 600; letter-spacing: 0.22em; color: var(--blue-bright); text-transform: uppercase; margin-bottom: 4mm; }
+h2 { font-family: var(--serif); font-size: 20pt; font-weight: 400; line-height: 1.2; color: var(--blue-deep); margin: 10mm 0 4mm 0; page-break-after: avoid; }
+h3 { font-family: var(--sans); font-size: 12pt; font-weight: 600; line-height: 1.3; color: var(--blue-bright); letter-spacing: 0.01em; margin: 7mm 0 2.5mm 0; page-break-after: avoid; }
+ul { margin: 0 0 6mm 0; padding-left: 7mm; list-style: none; }
+ul li { margin-bottom: 2.5mm; position: relative; line-height: 1.5; }
+ul li::before { content: ""; position: absolute; left: -5mm; top: 3.4mm; width: 1.6mm; height: 1.6mm; border-radius: 50%; background: var(--blue-bright); }
+.section-eyebrow { font-family: var(--sans); font-size: 9.5pt; font-weight: 600; letter-spacing: 0.22em; color: var(--blue-bright); text-transform: uppercase; display: block; margin-bottom: 4mm; }
+.lead { font-family: var(--serif); font-size: 12pt; line-height: 1.5; color: var(--text); margin-bottom: 5mm; }
+.section.flow h3 { margin-top: 6mm; }
+.principle { margin: 6mm 0; border-left: 2.5pt solid var(--accent); padding: 3mm 0 1mm 6mm; }
+.principle p { font-family: var(--serif); font-weight: 500; font-style: italic; font-size: 11.5pt; line-height: 1.45; color: var(--blue-deep); margin: 0 0 1.5mm 0; }
+.principle p:last-child { margin-bottom: 0; }
+.montage { background: white; border-left: 2.5pt solid var(--blue-bright); padding: 4mm 7mm 3mm 7mm; margin: 0 0 5mm 0; box-shadow: 0 1pt 4pt rgba(14,34,68,0.06); }
+.montage p { font-family: var(--serif); font-style: italic; font-size: 10.5pt; line-height: 1.45; color: var(--text-soft); margin: 0; }
+.closing { margin-top: 9mm; padding: 6mm 8mm; border-left: 3pt solid var(--accent); background: var(--blue-mist); font-family: var(--serif); font-size: 13pt; font-style: italic; color: var(--blue-deep); line-height: 1.5; }
+.fork { display: flex; gap: 5mm; margin: 5mm 0 6mm 0; page-break-inside: avoid; }
+.fork .lane { flex: 1; border: 1px solid var(--line); border-top: 2.5pt solid var(--blue-bright); padding: 4mm 5mm; background: var(--blue-mist); }
+.fork .lane.retrain { border-top-color: var(--accent); }
+.fork .lane h4 { font-family: var(--sans); font-size: 10pt; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--blue-deep); margin: 0 0 2mm 0; }
+.fork .lane p { font-family: var(--serif); font-size: 10pt; line-height: 1.45; color: var(--text-soft); margin: 0; }
+.footnote { font-family: var(--sans); font-size: 8.5pt; color: var(--muted); line-height: 1.45; border-top: 1px solid var(--line); padding-top: 4mm; margin-top: 8mm; }
+</style>
+</head>
+<body>
+
+<!-- ============ SECTION DIVIDER ============ -->
+<section class="divider">
+  <div class="divider-top">
+    <div class="divider-brand">HelloLilly</div>
+    <div class="divider-rule"></div>
+  </div>
+  <div class="divider-body">
+    <div class="divider-eyebrow">Companion Deep-Dive</div>
+    <div class="divider-title">Re-Skilling &amp;<br><em>Career Change</em></div>
+    <div class="divider-tagline">When the honest next move is a new direction or a new skill rather than another application, this is where that need becomes a path — without pushing anyone onto a course they may not need.</div>
+  </div>
+  <div class="divider-footer">
+    <span>Omställning</span>
+    <span>Companion to the Strategy Paper · 2026</span>
+  </div>
+</section>
+
+<!-- ============ SECTION: WHY THIS AREA ============ -->
+<section class="section flow">
+  <h1 class="eyebrow-num" data-num="Deep-Dive">Re-Skilling &amp; Career Change</h1>
+
+  <p class="lead">The rest of the vision is built around presenting who the jobseeker already is — their CV, their gaps, their interviews. But for a real share of people, that is not the barrier. The barrier is that the right work needs a skill they do not yet have, or a direction they have not yet found. For them, education is not a footnote to the job search. It is a first-class route back to work, standing beside applying directly rather than beneath it.</p>
+
+  <p>This is also what makes HelloLilly's own goal read the way it is written — matching people to the right job <em>or education</em> by 2030 — with both routes given real support instead of one being quietly assumed. This area is the second route, made real. In the strategy paper it appears woven through the whole argument; this document is the deep-dive behind those threads, for anyone who wants the area in one place.</p>
+
+  <div class="montage">
+    <p>One is fifty-three and made redundant after twenty years in a trade that is thinning out. One has applied to the same kind of role for a year and the market has simply moved on from it. One is on sickness benefit and does not yet know a gentler way back exists. One knows exactly which job they want but not one honest step toward the skill it needs. Each of them needs a direction and a way to fund it, and each is stuck for a different reason.</p>
+  </div>
+
+  <p>The area answers a question the rest of the system does not: when the honest answer is <em>this needs new skills</em>, or <em>you need a new direction</em>, what is the path — and is it even the right path? The evidence is emphatic that the answer is often not "take a course." So the whole area is built to show people the whole fork, honestly, and to reach the people the public system currently underserves.</p>
+
+  <h2>What the evidence insists on</h2>
+
+  <p>Like the rest of the vision, the design here is not a guess. Six findings shape every choice, and each carries the caution that comes with it.</p>
+
+  <h3>Re-skilling pays off slowly, not immediately</h3>
+  <p>Training reduces job search while a person is studying and turns positive only over years, not months, with larger effects in a downturn. The defensible promise is a better-matched, more durable, faster transition — never "retrain and escape disruption." The timelines are shown honestly, and the cost of stepping out of the search is named, not hidden.</p>
+
+  <h3>Rapid placement with support beats train-then-place</h3>
+  <p>For people with real barriers, putting them into work with ongoing support outperforms training first. So applying directly stays firmly on the table beside every retraining option. Re-skilling is one route, never the default.</p>
+
+  <h3>The human coach is the reliably effective ingredient</h3>
+  <p>Career tools used entirely on their own have a thin record; the presence of a counsellor is what reliably moves outcomes, and job-search help works only when it builds both skill and motivation together. So a coach stays in the loop by design. The tools prepare, structure and inform; the human carries motivation, accountability, and the judgement about whether re-training is right for this particular life.</p>
+
+  <h3>The public grant reaches the already-advantaged first</h3>
+  <p>Sweden's transition study support is used most by higher-educated, lower-risk workers, partly because a fixed budget handled first-come-first-served rewards whoever applies fastest and most completely. The people most exposed to change are the least likely to reach for it on their own. Reaching them is not a nice-to-have here. It is the point of the area.</p>
+
+  <h3>The starting state differs sharply by reason</h3>
+  <p>Whether a change is chosen or forced is tied to how it feels afterwards, and a forced change can leave a mark that outlasts even finding new work. So the opening move is to understand why the person is here, and to route the support and the expectations accordingly — never a cheerful "exciting new chapter" by default.</p>
+
+  <h3>Bias in hiring is real, and no course fixes it</h3>
+  <p>Age and gender shape callbacks in ways that begin earlier than most expect. This is a demand-side problem, and the honest answer is positioning strategy together with HelloLilly's employer relationships and coach network — not another qualification. The tools feed that human work rather than pretending to solve bias with more study.</p>
+
+  <div class="principle">
+    <p>Direction-finding is a real but modest lever. Its job is not to hand someone a verdict, but to produce options worth testing and to move what actually matters — a person's belief that they can do the next thing, and whether they take it.</p>
+  </div>
+</section>
+
+<!-- ============ SECTION: HOW IT FITS + THE FORK ============ -->
+<section class="section flow">
+  <span class="section-eyebrow">Re-Skilling &amp; Career Change</span>
+  <h2>How the area fits, and the fork it always shows</h2>
+
+  <p>The area has two ways in. It is reached from Match Analysis, when the honest reading is a requirement a person cannot yet meet. And it is reached directly, by someone who arrives without a target role at all — which is where many long-term jobseekers actually start. Either way, it opens the same move: a short, plain conversation about why the person is changing, because the right help and the honest expectations differ sharply between a chosen move, a redundancy, and a health reason.</p>
+
+  <p>From there it shapes itself around how far the person has to travel — a small gap closed in a few months, a genuine pivot over about a year, or a full re-education measured in years. The distances are shown as indications, never as promises. And whatever the distance, one thing never leaves the screen: the fork.</p>
+
+  <div class="fork">
+    <div class="lane">
+      <h4>Apply now anyway</h4>
+      <p>Faster, a lower fit. Often the honest better choice — the evidence says rapid placement with support beats studying first for many people. Always shown, never buried.</p>
+    </div>
+    <div class="lane retrain">
+      <h4>Re-train</h4>
+      <p>Slower, a higher fit. Worth it when the skill distance is genuinely large — and only with the timeline named: returns arrive over years, not months.</p>
+    </div>
+  </div>
+
+  <p>The person sees the trade-off and decides. That is the whole point of the fork. The system's job is to make both routes honest, not to push the expensive one.</p>
+
+  <div class="principle">
+    <p>Most systems send a person with a gap toward a course. This one first asks why they are changing and what they can afford, keeps applying directly beside retraining at every step, and only then helps them choose.</p>
+  </div>
+</section>
+
+<!-- ============ SECTION: THE TOOLS ============ -->
+<section class="section flow">
+  <span class="section-eyebrow">Re-Skilling &amp; Career Change</span>
+  <h2>The tools</h2>
+
+  <p>This is an area rather than a single tool. Each part is useful on its own and connects to the rest through the same crosslinking layer as everything else in the system.</p>
+
+  <h3>Transition Compass (Omställningskompassen)</h3>
+  <p><strong>Why: </strong>Understand why the person is here before recommending anything, because the right support depends on it.</p>
+  <ul>
+    <li>A short, spoken-capable conversation that records the driver — a chosen move, a redundancy, a health reason — along with financial runway, comfort with technology, and a plain sense of the person's own confidence</li>
+    <li>For someone on sickness benefit, it surfaces the current, concrete routes back rather than leaving them undiscovered</li>
+    <li>The confidence it captures is also how the area measures whether it is working, revisited over time — because belief, not just information, is what moves people</li>
+  </ul>
+
+  <h3>Direction Explorer (Riktningsutforskaren)</h3>
+  <p><strong>Why: </strong>For the person with no target role, and the paralysis that comes with it.</p>
+  <ul>
+    <li>Maps the person's real experience onto the labour market's own map of occupations and skills, and offers a few realistic adjacent directions</li>
+    <li>For each: what transfers, what is missing, how far the retraining would reach, what the demand looks like, live local adverts, and the salary reality</li>
+    <li>Ends in something to test, not a verdict — because an algorithm's idea of "adjacent" and an employer's are not always the same, and the honest next step is to try before committing</li>
+  </ul>
+
+  <h3>Funding Navigator (Finansieringsguiden)</h3>
+  <p><strong>Why: </strong>Get the people the public system currently misses ready for the funding they are entitled to, before the window closes on them.</p>
+  <ul>
+    <li>Checks eligibility against the real conditions and shows the amounts and dates as the current facts they are, tagged to the year</li>
+    <li>Assembles an application-ready pack in advance — the checklist, the details, the study choice, and a first draft of the motivation a coach then reviews — so a person is not beaten by an incomplete form or a slow start</li>
+    <li>Routes the many who will not qualify to the alternatives that fit them, instead of showing a door marked <em>not for you</em>, and points them to the free human study guidance they are already owed</li>
+  </ul>
+
+  <h3>Education Matcher (Utbildningsmatchningen)</h3>
+  <p><strong>Why: </strong>Show the few concrete educations that actually close the gap, not a catalogue to browse.</p>
+  <ul>
+    <li>Given a direction or a named gap, ranks the handful of real courses that close it, drawn from the national catalogue of publicly funded education</li>
+    <li>Each carries an honest outcome note tagged to its year, its true cost and timeline, the cost of stepping out of the search, and applying directly shown beside it</li>
+    <li>Where a shorter, better-aligned labour-market training fits, it is offered first — because the evidence favours it over longer routes</li>
+  </ul>
+
+  <h3>Test-Before-Invest (Prova-först)</h3>
+  <p><strong>Why: </strong>Reduce the uncertainty before committing to long, expensive study.</p>
+  <ul>
+    <li>A short plan to try a direction for real — an informational conversation, a day of shadowing, a taster course, a work trial</li>
+    <li>Each step says plainly what is being tested and what would change the person's mind</li>
+    <li>Sits before any commitment of six months or more, so the big decision is made with evidence rather than hope</li>
+  </ul>
+
+  <h3>Transition Economics (Omställningskalkylen)</h3>
+  <p><strong>Why: </strong>Answer the question underneath every other one — can I afford this, and when does it pay back?</p>
+  <ul>
+    <li>Sets applying now, a short course, and a full retraining side by side, in months and in money, under the real support caps</li>
+    <li>Names the multi-year payback honestly, in ranges, never as a promise</li>
+    <li>Financial clarity, because the evidence says money is the most consistent predictor of how a transition ends</li>
+  </ul>
+
+  <h3>Transition View (Omställningsvyn)</h3>
+  <p><strong>Why: </strong>Keep the human judgement where it belongs, on any decision this large.</p>
+  <ul>
+    <li>Surfaces all of the above to the coach, with prompts that follow the evidence — a tighter cadence where confidence is low, a wellbeing check where the change was forced, a demand-side strategy where age or gender bias is in play</li>
+    <li>Any plan built on a long education needs a coach's sign-off before it is presented to the person as the plan</li>
+    <li>Matches the person to the coach who knows the target field — a pivot into care reaches the coach who has placed dozens of nurses, not the one two desks away who never will</li>
+  </ul>
+
+  <p>Two smaller things run alongside. During any period of study, Progress Support schedules one light market action a week — a way to stay warm so the person does not vanish from the search while they learn. And the stories of people who made the same move are crosslinked onto the direction and course cards, so seeing others get through is part of the decision, not a separate place to go.</p>
+</section>
+
+<!-- ============ SECTION: HONEST DESIGN + FOUNDATION + CLOSING ============ -->
+<section class="section flow">
+  <span class="section-eyebrow">Re-Skilling &amp; Career Change</span>
+  <h2>How we keep it honest</h2>
+
+  <p>This area carries its own version of the responsibility principles that govern the rest of the system, because the ways it could mislead are specific.</p>
+
+  <ul>
+    <li><strong>Never sell escape. </strong>The promise is a better-matched, more durable, faster transition — not a guaranteed way out of a changing labour market</li>
+    <li><strong>Show the fork every time. </strong>Applying directly is rendered beside every retraining option, always. Re-skilling is one route, never the default</li>
+    <li><strong>Be honest about time and money. </strong>Employment figures are shown where they exist, tagged to the year and the cohort, and never presented as proof a programme caused the result. Funding amounts and windows are the dated facts they are</li>
+    <li><strong>Reach the underserved on purpose. </strong>A tool that only served motivated self-starters would widen the very gap it exists to close, so the area is built to get exposed people ready, not only the quick and the confident</li>
+    <li><strong>An honesty check the build enforces. </strong>Every recommendation the system makes about courses, funding or outcomes must trace each claim to a source before it reaches a person, and figures the evidence has retired are refused automatically. Honesty here is checked by the build, not left to memory</li>
+    <li><strong>No digital gate. </strong>A spoken mode and a coach hand-off run on the same flows, because the people who need this most are the least likely to fight their way through a complex form alone</li>
+  </ul>
+
+  <h2>What it is built on</h2>
+
+  <p>The area needs almost no new infrastructure. The national catalogue of publicly funded education, the labour market's map of occupations and skills, the lists of neighbouring occupations, live and historical vacancies, and the demand forecasts are all available as free, open public data — confirmed and current. The one piece with no open feed, the funding rules, is a small, dated file kept current by hand. Nothing in the core requires a paid service. And it reuses the same connected architecture as the rest of the system, pointed at courses and directions instead of CV bullets — which is why, like everything else here, it is faster to build than it sounds.</p>
+
+  <div class="closing">
+    The gap loop tells a person what they are missing. This area first asks why they are changing and what they can afford, shows the whole fork honestly, gets the underserved to the funding the advantaged reach first, tests before they invest, and keeps a human coach in the loop for the judgement no tool should make. Education stops being a footnote, and becomes the second route the 2030 goal always promised.
+  </div>
+
+  <div class="footnote">
+    This document is the deep-dive companion to the integrated strategy paper, where the area appears throughout the argument and as its own category of tools in the Full Vision. It is grounded in the consolidated career-change evidence brief of 7 July 2026, and supersedes the earlier education draft written against a superseded brief; several figures in that draft were corrected or retired and are not carried here. Where this document speaks in direction and mechanism rather than in numbers, that is deliberate — the precise, source-tagged figures live in the evidence brief and in the Courses &amp; Funding guide, behind the honesty check described above.
+  </div>
+</section>
+
+</body>
+</html>
