@@ -282,17 +282,24 @@ function createApiHandler(host, { preferencesPath, llm } = {}) {
     if (req.method === 'POST' && action === '/letter-draft') {
       const existing = host.store.getCase(caseId);
       if (!existing) { sendJson(res, 404, { ok: false, error: 'case not found' }); return true; }
-      const body = await readJson(req);
-      const draft = {
-        language: body.language || 'en',
-        paragraphs: Array.isArray(body.paragraphs) ? body.paragraphs : [],
-        decisions: (body.decisions && typeof body.decisions === 'object' && !Array.isArray(body.decisions)) ? body.decisions : {},
-        editedAt: new Date().toISOString(),
-      };
-      const part = host.store.writePart(caseId, 'coverLetterDraft', draft);
-      logActivity(host.store, { type: 'letter_draft_saved', caseId, label: 'Brevutkast sparat',
-        meta: { paragraphCount: draft.paragraphs.length, language: draft.language } });
-      sendJson(res, 200, { ok: true, part });
+      try {
+        const body = await readJson(req);
+        const draft = {
+          language: body.language || 'en',
+          paragraphs: Array.isArray(body.paragraphs) ? body.paragraphs : [],
+          decisions: (body.decisions && typeof body.decisions === 'object' && !Array.isArray(body.decisions)) ? body.decisions : {},
+          editedAt: new Date().toISOString(),
+        };
+        // writePart runs the writing-rules gate and THROWS on a violation (a banned phrase).
+        // Catch it → honest 500, never a hung socket. logActivity sits AFTER writePart, so a
+        // gate-throw skips it: the activity log records nothing for a rejected draft.
+        const part = host.store.writePart(caseId, 'coverLetterDraft', draft);
+        logActivity(host.store, { type: 'letter_draft_saved', caseId, label: 'Brevutkast sparat',
+          meta: { paragraphCount: draft.paragraphs.length, language: draft.language } });
+        sendJson(res, 200, { ok: true, part });
+      } catch (err) {
+        sendJson(res, 500, { ok: false, error: err.message });
+      }
       return true;
     }
 
