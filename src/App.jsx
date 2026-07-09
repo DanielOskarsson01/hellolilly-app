@@ -3,6 +3,7 @@ import { CloverDefs } from './components/primitives.jsx';
 import { ComingSoon, NAV_INDEX } from './components/shell.jsx';
 import { HomeExpanded } from './screens/home.jsx';
 import { CVBuilder, ActivityTracker } from './screens/cvActivity.jsx';
+import { ActivityLog } from './screens/activityLog.jsx';
 import { CoverLetter } from './screens/coverLetter.jsx';
 import { InterviewTrainer } from './screens/interview.jsx';
 import { SharedLibrary } from './screens/library.jsx';
@@ -23,6 +24,7 @@ const LL_ROUTES = {
   letter: { c: () => <CoverLetter />, title: 'Personligt brev', template: true },
   interview: { c: () => <InterviewTrainer />, title: 'Intervjuträning' },
   activity: { c: () => <ActivityTracker />, title: 'Min aktivitet' },
+  'activity-log': { c: () => <ActivityLog />, title: 'Aktivitetslogg (verifiering)' },
   library: { c: () => <SharedLibrary />, title: 'Bibliotek' },
   review: { c: () => <MultiCoachReview />, title: 'Granskning' },
   studio: { c: () => <ImageStudio />, title: 'Bildstudio' },
