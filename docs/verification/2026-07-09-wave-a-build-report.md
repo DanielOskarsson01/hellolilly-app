@@ -76,9 +76,12 @@ own `TYPE_PRESENTATION`-equivalent map (coach-appropriate icons/copy/tint, and l
 `meta`-driven detail lines — a coach wants to see *what the candidate did*, not necessarily the
 same phrasing a candidate sees about themselves) but **reads the identical rows, unmodified**.
 No new column, no backfill, no dual-write. The two-audience requirement is satisfied
-**structurally** by keeping the record schema free of anything view-specific — proven, not
-just asserted, by the fact that Wave A's own verification view is already a second,
-independent renderer of the same rows the design anticipates a coach view rendering later.
+**structurally** by keeping the record schema free of anything view-specific. That presentation
+is genuinely view-side — not merely asserted — is *demonstrated today* by Wave A's own
+verification view deriving every icon/tint/detail from `type`+`meta` at render time. That a
+future coach `Ärendevy` therefore needs no migration follows from that same property (it would
+read the identical rows and supply its own map); the coach view does not exist yet, so this is
+a sound architectural consequence, not a second consumer executed today.
 
 ## The scope-note correction — action-level emit, not store-level
 
@@ -256,9 +259,11 @@ Every task reviewed clean (Spec ✅ / quality Approved) before the next task sta
 
 Both Wave A deliverables — the D5 generic-collection mechanism and the honestly-logged
 `activity` collection — are built, tested (including the mandated honesty invariant), and
-proven durable end-to-end. The activity record shape is confirmed to serve both the jobseeker
-verification view (today) and a future coach `Ärendevy` (Wave B) without a migration, because
-presentation is view-side and every record already carries `caseId`. The scope-note correction
+proven durable end-to-end (the committed restart demo). The activity record shape serves the
+jobseeker verification view today, and is designed so a future coach `Ärendevy` (Wave B) can
+read the identical rows without a migration — because presentation is view-side and every
+record already carries `caseId`. The coach view is a Wave-B consequence of that design, not
+something built or executed here. The scope-note correction
 from store-level to action-level emit is documented at its source (`activity-log.cjs`) and
 re-justified here. A pre-existing `main` build break was found and fixed
 (syntax-only) as a ship-gate prerequisite. Full suite green both locally (244/244) and from a
