@@ -137,7 +137,7 @@ This ONE collection is the single source of truth for **both** the jobseeker's "
 }
 ```
 
-**Why this maps to the `CASE_RECORD` fixture (`strategyData.js:68-88`) with no migration:** a fixture timeline item is `{ ic, tint, t, m, time, auto }`.
+**Why this maps to the `CASE_RECORD` fixture (`src/data/strategyData.js:68-88`) with no migration:** a fixture timeline item is `{ ic, tint, t, m, time, auto }`.
 
 - `t` (title) ← `label`
 - `time` ← derived from `at`

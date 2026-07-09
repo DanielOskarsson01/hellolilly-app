@@ -20,6 +20,8 @@
 - **App language is Swedish (sv-SE).** User-facing labels/copy in Swedish, matching existing screens.
 - **Every commit message ends with:** `Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>`.
 - **Ship gate:** full suite green (`npm test`) and a fresh clone (`clone → npm install → npm test`) holds.
+- **Line numbers in this plan are APPROXIMATE.** The code is the one source of truth. For every edit, locate the real insertion point by matching the **quoted anchor code** (e.g. `const { result } = await host.invoke('researcher', …)`), never by trusting a line offset — the file shifts as edits land.
+- **Commit early and often, even mid-task.** Commit each passing step to the branch as soon as it's green; do not batch a whole task into one commit at the end. Uncommitted work survives nothing (a prior session's crash is why this spec/plan exist at all — they were committed before the machine went down). Never merge, never push to main.
 
 ---
 
@@ -569,11 +571,17 @@ const { logActivity } = require('./activity-log.cjs');
         logActivity(host.store, { type: 'case_created', caseId: c.meta.id, label: `Ärende skapat: ${company} · ${role}`, meta: { company, role } });
 ```
 
-**3c.** `POST …/research` — after `const { result } = await host.invoke('researcher', { caseId });` (~:178), before its `sendJson`:
+**3c.** `POST …/research` — after `const { result } = await host.invoke('researcher', { caseId });`, before its `sendJson`:
 
 ```js
         logActivity(host.store, { type: 'research_run', caseId, label: 'Research körd', meta: { partial: !result.ok } });
 ```
+
+> **MANDATORY BUILD-TIME VERIFICATION (do NOT leave as an assumption).** This is the one emit whose "confirmed state change, not attempt" property cannot be read off the handler alone — the write happens inside `host.invoke('researcher', …)`. Before wiring this emit, **read the researcher submodule** (trace `host.invoke('researcher')` → its agent in `server/skeleton/` and how it persists dossiers vs. summons the decoder). Confirm that on a **partial run (207: dossiers written, decoder failed)** the four dossiers are **actually persisted to the store before** the decoder failure. Two outcomes:
+> - **If dossiers ARE persisted before the decoder step** → the 207 is a genuine confirmed state change; emit as above (`meta.partial: true`). ✓
+> - **If dossiers are NOT persisted until after the decoder succeeds** (i.e. a decoder failure rolls back / never commits the dossiers) → a 207 is an *attempt*, not a confirmed change. Then **do NOT emit on partial failure**: gate the emit on `result.ok` (emit only on 200), or move it after the confirmed dossier write — whichever the code actually guarantees. Record what you found (and any placement change) in the build report.
+>
+> This protects the wave's core honesty property (`confirmed`, never `attempted`) at the one place it could silently leak.
 
 **3d.** `POST …/analyze` — after `const c = host.store.getCase(caseId);` (~:189), before its `sendJson`:
 
