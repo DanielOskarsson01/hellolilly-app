@@ -349,7 +349,7 @@ function CheckedState({ parts, actions }) {
                       >
                         {st === 'busy'
                           ? tr({ sv: 'Kontrollerar…', en: 'Checking…' })
-                          : tr({ sv: 'Använd annonsens ord', en: 'Use the ad's word' })}
+                          : tr({ sv: 'Använd annonsens ord', en: "Use the ad's word" })}
                       </Button>
                       <span className="text-muted" style={{ fontSize: 'var(--fs-xs)' }}>
                         {tr({ sv: 'ärlighetskollas först', en: 'honesty-checked first' })}
@@ -418,7 +418,7 @@ function CheckedState({ parts, actions }) {
               <div className="lflag__b">
                 <b>{tr({ sv: 'En formulering att dubbelkolla: ', en: 'One line to double-check: ' })}</b>
                 {lflag}
-                {tr({ sv: ' — den stöds inte tydligt av ditt CV. Ta upp den i intervjun, inte som ett påstående i brevet.', en: ' — it isn't clearly supported by your CV. Raise it in the interview, not as a claim in the letter.' })}
+                {tr({ sv: ' — den stöds inte tydligt av ditt CV. Ta upp den i intervjun, inte som ett påstående i brevet.', en: " — it isn't clearly supported by your CV. Raise it in the interview, not as a claim in the letter." })}
               </div>
             </div>
           )}
@@ -496,7 +496,7 @@ function InnanDuSkickar() {
     body = (
       <PartState
         tone="fail"
-        title={tr({ sv: 'Kunde inte läsa ansökan', en: 'Couldn't load the application' })}
+        title={tr({ sv: 'Kunde inte läsa ansökan', en: "Couldn't load the application" })}
         body={error || tr({ sv: 'Ingen gammal data visas — försök igen.', en: 'No stale data shown — try again.' })}
       >
         <Button variant="secondary" size="sm" icon="refresh" onClick={refresh}>

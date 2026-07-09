@@ -12,6 +12,7 @@ const { bootstrapStore, seedDatafactsIfEmpty } = require('./store-bootstrap.cjs'
 const { createAnthropicClient } = require('./skeleton/clients/anthropic.cjs');
 const { applyAnswer } = require('./skeleton/fill-gap/bullet-judge.cjs');
 const { applyAlign } = require('./skeleton/fill-gap/keyword-judge.cjs');
+const { logActivity } = require('./activity-log.cjs');
 
 const PORT = Number(process.env.PORT || 5173);
 
@@ -94,6 +95,7 @@ function createApiHandler(host, { preferencesPath, llm } = {}) {
           return true;
         }
         const c = host.store.createCase({ company, role, sourceInput: body.sourceInput || null });
+        logActivity(host.store, { type: 'case_created', caseId: c.meta.id, label: `Ärende skapat: ${company} · ${role}`, meta: { company, role } });
         sendJson(res, 201, { ok: true, case: c });
       } catch (err) {
         sendJson(res, 500, { ok: false, error: err.message });
@@ -111,6 +113,34 @@ function createApiHandler(host, { preferencesPath, llm } = {}) {
       }));
       sendJson(res, 200, { ok: true, cases });
       return true;
+    }
+
+    // Generic named-collection CRUD (D5) — the reusable surface every later collection
+    // tool inherits. Mirrors the jobs routes. `activity` is append-only + server-emitted:
+    // GET allowed, client POST/DELETE rejected so the log records only confirmed server
+    // state changes (see server/activity-log.cjs).
+    {
+      const collGet = req.method === 'GET' && req.url.match(/^\/api\/collection\/([^/]+)$/);
+      if (collGet) {
+        sendJson(res, 200, { ok: true, records: host.store.listRecords(decodeURIComponent(collGet[1])) });
+        return true;
+      }
+      const collPost = req.method === 'POST' && req.url.match(/^\/api\/collection\/([^/]+)$/);
+      if (collPost) {
+        const name = decodeURIComponent(collPost[1]);
+        if (name === 'activity') { sendJson(res, 405, { ok: false, error: 'activity is append-only and server-emitted; client writes are not accepted' }); return true; }
+        const body = await readJson(req);
+        if (!body || !body.id) { sendJson(res, 400, { ok: false, error: 'a record with an id is required' }); return true; }
+        sendJson(res, 200, { ok: true, record: host.store.putRecord(name, body) });
+        return true;
+      }
+      const collDel = req.method === 'DELETE' && req.url.match(/^\/api\/collection\/([^/]+)\/([^/]+)$/);
+      if (collDel) {
+        const name = decodeURIComponent(collDel[1]);
+        if (name === 'activity') { sendJson(res, 405, { ok: false, error: 'activity is append-only; deletes are not accepted' }); return true; }
+        sendJson(res, 200, { ok: true, removed: host.store.removeRecord(name, decodeURIComponent(collDel[2])) });
+        return true;
+      }
     }
 
     if (req.method === 'POST' && req.url === '/api/job/clear') {
@@ -133,6 +163,11 @@ function createApiHandler(host, { preferencesPath, llm } = {}) {
         rejectReason: decision === 'rejected' ? body.reason : null,
         rejectNote:   decision === 'rejected' ? (body.note || null) : null };
       host.store.putRecord('jobs', updated);
+      const DECIDE_TYPE = { approved: 'job_approved', rejected: 'job_rejected', new: 'job_reopened' };
+      const DECIDE_VERB = { approved: 'godkänt', rejected: 'avvisat', new: 'återöppnat' };
+      logActivity(host.store, { type: DECIDE_TYPE[decision], caseId: job.caseId || null,
+        label: `Jobb ${DECIDE_VERB[decision]}: ${job.title || job.id}`,
+        meta: { jobId, title: job.title || null, company: job.company || null, ...(decision === 'rejected' ? { reason: body.reason } : {}) } });
       sendJson(res, 200, { ok: true, job: updated });
       return true;
     }
@@ -149,6 +184,8 @@ function createApiHandler(host, { preferencesPath, llm } = {}) {
       if (!body.caseId) { sendJson(res, 400, { ok: false, error: 'caseId required' }); return true; }
       const updated = { ...job, caseId: body.caseId };
       host.store.putRecord('jobs', updated);
+      logActivity(host.store, { type: 'job_linked', caseId: body.caseId,
+        label: `Jobb kopplat till ärende: ${job.title || job.id}`, meta: { jobId, caseId: body.caseId, title: job.title || null } });
       sendJson(res, 200, { ok: true, job: updated });
       return true;
     }
@@ -176,6 +213,7 @@ function createApiHandler(host, { preferencesPath, llm } = {}) {
         // broker (decodedRole). A partial run (dossiers ok, decoder failed) surfaces
         // as 207, never as a silent success.
         const { result } = await host.invoke('researcher', { caseId });
+        logActivity(host.store, { type: 'research_run', caseId, label: 'Research körd', meta: { partial: !result.ok } });
         sendJson(res, result.ok ? 200 : 207, result.ok ? { ok: true, ...result } : { ok: false, ...result });
       } catch (err) {
         sendJson(res, 500, { ok: false, error: err.message });
@@ -187,6 +225,8 @@ function createApiHandler(host, { preferencesPath, llm } = {}) {
       try {
         const { result } = await host.invoke('gap-analyzer', { caseId, preferences: readPreferences() });
         const c = host.store.getCase(caseId);
+        logActivity(host.store, { type: 'analysis_run', caseId, label: 'Matchanalys körd',
+          meta: { gapsFound: (c.gaps.data || []).length, fitOverall: c.fit?.data?.capability?.overall ?? null } });
         sendJson(res, 200, { ok: true, fit: c.fit.data, gaps: c.gaps.data, summary: result });
       } catch (err) {
         sendJson(res, 500, { ok: false, error: err.message });
@@ -206,6 +246,10 @@ function createApiHandler(host, { preferencesPath, llm } = {}) {
         const out = await applyAnswer(host.store, llm, {
           caseId, gapId, answer: body.answer, requirementId: body.requirementId, tags: body.tags || [],
         });
+        if (out.outcome === 'accepted') {
+          logActivity(host.store, { type: 'gap_filled', caseId, label: 'Lucka fylld',
+            meta: { gapId, requirementId: body.requirementId, datafactId: out.newDatafactId } });
+        }
         sendJson(res, 200, { ok: true, ...out });
       } catch (err) {
         sendJson(res, 500, { ok: false, error: err.message });
@@ -221,6 +265,13 @@ function createApiHandler(host, { preferencesPath, llm } = {}) {
         // Threads the same `llm` as the gap/answer path (host.llm does not exist —
         // see createApiHandler). Powers applyAlign's term↔basis relatedness judge.
         const result = await applyAlign(host.store, llm, { caseId, term: body.term, basisDatafactId: body.basisDatafactId });
+        // Emit ONLY when an actual write happened (result.changed). An idempotent re-align
+        // of an already-present term returns outcome:'aligned' with changed:false and must
+        // NOT log an activity record — a record exists IFF a confirmed state change occurred.
+        if (result.outcome === 'aligned' && result.changed) {
+          logActivity(host.store, { type: 'keyword_aligned', caseId, label: `Nyckelord infört: ${result.term}`,
+            meta: { term: result.term, datafactId: result.datafactId } });
+        }
         sendJson(res, 200, { ok: result.outcome === 'aligned', result });
       } catch (err) {
         sendJson(res, 500, { ok: false, error: err.message });
@@ -239,6 +290,8 @@ function createApiHandler(host, { preferencesPath, llm } = {}) {
         editedAt: new Date().toISOString(),
       };
       const part = host.store.writePart(caseId, 'coverLetterDraft', draft);
+      logActivity(host.store, { type: 'letter_draft_saved', caseId, label: 'Brevutkast sparat',
+        meta: { paragraphCount: draft.paragraphs.length, language: draft.language } });
       sendJson(res, 200, { ok: true, part });
       return true;
     }
@@ -256,6 +309,8 @@ function createApiHandler(host, { preferencesPath, llm } = {}) {
       out.coverLetterStatus = c.coverLetter.status;
       // ok ONLY when BOTH generators produced a ready part — never render a phantom-complete card.
       out.ok = c.cvDraft.status === 'ready' && c.coverLetter.status === 'ready';
+      if (c.cvDraft.status === 'ready') logActivity(host.store, { type: 'cv_generated', caseId, label: 'CV genererat', meta: { status: 'ready' } });
+      if (c.coverLetter.status === 'ready') logActivity(host.store, { type: 'letter_generated', caseId, label: 'Personligt brev genererat', meta: { status: 'ready' } });
       sendJson(res, out.ok ? 200 : 207, out);
       return true;
     }

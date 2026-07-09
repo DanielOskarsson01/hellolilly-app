@@ -10,6 +10,7 @@ const NAV_GROUPS = [
   { id:'plan',     label:'Plan',      icon:'activity',  items: [
     { id:'home',           label:'Framstegsstöd' },
     { id:'activity',       label:'Min aktivitet' },
+    { id:'activity-log',   label:'Aktivitetslogg (verifiering)' },
     { id:'calendar',       label:'Kalender' },
     { id:'uppgifter',      label:'Uppgifter' },
     { id:'paminnelser',    label:'Påminnelser' },

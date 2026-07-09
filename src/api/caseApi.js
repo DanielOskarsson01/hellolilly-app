@@ -23,11 +23,19 @@ async function request(path, opts = {}) {
   return body;
 }
 
+// After an action that the server logs to the activity collection, tell any mounted
+// useCollection('activity') to refetch. One generic event; see collectionApi.js.
+function notifyActivityChanged() {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('ll:collection:changed', { detail: { name: 'activity' } }));
+  }
+}
+
 export function createCase({ company, role, sourceInput }) {
   return request('/api/case', {
     method: 'POST',
     body: JSON.stringify({ company, role, sourceInput }),
-  }).then((b) => b.case);
+  }).then((b) => { notifyActivityChanged(); return b.case; });
 }
 
 export function listCases() {
@@ -41,17 +49,17 @@ export function getCase(caseId) {
 // researcher -> four dossiers -> brokered decoder -> decodedRole. Slow (minutes, live
 // LLM + search) — callers poll GET case for part-status progress while this runs.
 export function research(caseId) {
-  return request(`/api/case/${encodeURIComponent(caseId)}/research`, { method: 'POST' });
+  return request(`/api/case/${encodeURIComponent(caseId)}/research`, { method: 'POST' }).then((b) => { notifyActivityChanged(); return b; });
 }
 
 // gap-analyzer -> fit + gaps.
 export function analyze(caseId) {
-  return request(`/api/case/${encodeURIComponent(caseId)}/analyze`, { method: 'POST' });
+  return request(`/api/case/${encodeURIComponent(caseId)}/analyze`, { method: 'POST' }).then((b) => { notifyActivityChanged(); return b; });
 }
 
 // cv-builder + writer -> cvDraft + coverLetter (207 when one fails).
 export function generate(caseId) {
-  return request(`/api/case/${encodeURIComponent(caseId)}/generate`, { method: 'POST' });
+  return request(`/api/case/${encodeURIComponent(caseId)}/generate`, { method: 'POST' }).then((b) => { notifyActivityChanged(); return b; });
 }
 
 // The fill-gap loop. outcome: 'accepted' (datafact minted, requirement flips to match)
@@ -60,7 +68,7 @@ export function answerGap(caseId, gapId, { answer, requirementId, tags }) {
   return request(`/api/case/${encodeURIComponent(caseId)}/gap/${encodeURIComponent(gapId)}/answer`, {
     method: 'POST',
     body: JSON.stringify({ answer, requirementId, tags }),
-  });
+  }).then((b) => { notifyActivityChanged(); return b; });
 }
 
 export function searchJobs(query) {
@@ -83,6 +91,7 @@ export function decideJob(jobId, { decision, reason = null, note = null }) {
     body: JSON.stringify({ decision, reason, note }),
   }).then((b) => {
     if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('ll:jobs:changed'));
+    notifyActivityChanged();
     return b.job;
   });
 }
@@ -103,6 +112,7 @@ export function saveCoverLetterDraft(caseId, { paragraphs, decisions, language =
     body: JSON.stringify({ language, paragraphs, decisions }),
   }).then((b) => {
     if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('ll:case:changed'));
+    notifyActivityChanged();
     return b.part;
   });
 }
@@ -114,6 +124,7 @@ export function linkJobCase(jobId, caseId) {
     body: JSON.stringify({ caseId }),
   }).then((b) => {
     if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('ll:jobs:changed'));
+    notifyActivityChanged();
     return b.job;
   });
 }
@@ -127,6 +138,7 @@ export function alignKeyword(caseId, { term, basisDatafactId }) {
     body: JSON.stringify({ term, basisDatafactId }),
   }).then((b) => {
     if (b.ok && typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('ll:case:changed'));
+    if (b.ok) notifyActivityChanged();
     return b.result;
   });
 }

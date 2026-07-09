@@ -476,6 +476,31 @@ test('POST /cv/align-keyword refused round-trip: ok:false + nothing written', as
   assert.equal(after, before, 'refused path must not modify the cvDraft');
 });
 
+test('POST /cv/align-keyword idempotent re-align (term already present) writes NO second activity record', async () => {
+  const { host, caseId } = alignKeywordFixture();
+  const handle = createApiHandler(host, { preferencesPath: null, llm: null });
+  const countAligned = () => host.store.listRecords('activity').filter((a) => a.type === 'keyword_aligned').length;
+
+  // First align: 'agile leadership' is NOT yet in the item text ('Led agile transformation
+  // across three squads.') but shares the token 'agile' with the basis datafact, so it is a
+  // REAL write → ok:true, changed:true, exactly one keyword_aligned record.
+  let res = mockRes();
+  await handle(makeReq('POST', `/api/case/${caseId}/cv/align-keyword`, { term: 'agile leadership', basisDatafactId: 'datafact_k1' }), res);
+  assert.equal(res._body.ok, true);
+  assert.equal(res._body.result.outcome, 'aligned');
+  assert.equal(res._body.result.changed, true, 'first align actually wrote the term');
+  assert.equal(countAligned(), 1, 'one record for the confirmed write');
+
+  // Second align of the SAME term: now present → applyAlign no-ops (no writePart).
+  // The honesty invariant (record IFF a confirmed state change) requires NO second record.
+  res = mockRes();
+  await handle(makeReq('POST', `/api/case/${caseId}/cv/align-keyword`, { term: 'agile leadership', basisDatafactId: 'datafact_k1' }), res);
+  assert.equal(res._body.ok, true, 'idempotent re-align is still a success for the client (the term IS aligned)');
+  assert.equal(res._body.result.outcome, 'aligned');
+  assert.equal(res._body.result.changed, false, 'no state change on the idempotent path');
+  assert.equal(countAligned(), 1, 'no second activity record for a no-op re-align');
+});
+
 test('POST /api/case/:id/letter-draft writes a durable coverLetterDraft, readable via GET case', async () => {
   const host = createHost();
   const c = host.store.createCase({ company: 'Acme', role: 'CMO' });
@@ -496,4 +521,178 @@ test('POST /api/case/:id/letter-draft writes a durable coverLetterDraft, readabl
   assert.equal(getRes._status, 200);
   assert.deepEqual(getRes._body.case.coverLetterDraft.data.paragraphs, ['p1', 'p2']);
   assert.equal(getRes._body.case.coverLetterDraft.data.decisions['overclaim X'], 'soften');
+});
+
+test('generic collection CRUD round-trips; activity rejects client writes', async () => {
+  const host = createHost({});
+  const handle = createApiHandler(host, {});
+
+  // POST upsert into an arbitrary collection
+  let res = mockRes();
+  await handle(makeReq('POST', '/api/collection/tasks', { id: 'task_1', label: 'Do X' }), res);
+  assert.equal(res._status, 200);
+  assert.equal(res._body.record.id, 'task_1');
+
+  // GET lists it
+  res = mockRes();
+  await handle(makeReq('GET', '/api/collection/tasks'), res);
+  assert.equal(res._status, 200);
+  assert.equal(res._body.records.length, 1);
+  assert.equal(res._body.records[0].label, 'Do X');
+
+  // DELETE removes it
+  res = mockRes();
+  await handle(makeReq('DELETE', '/api/collection/tasks/task_1'), res);
+  assert.equal(res._status, 200);
+  assert.equal(res._body.removed, true);
+
+  // POST without id is a 400
+  res = mockRes();
+  await handle(makeReq('POST', '/api/collection/tasks', { label: 'no id' }), res);
+  assert.equal(res._status, 400);
+
+  // POST to activity is rejected (append-only, server-emitted)
+  res = mockRes();
+  await handle(makeReq('POST', '/api/collection/activity', { id: 'x', type: 'fake', label: 'forged' }), res);
+  assert.equal(res._status, 405);
+  assert.equal(host.store.listRecords('activity').length, 0);
+
+  // DELETE on activity is rejected
+  res = mockRes();
+  await handle(makeReq('DELETE', '/api/collection/activity/anything'), res);
+  assert.equal(res._status, 405);
+
+  // GET activity is allowed
+  res = mockRes();
+  await handle(makeReq('GET', '/api/collection/activity'), res);
+  assert.equal(res._status, 200);
+  assert.deepEqual(res._body.records, []);
+});
+
+// --- Task 4: action → activity emits ---
+
+test('case_created emits one activity record with company/role meta', async () => {
+  const host = createHost({});
+  const handle = createApiHandler(host, {});
+  const res = mockRes();
+  await handle(makeReq('POST', '/api/case', { company: 'Acme', role: 'PM' }), res);
+  assert.equal(res._status, 201);
+  const acts = host.store.listRecords('activity');
+  assert.equal(acts.length, 1);
+  assert.equal(acts[0].type, 'case_created');
+  assert.equal(acts[0].caseId, res._body.case.meta.id);
+  assert.match(acts[0].label, /Ärende skapat: Acme · PM/);
+  assert.deepEqual(acts[0].meta, { company: 'Acme', role: 'PM' });
+});
+
+test('job decide emits job_approved / job_rejected / job_reopened', async () => {
+  const host = createHost({});
+  const handle = createApiHandler(host, {});
+  host.store.putRecord('jobs', { id: 'job_1', title: 'CMO', company: 'Acme', decision: 'new' });
+
+  let res = mockRes();
+  await handle(makeReq('POST', '/api/job/job_1/decide', { decision: 'approved' }), res);
+  res = mockRes();
+  await handle(makeReq('POST', '/api/job/job_1/decide', { decision: 'rejected', reason: 'location' }), res);
+  res = mockRes();
+  await handle(makeReq('POST', '/api/job/job_1/decide', { decision: 'new' }), res);
+
+  const types = host.store.listRecords('activity').map((a) => a.type);
+  assert.deepEqual(types, ['job_approved', 'job_rejected', 'job_reopened']);
+  const rejected = host.store.listRecords('activity').find((a) => a.type === 'job_rejected');
+  assert.equal(rejected.meta.reason, 'location');
+  assert.equal(rejected.meta.company, 'Acme');
+});
+
+test('job link emits job_linked scoped to the case', async () => {
+  const host = createHost({});
+  const handle = createApiHandler(host, {});
+  const c = host.store.createCase({ company: 'Acme', role: 'PM' }); // direct store call: no emit (emits live in handlers)
+  host.store.putRecord('jobs', { id: 'job_1', title: 'CMO', decision: 'approved' }); // bulk upsert: no emit
+  const res = mockRes();
+  await handle(makeReq('POST', '/api/job/job_1/case', { caseId: c.meta.id }), res);
+  const links = host.store.listRecords('activity').filter((a) => a.type === 'job_linked');
+  assert.equal(links.length, 1);
+  assert.equal(links[0].caseId, c.meta.id);
+  assert.equal(links[0].meta.jobId, 'job_1');
+});
+
+test('letter-draft emits letter_draft_saved with paragraph count', async () => {
+  const host = createHost({});
+  const handle = createApiHandler(host, {});
+  const c = host.store.createCase({ company: 'Acme', role: 'PM' });
+  const res = mockRes();
+  await handle(makeReq('POST', `/api/case/${c.meta.id}/letter-draft`,
+    { language: 'sv', paragraphs: ['Para ett.', 'Para tva.'], decisions: {} }), res);
+  assert.equal(res._status, 200);
+  const acts = host.store.listRecords('activity').filter((a) => a.type === 'letter_draft_saved');
+  assert.equal(acts.length, 1);
+  assert.deepEqual(acts[0].meta, { paragraphCount: 2, language: 'sv' });
+});
+
+test('analyze emits one analysis_run with gapsFound', async () => {
+  const llm = { completeJSON: async () => ({ capability: { requirements: [], overall: 'ok' }, preference: { narrative: '' }, gaps: [] }) };
+  const host = createHost({ llm });
+  const handle = createApiHandler(host, { llm });
+  const c = host.store.createCase({ company: 'Acme', role: 'PM' });
+  host.store.writePart(c.meta.id, 'decodedRole', { narrative: '', requirements: [{ id: 'decodedRequirement_1', requirement: 'X', rationale: '', weight: 1 }] });
+  const res = mockRes();
+  await handle(makeReq('POST', `/api/case/${c.meta.id}/analyze`), res);
+  assert.equal(res._status, 200);
+  const acts = host.store.listRecords('activity').filter((a) => a.type === 'analysis_run');
+  assert.equal(acts.length, 1);
+  assert.equal(typeof acts[0].meta.gapsFound, 'number');
+});
+
+// --- Task 5: mandated no-false-positive tests + over-logging guard ---
+
+test('MANDATED: a gate-thrown mutation writes NO activity record', async () => {
+  const host = createHost({});
+  const handle = createApiHandler(host, {});
+  // Create the case via the HANDLER so case_created is emitted (before = 1).
+  let res = mockRes();
+  await handle(makeReq('POST', '/api/case', { company: 'Acme', role: 'PM' }), res);
+  const caseId = res._body.case.meta.id;
+  const before = host.store.listRecords('activity').length; // 1 (case_created)
+
+  // A letter draft containing a banned phrase ('synergy') makes writePart's gate throw.
+  // The letter_draft_saved emit sits AFTER writePart, so it is never reached.
+  res = mockRes();
+  await assert.rejects(
+    handle(makeReq('POST', `/api/case/${caseId}/letter-draft`,
+      { language: 'sv', paragraphs: ['We have great synergy here.'], decisions: {} }), res),
+  );
+  const after = host.store.listRecords('activity');
+  assert.equal(after.length, before); // unchanged — still just case_created
+  assert.equal(after.filter((a) => a.type === 'letter_draft_saved').length, 0);
+});
+
+test('MANDATED: a refused keyword-align writes NO activity record', async () => {
+  const host = createHost({});
+  const handle = createApiHandler(host, {});
+  let res = mockRes();
+  await handle(makeReq('POST', '/api/case', { company: 'Acme', role: 'PM' }), res);
+  const caseId = res._body.case.meta.id;
+  const before = host.store.listRecords('activity').length; // 1 (case_created)
+
+  // No supporting datafact => applyAlign refuses BEFORE any writePart (no llm needed).
+  res = mockRes();
+  await handle(makeReq('POST', `/api/case/${caseId}/cv/align-keyword`,
+    { term: 'WMS', basisDatafactId: 'datafact_missing' }), res);
+  assert.equal(res._body.ok, false); // refused
+  const after = host.store.listRecords('activity');
+  assert.equal(after.length, before); // unchanged
+  assert.equal(after.filter((a) => a.type === 'keyword_aligned').length, 0);
+});
+
+test('over-logging guard: datafact ingest + bulk job/filterSet upserts emit NO activity', async () => {
+  const host = createHost({});
+  // These are exactly the non-action writes (seeding, job-search bulk, filter set).
+  // None go through logActivity (which lives only in action handlers), so none log.
+  host.store.ingestDatafact({ id: 'datafact_x', kind: 'datafact', type: 'cv', text: 'Some CV text.', tags: [], language: 'sv' });
+  host.store.putRecord('jobs', { id: 'job_a', decision: 'new' });
+  host.store.putRecord('jobs', { id: 'job_b', decision: 'new' });
+  host.store.putRecord('filterSet', { id: 'filterSet', searchTerms: [] });
+
+  assert.equal(host.store.listRecords('activity').length, 0);
 });

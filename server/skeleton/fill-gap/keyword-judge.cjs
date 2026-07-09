@@ -88,9 +88,11 @@ async function applyAlign(store, llm, { caseId, term, basisDatafactId }) {
     return refuse('The supporting fact is not in the current draft.');
   }
 
-  // Idempotent: if the term is already present, nothing to do.
+  // Idempotent: if the term is already present, nothing to do — and critically NO
+  // writePart happens here, so this is NOT a confirmed state change. Report changed:false
+  // so the caller does not log a keyword_aligned activity for a no-op re-align.
   if (hasTerm(target.text, term)) {
-    return { outcome: 'aligned', term, datafactId: basisDatafactId };
+    return { outcome: 'aligned', term, datafactId: basisDatafactId, changed: false };
   }
 
   // Guard 4: the term must genuinely relate to the basis datafact — enforced server-side
@@ -133,7 +135,8 @@ async function applyAlign(store, llm, { caseId, term, basisDatafactId }) {
   target.alignedTerm = term;
   store.writePart(caseId, 'cvDraft', data);
 
-  return { outcome: 'aligned', term, datafactId: basisDatafactId };
+  // changed:true — a real writePart happened; this IS a confirmed state change.
+  return { outcome: 'aligned', term, datafactId: basisDatafactId, changed: true };
 }
 
 module.exports = { applyAlign };
