@@ -278,7 +278,7 @@ Rules first:
 - **Display text rule:** an event stores `event` + `params`, never prose. Rendering is `tr(EVENT_TEXT[event], params)` — i18n keys in the frontend, so language is a render-time choice and no LLM ever authors feed text. Params are plain values (company, role, count, title).
 - **Hide rule:** EVERY event is user-hideable (the plan's blanket rule). Hiding affects Progress Support, Case Record and Home surfaces; aggregates stay honest.
 - **Emission rule:** host/API layer only, after the operation succeeds — never speculative, never from submodules.
-- **Reserved rows** marked ◇ belong to the current frontier (Ansökningskoll) or later phases — named now so the vocabulary is stable, emitted then. The ◇ `review.response_received` row is emitted by the **coach-channel adapter** (the Wave 2 companion), not by Wave 1's host-layer instrumentation, so the Wave 1 emission set does not grow (decided by Daniel, 2026-07-08).
+- **Reserved rows** marked ◇ belong to the current frontier (Ansökningskoll) or later phases — named now so the vocabulary is stable, emitted then. The ◇ `review.response_received` row is emitted by the **coach-channel adapter** (the Wave 2 companion), not by Wave 1's host-layer instrumentation, so the Wave 1 emission set does not grow (decided by Daniel, 2026-07-08). The ◇ `cv.keyword_aligned` row is reserved for the align endpoint in **Innan du skickar** (a shipped, honesty-gated action that appends an ad term to a CV item on a resolvable, related basis): it is a real CV-modifying action, so it must not be invisible to Progress Support or the learning layer — it is emitted once the Wave 1 host-layer emitter lands (the endpoint exists today; the emission is added with Wave 1 instrumentation, not now).
 
 | Event | Source tool | Target `{kind}` | Params (display) | Hideable |
 |---|---|---|---|---|
@@ -289,6 +289,7 @@ Rules first:
 | `case.analyzed` | Matchanalys | `case` | company, role | yes |
 | `gap.answered` | Matchanalys fill-gap | `gap` | outcome (`accepted`/`stays_gap`), requirement | yes |
 | `cv.generated` | CV-byggaren (generate) | `case` | company, role, language, version | yes |
+| ◇ `cv.keyword_aligned` | Innan du skickar (align endpoint) | `case` | term | yes |
 | `letter.generated` | Personligt brev (generate) | `case` | company, role, language | yes |
 | `letter.draft_saved` | Personligt brev | `case` | company | yes |
 | ◇ `application.sent` | Ansökningskoll | `application` | company, title | yes |
