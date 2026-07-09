@@ -618,3 +618,56 @@ test('analyze emits one analysis_run with gapsFound', async () => {
   assert.equal(acts.length, 1);
   assert.equal(typeof acts[0].meta.gapsFound, 'number');
 });
+
+// --- Task 5: mandated no-false-positive tests + over-logging guard ---
+
+test('MANDATED: a gate-thrown mutation writes NO activity record', async () => {
+  const host = createHost({});
+  const handle = createApiHandler(host, {});
+  // Create the case via the HANDLER so case_created is emitted (before = 1).
+  let res = mockRes();
+  await handle(makeReq('POST', '/api/case', { company: 'Acme', role: 'PM' }), res);
+  const caseId = res._body.case.meta.id;
+  const before = host.store.listRecords('activity').length; // 1 (case_created)
+
+  // A letter draft containing a banned phrase ('synergy') makes writePart's gate throw.
+  // The letter_draft_saved emit sits AFTER writePart, so it is never reached.
+  res = mockRes();
+  await assert.rejects(
+    handle(makeReq('POST', `/api/case/${caseId}/letter-draft`,
+      { language: 'sv', paragraphs: ['We have great synergy here.'], decisions: {} }), res),
+  );
+  const after = host.store.listRecords('activity');
+  assert.equal(after.length, before); // unchanged — still just case_created
+  assert.equal(after.filter((a) => a.type === 'letter_draft_saved').length, 0);
+});
+
+test('MANDATED: a refused keyword-align writes NO activity record', async () => {
+  const host = createHost({});
+  const handle = createApiHandler(host, {});
+  let res = mockRes();
+  await handle(makeReq('POST', '/api/case', { company: 'Acme', role: 'PM' }), res);
+  const caseId = res._body.case.meta.id;
+  const before = host.store.listRecords('activity').length; // 1 (case_created)
+
+  // No supporting datafact => applyAlign refuses BEFORE any writePart (no llm needed).
+  res = mockRes();
+  await handle(makeReq('POST', `/api/case/${caseId}/cv/align-keyword`,
+    { term: 'WMS', basisDatafactId: 'datafact_missing' }), res);
+  assert.equal(res._body.ok, false); // refused
+  const after = host.store.listRecords('activity');
+  assert.equal(after.length, before); // unchanged
+  assert.equal(after.filter((a) => a.type === 'keyword_aligned').length, 0);
+});
+
+test('over-logging guard: datafact ingest + bulk job/filterSet upserts emit NO activity', async () => {
+  const host = createHost({});
+  // These are exactly the non-action writes (seeding, job-search bulk, filter set).
+  // None go through logActivity (which lives only in action handlers), so none log.
+  host.store.ingestDatafact({ id: 'datafact_x', kind: 'datafact', type: 'cv', text: 'Some CV text.', tags: [], language: 'sv' });
+  host.store.putRecord('jobs', { id: 'job_a', decision: 'new' });
+  host.store.putRecord('jobs', { id: 'job_b', decision: 'new' });
+  host.store.putRecord('filterSet', { id: 'filterSet', searchTerms: [] });
+
+  assert.equal(host.store.listRecords('activity').length, 0);
+});
