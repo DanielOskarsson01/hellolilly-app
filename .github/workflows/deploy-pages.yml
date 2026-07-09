@@ -3,6 +3,11 @@ name: Build GitHub Pages
 on:
   push:
     branches: [main]
+  # Run the same test+build gate on PRs so a broken build (or a red test) fails CI
+  # BEFORE it can merge to main — not just after, on the post-push deploy. The publish
+  # step below is guarded to main pushes only, so PRs run the gate without deploying.
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -34,12 +39,17 @@ jobs:
       - name: Run tests
         run: npm test
 
+      # The build is a required gate: a compile failure here fails the whole job
+      # (node --test never runs Vite, so tests alone cannot catch a broken build).
       - name: Build
         run: npm run build
         env:
           GITHUB_PAGES: 'true'
 
+      # Deploy only from a push to main. On pull_request the steps above still run as
+      # the pre-merge gate, but this publish step is skipped.
       - name: Upload artifact
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
