@@ -113,6 +113,34 @@ function createApiHandler(host, { preferencesPath, llm } = {}) {
       return true;
     }
 
+    // Generic named-collection CRUD (D5) — the reusable surface every later collection
+    // tool inherits. Mirrors the jobs routes. `activity` is append-only + server-emitted:
+    // GET allowed, client POST/DELETE rejected so the log records only confirmed server
+    // state changes (see server/activity-log.cjs).
+    {
+      const collGet = req.method === 'GET' && req.url.match(/^\/api\/collection\/([^/]+)$/);
+      if (collGet) {
+        sendJson(res, 200, { ok: true, records: host.store.listRecords(decodeURIComponent(collGet[1])) });
+        return true;
+      }
+      const collPost = req.method === 'POST' && req.url.match(/^\/api\/collection\/([^/]+)$/);
+      if (collPost) {
+        const name = decodeURIComponent(collPost[1]);
+        if (name === 'activity') { sendJson(res, 405, { ok: false, error: 'activity is append-only and server-emitted; client writes are not accepted' }); return true; }
+        const body = await readJson(req);
+        if (!body || !body.id) { sendJson(res, 400, { ok: false, error: 'a record with an id is required' }); return true; }
+        sendJson(res, 200, { ok: true, record: host.store.putRecord(name, body) });
+        return true;
+      }
+      const collDel = req.method === 'DELETE' && req.url.match(/^\/api\/collection\/([^/]+)\/([^/]+)$/);
+      if (collDel) {
+        const name = decodeURIComponent(collDel[1]);
+        if (name === 'activity') { sendJson(res, 405, { ok: false, error: 'activity is append-only; deletes are not accepted' }); return true; }
+        sendJson(res, 200, { ok: true, removed: host.store.removeRecord(name, decodeURIComponent(collDel[2])) });
+        return true;
+      }
+    }
+
     if (req.method === 'POST' && req.url === '/api/job/clear') {
       const all = host.store.listRecords('jobs');
       for (const j of all) host.store.removeRecord('jobs', j.id);

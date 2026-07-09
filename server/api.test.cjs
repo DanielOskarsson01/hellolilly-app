@@ -497,3 +497,49 @@ test('POST /api/case/:id/letter-draft writes a durable coverLetterDraft, readabl
   assert.deepEqual(getRes._body.case.coverLetterDraft.data.paragraphs, ['p1', 'p2']);
   assert.equal(getRes._body.case.coverLetterDraft.data.decisions['overclaim X'], 'soften');
 });
+
+test('generic collection CRUD round-trips; activity rejects client writes', async () => {
+  const host = createHost({});
+  const handle = createApiHandler(host, {});
+
+  // POST upsert into an arbitrary collection
+  let res = mockRes();
+  await handle(makeReq('POST', '/api/collection/tasks', { id: 'task_1', label: 'Do X' }), res);
+  assert.equal(res._status, 200);
+  assert.equal(res._body.record.id, 'task_1');
+
+  // GET lists it
+  res = mockRes();
+  await handle(makeReq('GET', '/api/collection/tasks'), res);
+  assert.equal(res._status, 200);
+  assert.equal(res._body.records.length, 1);
+  assert.equal(res._body.records[0].label, 'Do X');
+
+  // DELETE removes it
+  res = mockRes();
+  await handle(makeReq('DELETE', '/api/collection/tasks/task_1'), res);
+  assert.equal(res._status, 200);
+  assert.equal(res._body.removed, true);
+
+  // POST without id is a 400
+  res = mockRes();
+  await handle(makeReq('POST', '/api/collection/tasks', { label: 'no id' }), res);
+  assert.equal(res._status, 400);
+
+  // POST to activity is rejected (append-only, server-emitted)
+  res = mockRes();
+  await handle(makeReq('POST', '/api/collection/activity', { id: 'x', type: 'fake', label: 'forged' }), res);
+  assert.equal(res._status, 405);
+  assert.equal(host.store.listRecords('activity').length, 0);
+
+  // DELETE on activity is rejected
+  res = mockRes();
+  await handle(makeReq('DELETE', '/api/collection/activity/anything'), res);
+  assert.equal(res._status, 405);
+
+  // GET activity is allowed
+  res = mockRes();
+  await handle(makeReq('GET', '/api/collection/activity'), res);
+  assert.equal(res._status, 200);
+  assert.deepEqual(res._body.records, []);
+});
