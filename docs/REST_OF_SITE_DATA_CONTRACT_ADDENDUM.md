@@ -285,6 +285,17 @@ Not in the required list but demanded by F1/Wave 1; recorded here so it is defin
 
 ---
 
+## 21. Help Layer (D11) — explicit non-shapes
+
+Two Help Layer pieces are recorded here **precisely so no one invents a collection for them.** Neither is a STORED shape nor a DERIVED read model.
+
+- **The crosslink panel's rules registry is code/config, NOT a stored shape.** The panel (concept §3) maps context (screen id + case state + active part) → candidate slots through a small **static rules registry**. That registry ships with the frontend/build as code or config — it is not a store collection, has no `owner`, no records, no CRUD. **Do not create a `crosslinkRules` (or similar) collection.** (Distinct from the `crosslinks` DERIVED precedent noted in §0 / v0.4 §5, which is a computed *read model*; the *rules* a panel slot resolves through are static config, not data.)
+- **Lilly's conversations are transient at v1, NOT stored.** The assistant (concept §4) holds a conversation only for the length of a session; nothing is persisted. Long-term conversational memory is learning-layer territory and waits for it (D11 open item). **Do not create a `conversations` / `assistantMessages` collection at v1.**
+
+**Sources the assistant grounds on — and the `TOOL_SPECS` finding.** Lilly retrieves over three existing sources: the tool registry, the case read models (`homeSummary` §19, `caseRecord` §19b), and the library (`resources` §11). On the tool registry: **`TOOL_SPECS` (`src/data/strategyData.js:126`) is a PARTIAL fit.** It is the right *shape* — a per-tool object keyed by tool/route id, each carrying `title` / `sv` / `why` / `does[]` / `inputs[]` / `outputs[]`, i.e. exactly the "what a tool does and what it needs" that Lilly's v1 "explain any tool" capability wants — and it already exists, so it is a sound v1 seed. Two gaps keep it from being the authoritative registry as-is: (1) it carries **no per-tool "what it will not do" (refusals) field**, yet Lilly's spec (§4) requires explaining "what it will not do" — those refusals currently live in each tool's reconciled-design entry, not in `TOOL_SPECS`; (2) it lives inside a **demo-fixture module** (`strategyData.js`, alongside the Amir scenario) and some entries describe not-yet-built tools aspirationally, so it is UI/spec copy, not a machine-checked capability contract. **Question logged (for Lilly's wave, after Wave B):** adopt `TOOL_SPECS` as Lilly's registry as-is (accepting the refusal gap at v1, refusals sourced separately), or spin out a dedicated refusal-aware tool registry when Lilly is built? Not resolved here.
+
+---
+
 ## T. Activity event taxonomy (normative)
 
 Rules first:
@@ -331,6 +342,8 @@ Rules first:
 | ◇ `study.week_action` | Omställning (M-phases) | — | week | yes |
 
 **Non-events (normative):** demo interactions on T4 screens, T5 panel views, uploads without export (A3), reading/browsing, and anything fixture-derived are NEVER logged. Activity records real actions only.
+
+**Help Layer instrumentation — evaluated, NOT added (D11).** The Help Layer concept (§3) proposed two ◇-reserved rows for this taxonomy — `help.opened` and `help.item_used`, sourced from the panel — to instrument "which support helps whom" for the Outcome Engine. Evaluated against the rules above, **both are rejected from §T:** (1) they are **reading/browsing**, which the Non-events rule explicitly excludes — opening the help column and following a crosslink are engagement, not user-meaningful state changes; (2) any *real* action reached via the panel (generate a letter, add a company, suggest a resource) is already logged by the destination tool's own event, so a panel-sourced row would double-count or merely log the navigation; (3) the **Emission rule** is host/API-layer-only after an operation succeeds — a panel open/click is a client-side view event, not a host-layer operation, and a "source: Help Layer panel" row would violate it. The learning-layer need is real but it is **telemetry, not the person-facing activity feed** — it belongs to the learning layer's own instrumentation stream (which may observe the panel client-side), kept out of §T so this taxonomy stays "real actions only". (Same discipline as D10's rejected landed-outcome track record: a real need that does not belong in this surface. Decided via this session, 2026-07-10; recorded in D11.)
 
 ---
 

@@ -269,6 +269,7 @@ Format per tool — **Tier** · **Current repo state** · Existing files · Dele
 - **New prompt discipline?** Light — resource summarisation: grounded in the fetched content, cite the item, no person-claims.
 - **Banner at end:** OFF ("the content is real, just small — small and honest beats big and fake"). The "320+ resurser" over-claim dies here.
 - **MVP boundary:** real CRUD, real search, real per-item assistant, honest seed count.
+- **Seed content source (D11):** `docs/KNOWLEDGE_HUB_SEED_LIST.md` — ~28 real resources, links verified at seed time; these become the collection's first rows. Per D11 the approver is **"Daniel (pilotcoach)" (D9)**, so the approval flow is real from the first item, not a placeholder "föreslagen until a coach exists". **⚠ Conflict logged (not silently resolved):** this sits in tension with the **Deferred** note below, which defers the coach approval *workflow* to the in-app coach surface. Likely reconciliation: the seed's ~28 items are curated and approved by Daniel out-of-band at seed time (real attribution, no in-app workflow needed), while ongoing *user-suggested* resources still await the in-app approval action — but the doc did not draw that line, so it is flagged here for Daniel, not overwritten.
 - **Deferred:** coach approval workflow beyond the visible state (needs the **in-app** coach surface, D4/D9 — a pilot coach exists via the messaging bridge, but approving resources is an in-app action, not a review-reply, so it waits for the identity trigger), upload of binary docs (links + notes first; PDFs ride imageAssets-style storage later).
 - **Risks/open questions:** fetching arbitrary user-suggested URLs server-side needs the usual SSRF hygiene (allow http/https only, no internal ranges) — note for the build.
 
@@ -374,8 +375,47 @@ Format per tool — **Tier** · **Current repo state** · Existing files · Dele
 - **New prompt discipline?** NO.
 - **Banner at end:** ON.
 - **MVP boundary:** the concept demo; it exists so the vision demos coherently and buys time.
+- **Fixture content source (D11):** `docs/COMMUNITY_FIXTURE_BRIEF.md` — personas mirror the strategy paper's montage; all content is `demoFixtures`, deleted wholesale if a real community ships, never migrated.
 - **Deferred (deliberately not decided now):** self-hosted Discourse/NodeBB skinned vs native-on-store.
 - **Risks/open questions:** none (OnlyiGaming lesson stands: a community layer is its own product).
+
+---
+
+### Cross-cutting — The Help Layer (right column): crosslink panel + Lilly — **panel T1 REAL · assistant T2** · M (D11)
+
+Not a category A–H tool — a cross-cutting surface present on every work screen, added here the same way the **coach-channel adapter** (§5) is a cross-cutting companion rather than a tool. One design object, two layers. **Spec of record: `docs/HELLOLILLY_HELP_LAYER_CONCEPT.md` (D11).**
+
+**Component 1 — the crosslink panel (the floor) — T1, no banner.**
+- **Current repo state:** the wireframes carry the panel ("Hjälp just nu") on every work screen; no document of record gave it a build item until D11.
+- **Delete/reuse/migrate/build:** BUILD a small static rules registry (code/config, not AI) mapping context → candidate slots, plus the panel renderer and its slot components.
+- **Reads:** whatever already exists — templates, Hub resources, community discussions, `coachCompetence`, Progress Support's next step, existing dossiers. **Writes:** nothing (a floor, not a tool).
+- **Reuses:** every tool's real output; the design system.
+- **New backend?** No new shape — the rules registry is code/config, not a store collection (see `REST_OF_SITE_DATA_CONTRACT_ADDENDUM.md` §21). **New frontend?** The panel + slot components.
+- **New prompt discipline?** None — no LLM in the panel.
+- **Banner at end:** OFF (it only ever links to real content). Fixture slots live only under a T4 screen's existing banner.
+- **MVP boundary (concept §3):** the slot types (template · example · video/resource · discussion · coach · next step · research · encouragement) and the **resolution rule (normative): a slot renders only if it resolves to real content**.
+- **Deferred:** mobile collapse pattern (Design's call); the two ◇ instrumentation rows the concept proposed for §T were NOT adopted (see the data-contract §T decision).
+- **Risks/open questions:** none — it grows richer automatically as later tools ship real content into its slots.
+
+**Component 2 — Lilly, the assistant (the voice above the floor) — T2, no banner.**
+- **Current repo state:** absent; the Knowledge Hub per-item assistant (F2) is the *same* assistant, to be unified here, not built twice.
+- **Delete/reuse/migrate/build:** BUILD the assistant route (LLM via API + retrieval) grounded in the tool registry (`TOOL_SPECS`), the read models (`homeSummary`, `caseRecord`) and the library (`resources`).
+- **Reads:** `TOOL_SPECS` (static, safe), the read models (cited), the library. **Writes:** nothing directly — she navigates, prefills and drafts; the person confirms every write.
+- **Reuses:** the same LLM-via-API pattern as the rest of the app; F2's per-item assistant role, absorbed.
+- **New backend?** The assistant route (request-scoped). **New frontend?** The collapsed-by-default drawer.
+- **New prompt discipline?** YES — the honesty gate applies to any claim about the person (cite datafacts / case parts or refuse); her knowledge of the tools is static and safe.
+- **Banner at end:** OFF.
+- **MVP boundary (concept §4 — the five v1 capabilities, and ONLY these):** explain any tool (what it does / needs / will not do, grounded in `TOOL_SPECS`); navigate and hand off (deep links with context, person confirms); "what next" (delegated to Progress Support's next-step rules — Lilly never invents her own priorities); explain a resource (the Hub assistant role); answer questions about the person's own state by citing it (from the read models) or not saying it. **Explicitly NOT at v1:** emotional coaching, tone-reading of the person, proactive interruptions, an anticipation engine, long-term conversational memory (conversations are transient at v1).
+- **Deferred:** conversation persistence (learning-layer territory); voice via browser speech APIs (after, per the A2 decision).
+- **Risks/open questions:** none beyond the D11 open items.
+
+**Refusals (copied verbatim from concept §8 — so nobody relitigates mid-build):**
+- No always-on chatter, no proactive interruptions, no engagement mechanics. Banned: streaks, nudges-for-nudging's-sake, "just checking in".
+- No bespoke local model at MVP (see 6).
+- No autonomous actions - the person confirms every write and every send, always.
+- No emotional-state inference presented as fact. Lilly does not do tone-reads of the person at v1, at all.
+- No panel slot that does not resolve to real content on a real screen (fixture slots live only under T4 banners).
+- No second opinion against another tool's verdict or refusal - the ceiling holds everywhere.
 
 ---
 
@@ -395,6 +435,8 @@ Backend slice first (see `WAVE_1_BACKEND_BUILD_BRIEF.md`): activity + planner co
 Company List (B1) → Blind Applications (B2) → Outreach Plan (E2) → LinkedIn Helper (E1). One connected story on the three reused skeletons; B1's card actions are designed for B2/E2 from the start.
 
 **Wave 2 companion — coach-channel adapter (small, D9).** A standalone infrastructure item built alongside Wave 2, independent of the jobseeker story. Product-level shape: on a new `coachReviewRequests` record, the adapter sends a notification **out** to the coach's messaging channel (the request + the artifact to review); the coach's reply comes **in** and is stored as the review response (emitting a `review.response_received` activity event), attributed "Daniel (pilotcoach)". The channel is **pluggable** behind one internal interface — **Telegram first** (bot API, no tenant admin); Teams an acceptable later swap; WhatsApp only via the official business route if ever needed. This adapter is what lets Coach Review (F4) ship real; the F4 *screen* itself builds in Wave 4 with the other coach surfaces, consuming the already-landed adapter. (Not built this session — product decision only; see D9.)
+
+**Help Layer placement (D11).** The **crosslink panel (Layer 1)** builds **with the Wave 1 frontend screens** above — it is already drawn on every work-screen wireframe and its rules registry is small and LLM-free, so it rides the frontend work rather than taking a wave of its own, and it grows richer automatically as later tools ship real content into its slots. **Lilly, the assistant (Layer 2),** is her **own small wave after Progress Support Wave B**, because she needs Progress Support's next-step rules (Wave B) to delegate "what next" to, and the Wave 1 read models (`homeSummary`, `caseRecord`) to answer state questions by citation; voice via browser speech APIs comes after that (per the A2 decision). (Not built this session — product decision only; spec of record `docs/HELLOLILLY_HELP_LAYER_CONCEPT.md`, D11.)
 
 **Wave 3 — "confidence and polish" (~2 weeks)**
 Interview Trainer text (A2) → spoken mode via browser voice → Image Studio (A3) → Feedback Loop (F6) → Knowledge Hub (F2).

@@ -80,6 +80,12 @@ Ordered so nothing appears before what it needs.
 
 **Image Studio** - same face, better photograph: enhance the real photo's quality, light and background; never alter identity. Rides open-source components. Tier: NOW.
 
+### The Help Layer (right column) - the floor and the voice (D11):
+
+**Help Layer - crosslink panel (the floor)** - the situation-aware right-column panel ("Hjälp just nu") that surfaces real crosslinks - templates, examples, videos, the right coach, the next step, research - resolving each slot only when it points at content that actually exists. Deterministic, no LLM. Needs: nothing new (it resolves against what other tools already produce). Tier: NOW - builds with the Wave 1 frontend screens; it is already drawn on every work-screen wireframe, and it grows richer automatically as later tools ship. Spec: `docs/HELLOLILLY_HELP_LAYER_CONCEPT.md`.
+
+**Help Layer - Lilly, the assistant (the voice)** - conversational help grounded in the tool registry, the read models and the library: explains any tool, navigates and hands off, and delegates "what next" to Progress Support (never invents her own priorities). Needs: Progress Support's next-step rules (Wave B) and the read models (`homeSummary`, `caseRecord`, Wave 1). Tier: NOW-but-sequenced - her own small wave after Progress Support Wave B. The Knowledge Hub's per-item assistant is this same assistant, unified.
+
 ### Split-tier and demo areas:
 
 **Jobbradar** - watches market signals, builds weekly target lists, checks them against the person's field, turns a signal into an action. Two signal sources are real today (hiring-volume changes computed from job data already pulled, plus a curated news digest): NOW. The rest of the vision - tenders, investments, leadership changes - is paid-data: SIM as labelled concept cards inside the otherwise-real screen.
