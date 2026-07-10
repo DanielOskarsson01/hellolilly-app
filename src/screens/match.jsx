@@ -289,7 +289,13 @@ function JobMatchReview() {
   const [items, setItems] = React.useState([]);
   const reloadQueue = React.useCallback(() => {
     listJobs()
-      .then((jobs) => setItems((jobs || []).filter((j) => j.decision === 'approved')))
+      .then((jobs) => setItems((jobs || [])
+        .filter((j) => j.decision === 'approved')
+        // The store shape is { company, title, location }; this screen (and createCase)
+        // read co/t/city. Normalize ONCE here so every downstream read — the logo badge,
+        // createCase's `company`, and the Snabbkoll layover — lines up. Missing this alias
+        // is why createCase got `company: undefined` → 400 → every Analysera silently failed.
+        .map((j) => ({ ...j, co: j.co || j.company, t: j.t || j.title, city: j.city || j.location }))))
       .catch(() => { /* keep current items on transient error */ });
   }, []);
   React.useEffect(() => { reloadQueue(); }, [reloadQueue]);
@@ -302,6 +308,8 @@ function JobMatchReview() {
   const [created, setCreated] = React.useState([]); // ids with a tailored application built
 
   const [linking, setLinking] = React.useState(null); // jobId currently being linked
+  const [caseError, setCaseError] = React.useState(null); // honest surface for a failed case setup
+  const [runErr, setRunErr] = React.useState(null);        // honest surface for a failed research/analyze
 
   const rejectItem = React.useCallback((id) => {
     setItems((cur) => cur.filter((j) => j.id !== id));
@@ -320,17 +328,19 @@ function JobMatchReview() {
       return;
     }
     setLinking(id);
+    setCaseError(null);
     try {
       const sourceInput = [job.snippet, job.url].filter(Boolean).join('\n\n');
-      const c = await createCase({ company: job.co, role: job.t || job.title || '', sourceInput });
+      const c = await createCase({ company: job.co || job.company, role: job.t || job.title || '', sourceInput });
       const caseId = c && c.meta && c.meta.id;
       if (!caseId) throw new Error('createCase returned no id');
       await linkJobCase(id, caseId); // durable POST /api/job/:id/case; dispatches ll:jobs:changed
       setActiveCaseId(caseId);
       setOpenId(id);
     } catch (err) {
-      // Surface the error as a transient notice without crashing the queue
-      console.error('[match] job→case link failed:', err.message);
+      // Honest surface: a failed setup MUST be visible, not a silent console.error on a
+      // button that appears to do nothing. Shown as an alert in the list view below.
+      setCaseError(err.message || 'Kunde inte starta analysen');
     } finally {
       setLinking(null);
     }
@@ -373,6 +383,24 @@ function JobMatchReview() {
       return { outcome: 'save_failed', reason: err.message };
     }
   };
+
+  // Run the SAME pipeline Snabbkoll uses: research (dossiers + decodedRole) THEN analyze
+  // (fit + gaps). analyze() alone throws "decodedRole missing or has no requirements" — the
+  // detail-view CTA used to call analyze() directly, so it could never have produced a result.
+  // Skip research if the role is already decoded. Generate stays on the gap-aware "Skapa
+  // anpassad CV" button below (auto-generating here would skip the user's gap answers).
+  const runAnalysis = React.useCallback(async () => {
+    setRunErr(null);
+    try {
+      const decoded = caseData && caseData.decodedRole && caseData.decodedRole.status;
+      if (decoded !== 'ready') await actions.research();
+      await actions.analyze();
+    } catch (err) {
+      // Honest surface: a failed run must be visible. analyze failure leaves fit 'absent'
+      // (not 'failed'), so PartGate would otherwise just re-show the button — silent again.
+      setRunErr(err.message || 'Analysen misslyckades');
+    }
+  }, [actions, caseData]);
 
   // Build tailored application (generate CV + cover letter)
   const makeApplication = async () => {
@@ -444,6 +472,12 @@ function JobMatchReview() {
       )
       : (
         <React.Fragment>
+          {caseError && (
+            <div role="alert" style={{ margin: '0 0 var(--sp-3)', padding: 'var(--sp-3)', border: '1px solid var(--ll-coral)', borderRadius: 10, color: 'var(--ll-coral)', background: 'rgba(224,90,120,0.06)' }}>
+              <strong>{tr({ sv: 'Kunde inte starta analysen. ', en: "Couldn't start the analysis. " })}</strong>
+              {caseError}
+            </div>
+          )}
           {activeItems.length > 0 ? (
             <React.Fragment>
               <div className="tri-bar">
@@ -533,7 +567,7 @@ function JobMatchReview() {
 
         <PartGate
           status={fitStatus}
-          busy={running.analyze}
+          busy={running.analyze || running.research}
           pending={<ContentBox className="ll-box--feature"><PartSkeleton lines={5} /></ContentBox>}
           failed={
             <PartState
@@ -552,9 +586,22 @@ function JobMatchReview() {
               title={tr({ sv: 'Ingen analys ännu', en: 'No analysis yet' })}
               body={tr({ sv: 'Kör analysen för att se hur jobbet matchar ditt CV.', en: 'Run the analysis to see how this job matches your CV.' })}
             >
-              <Button variant="primary" size="sm" icon="target" onClick={() => actions.analyze()} disabled={!caseData}>
-                {tr({ sv: 'Analysera', en: 'Analyse' })}
+              <Button
+                variant="primary"
+                size="sm"
+                icon={running.research || running.analyze ? null : 'target'}
+                onClick={runAnalysis}
+                disabled={!caseData || running.research || running.analyze}
+              >
+                {running.research || running.analyze
+                  ? tr({ sv: 'Analyserar…', en: 'Analysing…' })
+                  : tr({ sv: 'Analysera', en: 'Analyse' })}
               </Button>
+              {runErr && (
+                <p role="alert" style={{ marginTop: 8, color: 'var(--ll-coral)' }}>
+                  {tr({ sv: 'Analysen misslyckades: ', en: 'The analysis failed: ' })}{runErr}
+                </p>
+              )}
               <Button variant="ghost" size="sm" icon="arrow" onClick={() => setOpenId(null)} style={{ marginTop: 8 }}>
                 {tr({ sv: 'Tillbaka till listan', en: 'Back to the list' })}
               </Button>
