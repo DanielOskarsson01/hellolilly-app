@@ -3,7 +3,7 @@
 **As of:** 2026-07-09. Written after a machine crash wiped the chat windows. This is the single durable picture: what is built, what is being built, what comes next, and every parked decision.
 
 **Repo:** `github.com/DanielOskarsson01/hellolilly-app` · local `Projects/hello lily - app`
-**Main:** `398c740` (verify with `git log --oneline -5`)
+**Main:** run `git log --oneline -1` (a stated hash rots — this one already did)
 **Stack:** React 19 + Vite frontend, Node backend, SQLite via the local dev-server. Runs locally (`npm run dev`). The public GitHub Pages site is frontend-only by design - it is static hosting, cannot run Node, so `/api/*` 404s there. This is not a bug. Deployment is deferred (see Parked).
 
 ---
