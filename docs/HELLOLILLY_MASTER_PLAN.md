@@ -99,16 +99,7 @@ The most native area: its stages map onto contract slots that already exist (`pr
 
 ## Decisions of record
 
-In `docs/DECISIONS_ADDENDUM.md`.
-
-| # | Decision |
-|---|---|
-| D1 | Durable SQLite via `node:sqlite` |
-| D2 | `cv_data.json` lives in the repo |
-| D3 | The nine demo screens carry a "Demo - exempeldata" banner |
-| D4 | **Multi-user identity: defer.** The contract is multi-user-additive, so scoping later changes data, not shape. Coach surfaces, community, and the learning layer ship as labelled demos with a fixture cast. **Trigger: the first pilot coach signs on.** |
-| D5 | **Generic named-collection mechanism: build one.** First customer is Progress Support's activity events. Every collection-backed tool after that gets cheaper. |
-| D9 | Daniel as first pilot coach, messaging-bridge model. **Confirm consciously** - this refines the D4 trigger, which is the biggest structural decision on the board, and it arrived during a docs-hygiene session rather than a deliberate one. |
+The full set (D1–D13, with D6–D8 deliberately skipped) lives in `docs/DECISIONS_ADDENDUM.md` — the single source of truth. This plan no longer mirrors the decisions here: the mirrored table went stale twice (it stopped at D9 and still carried D4's pre-refinement trigger), so the mirror is retired in favour of this pointer.
 
 ---
 
@@ -125,7 +116,7 @@ The plan indexes itself here (a prior gap: it never did). All paths under `docs/
 | `REST_OF_SITE_DATA_CONTRACT_ADDENDUM.md` | The noun vocabulary — every stored shape, read model, the non-shapes (§21), and the activity taxonomy (§T). |
 | `WAVE_1_BACKEND_BUILD_BRIEF.md` | The Wave 1 backend-slice brief (activity/planner collections, read models, host-layer emission). |
 | `KIND3_ROADMAP.md` | The dependency-ordered map of everything after the Kind-1 spine. |
-| `DECISIONS_ADDENDUM.md` | The decisions of record (D1–D11). |
+| `DECISIONS_ADDENDUM.md` | The decisions of record (D1–D13; D6–D8 deliberately skipped). |
 | `HELLOLILLY_BACKLOG.md` | The parked backlog — deferred features, docs corrections, engineering follow-ups. |
 | `HELLOLILLY_HELP_LAYER_CONCEPT.md` | **(new, D11)** The Help Layer spec of record — the crosslink panel + Lilly the assistant. |
 | `KNOWLEDGE_HUB_SEED_LIST.md` | **(new, D11)** The Knowledge Hub seed — ~28 real resources, the F2 approval flow's first content. |
@@ -133,6 +124,7 @@ The plan indexes itself here (a prior gap: it never did). All paths under `docs/
 | `HELLOLILLY_ARCH_RULES.md` | **(new, D12)** The Architecture Rules Addendum — standing law extending the four non-negotiables: anti-blame gate, injection envelope + transitive provenance, maker/checker separation, eval corpus, and the inference-surface registry + real-persons gate. |
 | `RETROFIT_LEDGER.md` | **(new, D12)** The shipped paths predating the rules (letter writer, presend judges, Matchanalys prose, A1 researcher); retrofit at next touch, must be empty before any real-jobseeker use. |
 | `inference-surface-registry.json` | **(new, D12)** The single machine-readable inference-surface registry (Section 5) — three registered members, membership declared ahead of build. |
+| `HELLOLILLY_PHASE_AFTER_PLAN.md` | **(new, D13)** The Phase-After Plan — doc of record for the governance review the real-persons gate waits on, the second human's two paths, the k ≥ 5 learning-layer floor, the padlock rule, and the pilot's smallest honest version. |
 
 ---
 
