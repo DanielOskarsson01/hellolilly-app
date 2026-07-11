@@ -9,6 +9,7 @@ import { tr, useLang, LangToggle } from '../lib/i18n.mjs';
 import { ContentArea, ContentBox, CrossColumn, PageTemplate, MatchRing } from '../components/grid.jsx';
 import { listJobs, createCase, linkJobCase } from '../api/caseApi.js';
 import { setActiveCaseId } from '../utils/jobStore.js';
+import { generateOutcome } from '../lib/generateOutcome.mjs';
 
 // HelloLilly — Matchanalys (design-system era, T13 → T15)
 // Ported from design/design/screens-match2.jsx.
@@ -288,6 +289,7 @@ function JobMatchReview() {
   const { caseData, running, actions, error, refresh } = useActiveCase();
   const parts = casePartsView(caseData);
   const [generating, setGenerating] = React.useState(false);
+  const [genErr, setGenErr] = React.useState(null); // honest surface for a failed/partial generate
 
   // QUEUE: durable approved jobs. Refetched on mount and on ll:jobs:changed.
   const [items, setItems] = React.useState([]);
@@ -406,15 +408,28 @@ function JobMatchReview() {
     }
   }, [actions, caseData]);
 
-  // Build tailored application (generate CV + cover letter)
+  // Build tailored application (generate CV + cover letter). "CV skapat" is stamped ONLY on
+  // verified success — a thrown error OR a 207 {ok:false} partial both mean NOT complete, and
+  // are surfaced honestly on the card instead of a phantom-complete stamp.
   const makeApplication = async () => {
     if (!openId) return;
     const id = openId;
     setGenerating(true);
-    try { await actions.generate(); } catch (_) { /* surfaced on CV/letter screens */ }
-    setGenerating(false);
-    setCreated((c) => (c.includes(id) ? c : [...c, id]));
-    setOpenId(null);
+    setGenErr(null);
+    let outcome;
+    try {
+      outcome = generateOutcome(await actions.generate());
+    } catch (err) {
+      outcome = generateOutcome(null, err);
+    } finally {
+      setGenerating(false);
+    }
+    if (outcome.complete) {
+      setCreated((c) => (c.includes(id) ? c : [...c, id]));
+      setOpenId(null);           // only a real, complete application closes the loop
+    } else {
+      setGenErr(outcome.message); // stay on the card; nothing marked "CV skapat"
+    }
   };
 
   // Open the created enhanced CV over Ansökningskoll.
@@ -748,6 +763,11 @@ function JobMatchReview() {
                       ? tr({ sv: 'Skapar…', en: 'Building…' })
                       : tr({ sv: 'Skapa anpassad CV', en: 'Create tailored CV' })}
                   </Button>
+                  {genErr && (
+                    <p className="loopdone__err" role="alert" style={{ marginTop: 10, color: 'var(--ll-coral)', fontWeight: 600 }}>
+                      {genErr}
+                    </p>
+                  )}
                 </div>
               </div>
             ) : (
