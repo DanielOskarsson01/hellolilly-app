@@ -3697,7 +3697,10 @@ body.ll-template { background: var(--ll-cream); }
 .matchrow__gaps { display: flex; flex-direction: column; align-items: flex-start; gap: 7px; flex-wrap: wrap; margin-top: var(--sp-2); }
 .matchrow__gaps-l { font-family: var(--font-display); font-weight: var(--fw-bold); font-size: var(--fs-2xs); color: var(--ll-coral); text-transform: uppercase; letter-spacing: .03em; }
 .matchrow__gaps-chips { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.miss {
+/* scoped: bare .miss would restyle detail-view .matchitem__ic.miss / .jd mark.miss later in the cascade.
+   #b5502f is an accepted literal alongside #F4FBF7/#BEE3CB/#1c7a48: verbatim from the reference design,
+   and this file's coral ink is already literal (#b5421f ×10, #b5502f in .cvtpl--coral/.cvrev__changes). */
+.matchrow__gaps-chips .miss {
   display: inline-flex; align-items: center; gap: 4px;
   font-family: var(--font-body); font-weight: var(--fw-semibold); font-size: var(--fs-2xs);
   padding: 3px 9px; border: 1px solid var(--ll-coral-soft); background: var(--ll-coral-soft); color: #b5502f;
