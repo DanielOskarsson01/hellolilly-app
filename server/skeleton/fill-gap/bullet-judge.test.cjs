@@ -72,6 +72,33 @@ test('setGapResolution on an unknown gap throws and persists nothing', () => {
   assert.equal(store.getCase(caseId).gaps.data[0].resolution, undefined);
 });
 
+test('an unknown gapId throws BEFORE anything durable happens (no mint, no fit flip)', async () => {
+  const llm = { completeJSON: async () => ({ canFill: true, bulletText: 'Built a clean feature store for 12 models.', reason: 'ok' }) };
+  const { store, caseId } = fixtureStore();
+  const before = store.listDatafacts().length;
+  await assert.rejects(
+    () => applyAnswer(store, llm, { caseId, gapId: 'gap_NOPE', answer: 'x', requirementId: 'decodedRequirement_2' }),
+    /no such gap/,
+  );
+  assert.equal(store.listDatafacts().length, before, 'nothing minted for an unknown gap');
+  assert.equal(store.getCase(caseId).fit.data.capability.requirements[0].status, 'missing', 'fit untouched');
+});
+
+test('a failed resolution write leaves NO durable claim: fit unflipped, gap open, fact unminted', async () => {
+  const llm = { completeJSON: async () => ({ canFill: true, bulletText: 'Built the ML feature store serving 12 models in production.', reason: 'ok' }) };
+  const { store, caseId } = fixtureStore();
+  const before = store.listDatafacts().length;
+  // Same store, but the atomic fit+gaps write fails (e.g. disk error at persist time).
+  const failing = { ...store, writeParts: () => { throw new Error('simulated write failure'); } };
+  await assert.rejects(
+    () => applyAnswer(failing, llm, { caseId, gapId: 'gap_1', answer: 'I built our feature store', requirementId: 'decodedRequirement_2' }),
+    /simulated write failure/,
+  );
+  assert.equal(store.getCase(caseId).fit.data.capability.requirements[0].status, 'missing', 'fit does not claim match');
+  assert.equal(store.getCase(caseId).gaps.data[0].resolution, undefined, 'gap stays unresolved');
+  assert.equal(store.listDatafacts().length, before, 'the minted fact was compensated away — nothing for the cv-builder to mine');
+});
+
 test('an unknown requirementId mints nothing and stays_gap', async () => {
   const llm = { completeJSON: async () => ({ canFill: true, bulletText: 'Built a clean feature store for 12 models.', reason: 'ok' }) };
   const { store, caseId } = fixtureStore();

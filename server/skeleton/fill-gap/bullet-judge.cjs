@@ -50,6 +50,9 @@ async function applyAnswer(store, llm, { caseId, gapId, answer, requirementId, t
   if (!theCase) throw new Error(`applyAnswer: no such case ${caseId}`);
   const gaps = (theCase.gaps && theCase.gaps.data) || [];
   const gap = gaps.find((g) => g.id === gapId) || null;
+  // The resolution target must exist BEFORE anything durable happens (was: discovered
+  // by setGapResolution after the mint + fit flip had already persisted).
+  if (!gap) throw new Error(`applyAnswer: no such gap ${gapId} in case ${caseId}`);
   const reqs = ((theCase.decodedRole && theCase.decodedRole.data && theCase.decodedRole.data.requirements) || []);
   const requirement = (reqs.find((r) => r.id === requirementId) || {}).requirement || '';
 
@@ -82,7 +85,7 @@ async function applyAnswer(store, llm, { caseId, gapId, answer, requirementId, t
     tags: [`addresses:${requirementId}`, 'fill-gap', ...tags].filter(Boolean),
     language: 'en',
   };
-  store.ingestDatafact(fact);
+  store.ingestDatafact(fact); // must precede the fit write: the gate exempts fact.text only via a ref to a STORED fact
 
   // Flip the requirement to match; attach evidenceRef so the re-write survives the
   // ref-scoped exact-equality gate (Task 3) — fact.text is exempt only via its ref.
@@ -91,12 +94,19 @@ async function applyAnswer(store, llm, { caseId, gapId, answer, requirementId, t
       ? { ...r, status: 'match', evidence: fact.text, evidenceRef: { kind: 'datafact', id: fact.id } }
       : r,
   );
-  store.writePart(caseId, 'fit', fit); // gate runs; fact.text exempt via evidenceRef
+  const nextGaps = gaps.map((g) => (g.id === gapId ? { ...g, resolution: 'accepted' } : g));
 
-  // Mark the gap terminal so the migration, the completion banner, and the CV gate all
-  // read 'handled' from PERSISTED state — not from a card that vanished on navigation.
-  // Done BEFORE returning 'accepted' so a throw here propagates (no success, no activity).
-  setGapResolution(store, caseId, gapId, 'accepted');
+  // Fit migration + gap resolution land in ONE atomic write (single case-row persist in
+  // the sqlite adapter): the store can never durably say 'match' while the gap is still
+  // unresolved. If that write fails, unmint the fact — the cv-builder mines
+  // listDatafacts() directly, so a stray fill-gap fact would leak into generated CVs.
+  // The throw then propagates: no 'accepted', no gap_filled activity.
+  try {
+    store.writeParts(caseId, { fit, gaps: nextGaps });
+  } catch (err) {
+    store.removeDatafact(fact.id);
+    throw err;
+  }
 
   return { outcome: 'accepted', newDatafactId: fact.id, updatedFit: store.getCase(caseId).fit.data, reason: verdict.reason };
 }
