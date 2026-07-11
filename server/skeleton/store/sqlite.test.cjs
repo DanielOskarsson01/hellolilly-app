@@ -151,3 +151,42 @@ test('adapter self-describes for the health route', () => {
   assert.equal(store.path, p);
   store.close();
 });
+
+test('removeCase and removeDatafact delete durably (gone after reopen)', () => {
+  const p = tmpDbPath();
+  const a = createSqliteStore({ path: p });
+  const caseId = seedStore(a);
+  assert.equal(a.removeCase(caseId), true);
+  assert.equal(a.removeDatafact('datafact_1'), true);
+  assert.equal(a.removeCase('case_NOPE'), false, 'removeRecord convention: false, no throw');
+  a.close();
+
+  const b = createSqliteStore({ path: p });
+  assert.equal(b.getCase(caseId), null, 'case row deleted on disk');
+  assert.equal(b.getDatafact('datafact_1'), null, 'datafact row deleted on disk');
+  b.close();
+});
+
+test('writeParts applies all parts together and a gate violation persists NONE of them', () => {
+  const p = tmpDbPath();
+  const a = createSqliteStore({ path: p });
+  const caseId = seedStore(a);
+
+  a.writeParts(caseId, { fit: { capability: { requirements: [], overall: 'Plain.' }, preference: { narrative: '' } }, gaps: [{ id: 'gap_1', what: 'A gap.' }] });
+  a.close();
+  const b = createSqliteStore({ path: p });
+  assert.equal(b.getCase(caseId).fit.data.capability.overall, 'Plain.', 'both parts landed');
+  assert.equal(b.getCase(caseId).gaps.data[0].id, 'gap_1');
+
+  // One clean part + one banned part: the write must be all-or-nothing.
+  assert.throws(
+    () => b.writeParts(caseId, { fit: { capability: { requirements: [], overall: 'Still plain.' }, preference: { narrative: '' } }, gaps: [{ id: 'gap_1', what: 'We spearheaded it.' }] }),
+    /spearheaded/,
+  );
+  assert.equal(b.getCase(caseId).fit.data.capability.overall, 'Plain.', 'clean part NOT applied when a sibling part violates');
+  b.close();
+
+  const c = createSqliteStore({ path: p });
+  assert.equal(c.getCase(caseId).fit.data.capability.overall, 'Plain.', 'nothing from the failed write on disk either');
+  c.close();
+});

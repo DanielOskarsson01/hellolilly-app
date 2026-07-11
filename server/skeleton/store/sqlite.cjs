@@ -46,6 +46,8 @@ function createSqliteStore({ path: dbPath } = {}) {
     putFact: db.prepare('INSERT OR REPLACE INTO datafacts (id, data) VALUES (?, ?)'),
     putRecord: db.prepare('INSERT OR REPLACE INTO collection_records (name, id, data) VALUES (?, ?, ?)'),
     delRecord: db.prepare('DELETE FROM collection_records WHERE name = ? AND id = ?'),
+    delCase: db.prepare('DELETE FROM cases WHERE id = ?'),
+    delFact: db.prepare('DELETE FROM datafacts WHERE id = ?'),
     allCases: db.prepare('SELECT id, data FROM cases'),
     allFacts: db.prepare('SELECT id, data FROM datafacts'),
     allRecords: db.prepare('SELECT name, id, data FROM collection_records'),
@@ -98,6 +100,21 @@ function createSqliteStore({ path: dbPath } = {}) {
     writePart(caseId, part, data) {
       const out = inner.writePart(caseId, part, data); // gate runs here; a throw persists nothing
       saveCase(caseId);
+      return out;
+    },
+    writeParts(caseId, parts) {
+      const out = inner.writeParts(caseId, parts); // all gates run first; a throw persists nothing
+      saveCase(caseId); // ONE row REPLACE — the parts hit disk together or not at all
+      return out;
+    },
+    removeCase(caseId) {
+      const out = inner.removeCase(caseId);
+      stmt.delCase.run(caseId);
+      return out;
+    },
+    removeDatafact(id) {
+      const out = inner.removeDatafact(id);
+      stmt.delFact.run(id);
       return out;
     },
     setPartStatus(caseId, part, status, error) {
