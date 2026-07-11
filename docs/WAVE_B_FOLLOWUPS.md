@@ -31,3 +31,21 @@ Deferred items surfaced during **Progress Support Wave A** (merged to `main` in 
 `fix-matchanalys-analyse` repaired a Matchanalys "Analysera" button that had **never once worked**: the store shape is `{ company, title, location }` but the screen read `{ co, t, city }`, so `createCase` got `company: undefined` → HTTP 400 → a swallowed `console.error` on a button that appeared to do nothing; and the detail CTA called `analyze()` without the `research()` it hard-requires (`gap-analyzer` throws "decodedRole missing"). It passed **three review layers and the full 246-test suite** anyway — because **reviews verify code against spec, and only usage verifies the product.** Green suite + compiling build is necessary, not sufficient.
 
 **Adopt:** each wave closes with a scripted walkthrough of the actual user path on real data (approve → research → analyze → fill gap → generate → align → activity log), not just `npm run verify`. The script that verified this fix: `createCase` for a real approved job → `POST /research` → `POST /analyze` → assert `fit`+`gaps` are `ready` → assert `case_created`/`research_run`/`analysis_run` rows appended to the activity collection. Codify it as `npm run walkthrough` so it runs every wave.
+
+## #5 — Min aktivitet: wire (or honestly disable) the report action buttons  (OPEN)
+
+**Where:** `src/screens/cvActivity.jsx:368-380` — "Dela med Sara", "Exportera rapport", "Hämta som PDF".
+
+**Issue:** three primary/secondary buttons with **no `onClick`** — inert, but presented as working commands (same lie-class as the review-layover accept no-ops fixed in the honest-surfaces pass). Surfaced during the integration audit; left for Wave B because the "Min aktivitet" surface is being rebuilt in the Wave B surface work — fold the fix into that build rather than bolting handlers onto the current placeholder. Until then, either wire real share/export/PDF actions or give them the disabled "Kommer" treatment used elsewhere in the app.
+
+## #6 — Matchanalys detail-view fill-gap is missing the `canAnswer` guard  (OPEN)
+
+**Where:** `src/screens/match.jsx` (detail-view gap submit, ~L377-381) vs the reference guard in `helpfulLayover.jsx`'s (now-deleted) `GapFillForm` which returned `null` when `!(gap.requirementRef && gap.requirementRef.id)`.
+
+**Issue:** the detail-view `submit` calls `actions.answerGap(gap.id, { answer, requirementId })` with `requirementId = gap.requirementRef && gap.requirementRef.id` — when a gap has no `requirementRef`, it still submits with `requirementId: undefined` instead of suppressing the answer box. Add the same `canAnswer` guard so gaps that can't be answered don't render an answer affordance.
+
+## #7 — Inert filter chips on Matchanalys  (OPEN)
+
+**Where:** `src/screens/match.jsx` filter chips.
+
+**Issue:** filter chips render but don't filter — decorative, not wired to the queue's filtering. Surfaced in the integration audit; deferred to the Wave B `filterSet` routes work (where the real filter state lands) rather than wiring throwaway local state now.
