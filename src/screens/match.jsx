@@ -10,6 +10,7 @@ import { ContentArea, ContentBox, CrossColumn, PageTemplate, MatchRing } from '.
 import { listJobs, createCase, linkJobCase, decideJob } from '../api/caseApi.js';
 import { setActiveCaseId } from '../utils/jobStore.js';
 import { generateOutcome } from '../lib/generateOutcome.mjs';
+import { openGaps as deriveOpenGaps, skippedGaps as deriveSkippedGaps, cvGateOpen } from '../lib/gapResolution.mjs';
 
 // HelloLilly — Matchanalys (design-system era, T13 → T15)
 // Ported from design/design/screens-match2.jsx.
@@ -628,12 +629,12 @@ function JobMatchReview() {
     const scoreVal = fit && fit.score != null
       ? fit.score
       : (capReqs.length ? Math.round((matches.length / capReqs.length) * 100) : 0);
-    // Open vs handled is read from PERSISTED per-gap resolution ('accepted'/'skipped'),
-    // never transient card state. A gap with no resolution is still open; the completion
-    // banner and CV gate below fire only when every gap is terminal.
-    const openGaps = gaps.filter((g) => !g.resolution);
-    const skippedGaps = gaps.filter((g) => g.resolution === 'skipped');
-    const allFilled = openGaps.length === 0;
+    // Open vs handled is read from PERSISTED per-gap resolution, never transient card
+    // state — and ONLY 'accepted'/'skipped' count as terminal (gapResolution.mjs): any
+    // other truthy value keeps the gap open and the CV gate closed.
+    const openGaps = deriveOpenGaps(gaps);
+    const skippedGaps = deriveSkippedGaps(gaps);
+    const allFilled = cvGateOpen(gaps);
 
     body = (
       <React.Fragment>

@@ -102,6 +102,23 @@ test('accepted answer persists a terminal gap resolution served on reload (survi
   assert.equal(res._body.case.fit.data.capability.requirements[0].status, 'match', 'requirement stays migrated');
 });
 
+test('accepted answer logs exactly one gap_filled activity row referencing the minted datafact', async () => {
+  const llm = { completeJSON: async () => ({ canFill: true, bulletText: 'Built the feature store for 12 models in production.', reason: 'ok' }) };
+  const { host, caseId } = fillGapFixture(llm);
+  const handle = createApiHandler(host, { preferencesPath: null, llm });
+
+  const res = mockRes();
+  await handle(makeReq('POST', `/api/case/${caseId}/gap/gap_1/answer`, { answer: 'I built our feature store for 12 models', requirementId: 'decodedRequirement_1' }), res);
+  assert.equal(res._body.outcome, 'accepted');
+
+  const filled = host.store.listRecords('activity').filter((r) => r.type === 'gap_filled');
+  assert.equal(filled.length, 1, 'exactly one gap_filled row for one accepted answer');
+  assert.equal(filled[0].caseId, caseId);
+  assert.equal(filled[0].meta.gapId, 'gap_1');
+  assert.equal(filled[0].meta.datafactId, res._body.newDatafactId, 'the activity row cites the minted datafact');
+  assert.ok(host.store.getDatafact(filled[0].meta.datafactId), 'the cited datafact exists in the store');
+});
+
 test('POST /gap/:id/skip persists a terminal skip served on reload and logs gap_skipped', async () => {
   const { host, caseId } = fillGapFixture({ completeJSON: async () => ({}) });
   const handle = createApiHandler(host, { preferencesPath: null, llm: { completeJSON: async () => ({}) } });
