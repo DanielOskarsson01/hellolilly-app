@@ -1,8 +1,9 @@
 import React from 'react';
 import { Icon, Clover, Photo, Avatar, Button, Tag, SectionHeader } from './primitives.jsx';
-import { acceptJob, getAcceptedJobs, jobKey, removeJob } from '../utils/jobStore.js';
 import { decideJob } from '../api/caseApi.js';
 import { useActiveCase } from '../hooks/useCase.js';
+import { useJobs } from '../hooks/useJobs.js';
+import { findServerJob } from '../lib/jobRecordBridge.mjs';
 import { casePartsView } from '../hooks/casePartsView.mjs';
 import { caseMetaView } from '../hooks/caseMetaView.mjs';
 import { REJECT_REASONS } from '../lib/jobTriage.mjs';
@@ -332,16 +333,26 @@ function JobPreviewContent({ job }) {
 }
 
 function JobDescriptionContent({ job }) {
-  const [accepted, setAccepted] = React.useState(() => getAcceptedJobs().some((item) => jobKey(item) === jobKey(job)));
+  // Decisions go through the ONE server record (decideJob), bridged from the live-search job's
+  // externalId. "Sparad till Matchanalys" is shown ONLY after the server write succeeds.
+  const { jobs: records, approve, reject } = useJobs();
+  const rec = findServerJob(records, job);
+  const accepted = !!rec && rec.decision === 'approved';
+  const [err, setErr] = React.useState(null);
 
-  const onApply = () => {
-    acceptJob(job);
-    setAccepted(true);
+  const onApply = async () => {
+    if (!rec) { setErr('Kunde inte spara – jobbet finns inte i systemet ännu.'); return; }
+    setErr(null);
+    try { await approve(rec.id); }
+    catch (e) { setErr(e.message || 'Kunde inte spara jobbet.'); }
   };
 
-  const onRemove = () => {
-    removeJob(job);
-    window.dispatchEvent(new CustomEvent('ll:helpful:close'));
+  const onRemove = async () => {
+    if (!rec) { setErr('Kunde inte ta bort – jobbet finns inte i systemet ännu.'); return; }
+    setErr(null);
+    // A removal is data: mark it a home-feed cull so the learning layer can tell it apart.
+    try { await reject(rec.id, 'OTHER', 'Borttagen från hemflödet'); window.dispatchEvent(new CustomEvent('ll:helpful:close')); }
+    catch (e) { setErr(e.message || 'Kunde inte ta bort jobbet.'); }
   };
 
   return (
@@ -359,6 +370,7 @@ function JobDescriptionContent({ job }) {
         <Button variant="ghost" size="sm" icon="plus" onClick={onRemove}>Ta bort</Button>
         <Button variant="primary" size="sm" icon="check" onClick={onApply}>{accepted ? 'Sparad till Matchanalys' : 'Ansök'}</Button>
       </div>
+      {err && <p className="cap" role="alert" style={{ margin: '4px 28px 12px', color: 'var(--ll-coral)', fontWeight: 600 }}>{err}</p>}
 
       {Array.isArray(job.tags) && job.tags.length > 0 && (
         <div className="jobdesc__tags">
