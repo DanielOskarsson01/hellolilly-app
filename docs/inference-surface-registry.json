@@ -1,0 +1,34 @@
+{
+  "_about": "The single machine-readable inference-surface registry mandated by HELLOLILLY_ARCH_RULES.md Section 5 (D12, 2026-07-11). One file, not scattered flags. Membership is declared here at design time; each surface's `path` is filled when the tool is built.",
+  "spec": "docs/HELLOLILLY_ARCH_RULES.md",
+  "definition": "An inference surface is any path that writes an interpretation of the person's state (confidence, wellbeing, barriers, motivation) to a stored shape, or renders one to a coach-facing view.",
+  "inclusionTest": "IN if the path writes an interpretation of the person's state to a stored shape OR renders one to a coach-facing view. OUT if it is conversational padding that stores nothing and reaches no coach. When in doubt, it is in.",
+  "realPersonsGate": "REFUSAL. No non-demo use by any real jobseeker other than Daniel of any surface below until the governance review (AI Act, coach-facing surfaces, data controls) is recorded done AND docs/RETROFIT_LEDGER.md is empty. Demo use continues freely.",
+  "sensitiveClass": "Participation is sensitive by inference (unemployment status); barrier data touches disability, language origin, neurodivergence. Bound now: synthetic-only eval fixtures and no person-data in logs beyond what the store holds.",
+  "surfaces": [
+    {
+      "id": "transition-compass-confidence-capture",
+      "name": "Transition Compass confidence capture",
+      "interpretationOf": "confidence",
+      "mechanism": "writes-stored-shape",
+      "path": null,
+      "status": "registered, not yet built"
+    },
+    {
+      "id": "transition-view-coach-prompts",
+      "name": "Transition View coach prompts",
+      "interpretationOf": "state summarized for a coach (confidence, wellbeing, barriers, motivation)",
+      "mechanism": "renders-coach-view",
+      "path": null,
+      "status": "registered, not yet built"
+    },
+    {
+      "id": "outcome-engine-per-group-analyses",
+      "name": "Outcome Engine per-group analyses",
+      "interpretationOf": "barriers, motivation, wellbeing across a group",
+      "mechanism": "writes-stored-shape",
+      "path": null,
+      "status": "registered, not yet built"
+    }
+  ]
+}
