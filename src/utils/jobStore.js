@@ -1,9 +1,10 @@
 import { normalizeJobQuery } from '../api/jobSearch.js';
 
+// Job accept/reject decisions live in the server 'jobs' collection (decideJob) — NOT
+// localStorage. The keys here are for genuinely client-local state only: saved searches,
+// the last search payload (for instant Home rehydrate), and the active case pointer.
 const KEYS = {
   savedSearches: 'hellolilly:saved-searches',
-  acceptedJobs: 'hellolilly:accepted-jobs',
-  removedJobs: 'hellolilly:removed-jobs',
   latestSearch: 'hellolilly:latest-job-search',
   activeCase: 'hellolilly:active-case',
 };
@@ -95,26 +96,6 @@ function removeSavedSearch(id) {
   writeJson(KEYS.savedSearches, getSavedSearches().filter((search) => search.id !== id));
 }
 
-function getAcceptedJobs() {
-  return readJson(KEYS.acceptedJobs, []);
-}
-
-function acceptJob(job) {
-  const nextJob = { ...compactJob(job), acceptedAt: new Date().toISOString() };
-  const current = getAcceptedJobs();
-  writeJson(KEYS.acceptedJobs, [nextJob, ...current.filter((item) => jobKey(item) !== nextJob.id)].slice(0, 30));
-  return nextJob;
-}
-
-function removeAcceptedJob(jobOrId) {
-  const id = typeof jobOrId === 'string' ? jobOrId : jobKey(jobOrId);
-  writeJson(KEYS.acceptedJobs, getAcceptedJobs().filter((job) => jobKey(job) !== id));
-}
-
-function getRemovedJobIds() {
-  return readJson(KEYS.removedJobs, []);
-}
-
 function getLatestJobSearch() {
   const latest = readJson(KEYS.latestSearch, null);
   return latest ? { ...latest, query: normalizeJobQuery(latest.query || {}) } : null;
@@ -133,15 +114,6 @@ function saveLatestJobSearch(query, payload) {
   return next;
 }
 
-// --- the job <-> backend-case linkage (Stream 2 bridge) ---
-
-// Attach a backend caseId to an accepted job, so Matchanalys re-opens the same
-// case instead of creating a new one per click.
-function setJobCase(jobOrId, caseId) {
-  const id = typeof jobOrId === 'string' ? jobOrId : jobKey(jobOrId);
-  writeJson(KEYS.acceptedJobs, getAcceptedJobs().map((job) => (jobKey(job) === id ? { ...job, caseId } : job)));
-}
-
 // The case the CV / cover-letter / home screens render. Set when an analysis starts.
 function getActiveCaseId() {
   return readJson(KEYS.activeCase, null);
@@ -152,32 +124,13 @@ function setActiveCaseId(caseId) {
   if (canStore()) window.dispatchEvent(new CustomEvent('ll:case:changed'));
 }
 
-function removeJob(job) {
-  const id = jobKey(job);
-  const removed = new Set(getRemovedJobIds());
-  removed.add(id);
-  writeJson(KEYS.removedJobs, Array.from(removed).slice(-200));
-  removeAcceptedJob(id);
-}
-
-function isJobRemoved(job) {
-  return getRemovedJobIds().includes(jobKey(job));
-}
-
 export {
-  acceptJob,
-  getAcceptedJobs,
   getActiveCaseId,
   getLatestJobSearch,
-  getRemovedJobIds,
   getSavedSearches,
-  isJobRemoved,
   jobKey,
-  removeAcceptedJob,
-  removeJob,
   removeSavedSearch,
   saveLatestJobSearch,
   saveSearch,
   setActiveCaseId,
-  setJobCase,
 };
