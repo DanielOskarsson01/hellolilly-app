@@ -7,7 +7,7 @@ import { caseMetaView } from '../hooks/caseMetaView.mjs';
 import { PartGate, PartState, PartSkeleton } from '../components/partGate.jsx';
 import { tr, useLang, LangToggle } from '../lib/i18n.mjs';
 import { ContentArea, ContentBox, CrossColumn, PageTemplate, MatchRing } from '../components/grid.jsx';
-import { listJobs, createCase, linkJobCase } from '../api/caseApi.js';
+import { listJobs, createCase, linkJobCase, decideJob } from '../api/caseApi.js';
 import { setActiveCaseId } from '../utils/jobStore.js';
 import { generateOutcome } from '../lib/generateOutcome.mjs';
 
@@ -316,11 +316,23 @@ function JobMatchReview() {
   const [linking, setLinking] = React.useState(null); // jobId currently being linked
   const [caseError, setCaseError] = React.useState(null); // honest surface for a failed case setup
   const [runErr, setRunErr] = React.useState(null);        // honest surface for a failed research/analyze
+  const [rejectErr, setRejectErr] = React.useState(null);  // honest surface for a failed "Välj bort"
 
-  const rejectItem = React.useCallback((id) => {
+  // "Välj bort" PERSISTS via the same decideJob route Jobbsök uses — not local state that a
+  // refetch resurrects. Optimistically drop it from the queue; on failure roll back honestly.
+  const rejectItem = React.useCallback(async (id) => {
+    setRejectErr(null);
     setItems((cur) => cur.filter((j) => j.id !== id));
     setOpenId((cur) => (cur === id ? null : cur));
-  }, []);
+    try {
+      // The quick queue reject carries no reason picker → OTHER + an honest note.
+      await decideJob(id, { decision: 'rejected', reason: 'OTHER', note: 'Bortvald i Matchanalys-kön' });
+      // decideJob dispatches ll:jobs:changed → reloadQueue refetches (rejected is filtered out).
+    } catch (err) {
+      setRejectErr(err.message || 'Kunde inte välja bort jobbet');
+      reloadQueue(); // server still has it as approved → it reappears rather than a false removal
+    }
+  }, [reloadQueue]);
 
   // Durable job→case link (T15 full unification).
   // If the job already has a caseId: set it as the active case and open the analysis view.
@@ -495,6 +507,12 @@ function JobMatchReview() {
             <div role="alert" style={{ margin: '0 0 var(--sp-3)', padding: 'var(--sp-3)', border: '1px solid var(--ll-coral)', borderRadius: 10, color: 'var(--ll-coral)', background: 'rgba(224,90,120,0.06)' }}>
               <strong>{tr({ sv: 'Kunde inte starta analysen. ', en: "Couldn't start the analysis. " })}</strong>
               {caseError}
+            </div>
+          )}
+          {rejectErr && (
+            <div role="alert" style={{ margin: '0 0 var(--sp-3)', padding: 'var(--sp-3)', border: '1px solid var(--ll-coral)', borderRadius: 10, color: 'var(--ll-coral)', background: 'rgba(224,90,120,0.06)' }}>
+              <strong>{tr({ sv: 'Kunde inte välja bort jobbet. ', en: "Couldn't reject the job. " })}</strong>
+              {rejectErr}
             </div>
           )}
           {activeItems.length > 0 ? (
