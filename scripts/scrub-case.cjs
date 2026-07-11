@@ -1,13 +1,7 @@
 'use strict';
 
-// One-off cleanup: remove activity-log rows belonging to given case ids, using the
-// store's OWN removeRecord primitive — never a hand-edit of the SQLite file.
-//
-// Why activity-only: the store exposes no case-delete primitive (see index.cjs
-// exports), and cases are invisible in the job-driven UI anyway. What matters for the
-// demo and Wave B's data is a clean activity feed, so we scrub only the activity rows
-// and leave the (undeletable) case records in place. A real case delete/archive route
-// is logged as a Wave-B follow-up.
+// One-off cleanup: remove given cases AND their activity-log rows, using the store's
+// OWN primitives (removeCase / removeRecord) — never a hand-edit of the SQLite file.
 //
 // Reads come from the in-memory store loaded at boot, so the dev server won't reflect
 // this until it restarts. Run with the server STOPPED, then restart it:
@@ -27,6 +21,10 @@ const targets = new Set(ids);
 const { store, path: dbPath } = bootstrapStore();
 console.log(`db: ${dbPath}`);
 
+const caseLine = (c) => `  ${c.meta.id}  "${c.meta.company || '?'}" / "${c.meta.role || '?'}"  (${c.meta.status})`;
+console.log(`cases before (${store.listCases().length}):`);
+for (const c of store.listCases()) console.log(caseLine(c));
+
 const before = store.listRecords('activity');
 const toRemove = before.filter((r) => targets.has(r.caseId));
 console.log(`activity: ${before.length} rows total, ${toRemove.length} match {${[...targets].join(', ')}}`);
@@ -36,14 +34,16 @@ for (const r of toRemove) {
   console.log(`  ${ok ? 'removed' : 'MISS  '} ${r.id}  ${r.type}  "${r.label}"`);
 }
 
-const leftover = store.listRecords('activity').filter((r) => targets.has(r.caseId));
-console.log(`activity: ${leftover.length} matching rows remain (expect 0)`);
-
-// Honest about what was NOT removed: the case records themselves have no delete primitive.
-const strayCases = store.listCases().filter((c) => targets.has(c.meta.id));
-if (strayCases.length) {
-  console.log(`left in place (no case-delete primitive): ${strayCases.map((c) => c.meta.id).join(', ')}`);
+for (const id of targets) {
+  const ok = store.removeCase(id); // write-through DELETE in the sqlite adapter
+  console.log(`  ${ok ? 'removed case' : 'NO SUCH CASE'} ${id}`);
 }
 
+const leftoverActs = store.listRecords('activity').filter((r) => targets.has(r.caseId));
+const leftoverCases = store.listCases().filter((c) => targets.has(c.meta.id));
+console.log(`cases after (${store.listCases().length}):`);
+for (const c of store.listCases()) console.log(caseLine(c));
+console.log(`leftovers matching targets: ${leftoverActs.length} activity rows, ${leftoverCases.length} cases (expect 0/0)`);
+
 if (typeof store.close === 'function') store.close();
-process.exit(leftover.length === 0 ? 0 : 1);
+process.exit(leftoverActs.length === 0 && leftoverCases.length === 0 ? 0 : 1);
