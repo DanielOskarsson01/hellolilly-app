@@ -214,7 +214,9 @@ function MatchRow({ job, onOpen, onQuick, onReject }) {
   const open = () => onOpen(job.id);
   const title = job.title || job.t || '';
   const location = job.location || job.city || '';
-  const score = job.score != null ? job.score : (job.match || 0);
+  // A real fit score only exists after analysis. Canonical un-analyzed records carry
+  // neither score nor match — do NOT fabricate a 0%; the "Klar för analys" state stands alone.
+  const score = job.score != null ? job.score : (job.match != null ? job.match : null);
   const notMatching = job.notMatching || [];
   return (
     <article
@@ -250,9 +252,11 @@ function MatchRow({ job, onOpen, onQuick, onReject }) {
           </div>
         )}
       </div>
-      <div className={`matchrow__score matchrow__score--${scoreTone(score)}`}>
-        <b className="num">{score}%</b><span>match</span>
-      </div>
+      {score != null && (
+        <div className={`matchrow__score matchrow__score--${scoreTone(score)}`}>
+          <b className="num">{score}%</b><span>match</span>
+        </div>
+      )}
       <div className="matchrow__acts">
         {!job.caseId ? (
           <Button variant="primary" size="sm" icon="target" onClick={(e) => { e.stopPropagation(); onOpen(job.id); }}>
@@ -772,17 +776,22 @@ function JobMatchReview() {
               </span>
             </div>
             <div className="matchqueue">
-              {items.filter((i) => i.id !== openId && !created.includes(i.id)).map((j) => (
-                <button key={j.id} className="matchqueue__row" onClick={() => handleOpenJob(j.id)}>
-                  <span className="matchqueue__logo" style={{ color: j.logo }}>{(j.co || '??').slice(0, 2).toUpperCase()}</span>
-                  <span className="matchqueue__b">
-                    <span className="matchqueue__t">{j.title || j.t}</span>
-                    <span className="matchqueue__m">{j.co} · {j.location || j.city}</span>
-                  </span>
-                  <span className={`matchqueue__score matchqueue__score--${scoreTone(j.score != null ? j.score : j.match)}`}>{j.score != null ? j.score : j.match}%</span>
-                  <Icon name="arrow" size={16} />
-                </button>
-              ))}
+              {items.filter((i) => i.id !== openId && !created.includes(i.id)).map((j) => {
+                const qscore = j.score != null ? j.score : (j.match != null ? j.match : null);
+                return (
+                  <button key={j.id} className="matchqueue__row" onClick={() => handleOpenJob(j.id)}>
+                    <span className="matchqueue__logo" style={{ color: j.logo }}>{(j.co || '??').slice(0, 2).toUpperCase()}</span>
+                    <span className="matchqueue__b">
+                      <span className="matchqueue__t">{j.title || j.t}</span>
+                      <span className="matchqueue__m">{j.co} · {j.location || j.city}</span>
+                    </span>
+                    {qscore != null && (
+                      <span className={`matchqueue__score matchqueue__score--${scoreTone(qscore)}`}>{qscore}%</span>
+                    )}
+                    <Icon name="arrow" size={16} />
+                  </button>
+                );
+              })}
             </div>
           </ContentBox>
         )}

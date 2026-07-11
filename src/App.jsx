@@ -1,5 +1,5 @@
 import React from 'react';
-import { CloverDefs } from './components/primitives.jsx';
+import { CloverDefs, Clover } from './components/primitives.jsx';
 import { ComingSoon, NAV_INDEX } from './components/shell.jsx';
 import { HomeExpanded } from './screens/home.jsx';
 import { CVBuilder, ActivityTracker } from './screens/cvActivity.jsx';
@@ -39,6 +39,28 @@ const LL_ROUTES = {
 function getRoute() {
   const r = (location.hash || '#home').slice(1);
   return r || 'home';
+}
+
+// A render throw inside a screen (e.g. a data-shape drift the screen didn't guard)
+// should degrade honestly to a visible message — never a blank white screen that
+// looks like the app "did nothing". Resets when the route changes.
+class ErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { error: null }; }
+  static getDerivedStateFromError(error) { return { error }; }
+  componentDidUpdate(prev) { if (prev.resetKey !== this.props.resetKey && this.state.error) this.setState({ error: null }); }
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="lay__stub" style={{ padding: 32, textAlign: 'center' }}>
+          <Clover size={42} color="#E05A4A" />
+          <h2>Något gick fel i den här vyn</h2>
+          <p className="cap">Ett fel uppstod när sidan skulle visas. Ladda om, eller gå tillbaka och försök igen.</p>
+          <p className="cap" style={{ opacity: 0.6, marginTop: 8 }}>{String(this.state.error && this.state.error.message || this.state.error)}</p>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
 }
 
 function App() {
@@ -100,7 +122,7 @@ function App() {
     return (
       <React.Fragment>
         <CloverDefs />
-        {screen}
+        <ErrorBoundary resetKey={route}>{screen}</ErrorBoundary>
         <HelpfulLayover />
       </React.Fragment>
     );
@@ -118,7 +140,7 @@ function App() {
       </button>
       <div className="ll-help-scrim" id="llHelpScrim" onClick={() => setHelpOpen(false)} />
       <CloverDefs />
-      {screen}
+      <ErrorBoundary resetKey={route}>{screen}</ErrorBoundary>
       <HelpfulNow />
       <HelpfulLayover />
     </React.Fragment>

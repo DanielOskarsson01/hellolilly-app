@@ -1,8 +1,8 @@
 import React from 'react';
 import { Icon, Clover, Photo, Avatar, Button, Tag, SectionHeader } from './primitives.jsx';
-import { acceptJob, getAcceptedJobs, jobKey, removeJob, setJobCase, setActiveCaseId } from '../utils/jobStore.js';
-import { createCase, decideJob } from '../api/caseApi.js';
-import { useCase, useActiveCase } from '../hooks/useCase.js';
+import { acceptJob, getAcceptedJobs, jobKey, removeJob } from '../utils/jobStore.js';
+import { decideJob } from '../api/caseApi.js';
+import { useActiveCase } from '../hooks/useCase.js';
 import { casePartsView } from '../hooks/casePartsView.mjs';
 import { caseMetaView } from '../hooks/caseMetaView.mjs';
 import { REJECT_REASONS } from '../lib/jobTriage.mjs';
@@ -61,11 +61,6 @@ function HelpfulLayoverContent({ item }) {
   // NOT an iframe of the posting). Placed before kind:'job' so it never falls through to it.
   if (item && item.kind === 'jobpreview') return <JobPreviewContent job={item} />;
   if (item && item.kind === 'job') return <JobDescriptionContent job={item} />;
-  if (item && item.kind === 'job-analysis') {
-    const job = item.job || item;
-    // Keyed by job so switching items never reuses another job's caseId/pipeline state.
-    return <JobAnalysisContent key={jobKey(job)} job={job} />;
-  }
 
   const rich = item && item.id && RICH_CONTENT[item.id];
   if (!rich) {
@@ -390,369 +385,6 @@ function JobDescriptionContent({ job }) {
   );
 }
 
-// The real analysis pipeline, driven by CASE PART STATUSES — not a timed animation.
-// create case -> POST /research (dossiers + decodedRole) -> POST /analyze (fit + gaps)
-// -> render the honest fit. CV + cover letter generation kicks off in the background
-// once analysis is ready (the reconciled A2 design: background generation, no screen).
-const ANALYSIS_STEPS = [
-  { part: 'case', label: 'Skapar ärende' },
-  { part: 'dossiers', label: 'Research: företag, produkt, människor, nisch' },
-  { part: 'decodedRole', label: 'Avkodar det verkliga jobbet bakom annonsen' },
-  { part: 'fit', label: 'Analyserar matchning mot dina datafakta' },
-];
-
-function JobAnalysisContent({ job }) {
-  const [caseId, setCaseId] = React.useState(job.caseId || null);
-  const [setupError, setSetupError] = React.useState(null);
-  const [runError, setRunError] = React.useState(null);
-  const started = React.useRef({});
-  const { caseData, error, running, actions } = useCase(caseId);
-
-  // 1. Ensure the accepted job has a backend case (created once, then remembered on the job).
-  React.useEffect(() => {
-    if (caseId || started.current.create) return;
-    started.current.create = true;
-    const sourceInput = [job.snippet, job.url ? `Annons: ${job.url}` : ''].filter(Boolean).join('\n\n');
-    createCase({ company: job.co, role: job.t, sourceInput })
-      .then((c) => {
-        setJobCase(job, c.meta.id);
-        setActiveCaseId(c.meta.id); // CV / brev / hem follows this case from now on
-        setCaseId(c.meta.id);
-      })
-      .catch((err) => setSetupError(err.message));
-  }, [caseId, job]);
-
-  // 2. Drive the pipeline forward off the real part statuses.
-  React.useEffect(() => {
-    if (!caseData) return;
-    const s = (p) => (caseData[p] && caseData[p].status) || 'absent';
-    if (s('dossiers') === 'absent' && s('decodedRole') === 'absent' && !started.current.research) {
-      started.current.research = true;
-      actions.research().catch((err) => setRunError(err.message)); // part status also flips to failed
-    } else if (s('decodedRole') === 'ready' && s('fit') === 'absent' && !started.current.analyze) {
-      started.current.analyze = true;
-      actions.analyze().catch((err) => setRunError(err.message));
-    } else if (s('fit') === 'ready' && s('cvDraft') === 'absent' && !started.current.generate) {
-      started.current.generate = true; // background CV + cover letter
-      actions.generate().catch(() => { /* surfaced on the CV / letter screens */ });
-    }
-  }, [caseData, actions]);
-
-  const retry = (name) => {
-    setRunError(null);
-    started.current[name] = false;
-    started.current.analyze = name === 'research' ? false : started.current.analyze;
-    if (name === 'research') actions.research().catch((err) => setRunError(err.message));
-    else actions.analyze().catch((err) => setRunError(err.message));
-  };
-
-  const partStatus = (p) => {
-    if (p === 'case') return caseId ? 'ready' : setupError ? 'failed' : 'pending';
-    if (!caseData) return 'absent';
-    return (caseData[p] && caseData[p].status) || 'absent';
-  };
-  const firstNotReady = ANALYSIS_STEPS.find((s) => partStatus(s.part) !== 'ready');
-  const stepState = (p) => {
-    const st = partStatus(p);
-    if (st === 'ready') return 'is-done';
-    if (st === 'failed') return 'is-failed';
-    if (st === 'pending') return 'is-now';
-    // While a request is in flight, light only the first step that is not done yet.
-    if ((running.research || running.analyze) && firstNotReady && firstNotReady.part === p) return 'is-now';
-    return '';
-  };
-
-  if (partStatus('fit') === 'ready' && caseData) {
-    return <MatchAnalysisContent job={job} caseData={caseData} actions={actions} running={running} />;
-  }
-
-  const failedStep = ANALYSIS_STEPS.find((s) => partStatus(s.part) === 'failed');
-  const failureText = setupError
-    || (failedStep && caseData && caseData[failedStep.part] && caseData[failedStep.part].error)
-    || runError
-    || error;
-
-  return (
-    <div className="lay-analysis-loading">
-      <Clover size={44} color="#2B6CF0" />
-      <span className="helpitem__kind">Matchanalys</span>
-      <h1>{job.t}</h1>
-      <p>Lilly kör den riktiga analysen: research om {job.co || 'företaget'}, avkodning av det verkliga jobbet och en ärlig matchning mot dina datafakta. Research-steget tar ett par minuter.</p>
-      <div className="analysis-steps">
-        {ANALYSIS_STEPS.map((s, index) => (
-          <div key={s.part} className={`analysis-step ${stepState(s.part)}`}>
-            <span>{partStatus(s.part) === 'ready' ? <Icon name="check" size={14} sw={3} /> : index + 1}</span>
-            <b>{s.label}</b>
-          </div>
-        ))}
-      </div>
-      {failedStep || setupError || runError ? (
-        <div className="lay-analysis-error" style={{ marginTop: 16, textAlign: 'center' }}>
-          <p style={{ color: 'var(--ll-coral)', fontWeight: 600 }}>
-            Steget misslyckades{failureText ? `: ${failureText}` : '.'}
-          </p>
-          <Button
-            variant="secondary"
-            size="sm"
-            icon="target"
-            onClick={() => retry(failedStep && failedStep.part === 'fit' ? 'analyze' : 'research')}
-          >
-            Försök igen
-          </Button>
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-const BRIDGE_KIND_LABEL = {
-  reframe: 'Omformulering',
-  'adjacent-proof': 'Angränsande bevis',
-  'honest-ramp': 'Ärlig upplärningskurva',
-};
-
-// The fill-gap loop, per gap: the bridge suggestion + an answer box. The bullet-judge
-// decides — accepted mints a datafact and flips the requirement to match; otherwise the
-// gap STAYS a gap and the honest reason is shown. Both outcomes are first-class.
-function GapFillForm({ gap, actions, running }) {
-  const [answer, setAnswer] = React.useState('');
-  const [result, setResult] = React.useState(null);
-  const [submitError, setSubmitError] = React.useState(null);
-  const canAnswer = Boolean(gap.requirementRef && gap.requirementRef.id);
-
-  if (!canAnswer) return null;
-  if (result && result.outcome === 'accepted') {
-    return (
-      <div className="lay-match__item-sug" style={{ color: 'var(--ll-green)' }}>
-        <Icon name="check" size={13} sw={3} />
-        Sparat som datafakta — kravet är nu uppdaterat till match.
-      </div>
-    );
-  }
-
-  const submit = async () => {
-    setSubmitError(null);
-    try {
-      const out = await actions.answerGap(gap.id, { answer, requirementId: gap.requirementRef.id });
-      setResult(out);
-    } catch (err) {
-      setSubmitError(err.message);
-    }
-  };
-
-  return (
-    <div className="lay-match__gapform" style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <textarea
-        value={answer}
-        onChange={(e) => setAnswer(e.target.value)}
-        placeholder="Beskriv din faktiska erfarenhet av det här — Lilly bedömer om det ärligt kan bli en CV-punkt."
-        rows={2}
-        style={{ width: '100%', font: 'inherit', padding: 8, borderRadius: 8, border: '1px solid var(--ll-line, #dcdfe6)' }}
-      />
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-        <Button variant="secondary" size="sm" icon="check" onClick={submit} disabled={!answer.trim() || running.answerGap}>
-          {running.answerGap ? 'Bedömer…' : 'Skicka svar'}
-        </Button>
-        {result && result.outcome === 'stays_gap' && (
-          <span className="cap" style={{ color: 'var(--ll-coral)' }}>
-            Kvarstår som lucka{result.reason ? ` — ${result.reason}` : ''}. Ingen fabricering: bara ärliga svar blir CV-punkter.
-          </span>
-        )}
-        {submitError && <span className="cap" style={{ color: 'var(--ll-coral)' }}>Fel: {submitError}</span>}
-      </div>
-    </div>
-  );
-}
-
-function MatchAnalysisContent({ job, caseData, actions, running }) {
-  const fit = (caseData.fit && caseData.fit.data) || { capability: { requirements: [], overall: '' }, preference: { narrative: '' } };
-  const gaps = (caseData.gaps && caseData.gaps.data) || [];
-  const decodedReqs = (caseData.decodedRole && caseData.decodedRole.data && caseData.decodedRole.data.requirements) || [];
-  const reqText = new Map(decodedReqs.map((r) => [r.id, r.requirement]));
-
-  const rows = fit.capability.requirements || [];
-  const matches = rows.filter((r) => r.status === 'match');
-  const partials = rows.filter((r) => r.status === 'partial');
-  const score = rows.length ? Math.round((matches.length / rows.length) * 100) : 0;
-  const analyzedAt = caseData.fit && caseData.fit.updatedAt
-    ? new Date(caseData.fit.updatedAt).toLocaleString('sv-SE', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
-    : '';
-
-  const R = 42, C = 2 * Math.PI * R, off = C * (1 - score / 100);
-  const verdictHi = score >= 90;
-  const verdictMid = score >= 60 && score < 90;
-  const verdictHeadline = verdictHi
-    ? 'Stark match.'
-    : verdictMid
-      ? 'Bra match, med luckor att fylla'
-      : 'Tydliga luckor. Se dem nedan innan du bestämmer dig';
-  const verdictBody = fit.capability.overall || 'Analysen är klar. Varje match nedan citerar en verklig datafakta ur din pool.';
-
-  return (
-    <React.Fragment>
-      {/* Header band */}
-      <div className="lay-match__head">
-        <div className="lay-match__co">
-          <div className="lay-match__logo" style={{ background:'#fff', color: job.logo || '#2B6CF0' }}>{(job.co || 'CO').slice(0,2).toUpperCase()}</div>
-          <div>
-            <div className="lay-match__co-nm">{job.co}</div>
-            <div className="lay-match__co-meta">{job.city} · {job.type}{job.when ? ' · ' + job.when : ''}</div>
-          </div>
-        </div>
-        <h1 className="lay-match__title">{job.t}</h1>
-
-        <div className="lay-match__score-row">
-          <div className="lay-match__ring">
-            <svg width="96" height="96" viewBox="0 0 96 96">
-              <circle className="bg" cx="48" cy="48" r={R} />
-              <circle className="fg" cx="48" cy="48" r={R} strokeDasharray={C} strokeDashoffset={off} />
-            </svg>
-            <div className="lay-match__ring-n">{score}%</div>
-          </div>
-          <div className="lay-match__verdict">
-            <b>{verdictHeadline}</b><br />
-            {verdictBody}
-            <div className="lay-match__by"><Icon name="sparkle" size={13} />Analyserad av Lilly{analyzedAt ? ` · ${analyzedAt}` : ''}</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Quick actions */}
-      <div className="lay-match__actions">
-        {job.url && (
-          <a className="btn btn--primary btn--sm" href={job.url} target="_blank" rel="noreferrer">
-            <Icon name="check" size={16} />
-            Ansök ändå
-          </a>
-        )}
-        <a className="btn btn--secondary btn--sm" href="#gap-list" onClick={(e) => { e.preventDefault(); const el = document.querySelector('.lay-match__sec--gaps'); if (el) el.scrollIntoView({ behavior: 'smooth' }); }}>
-          <Icon name="pen" size={16} />
-          Fyll luckorna först
-        </a>
-      </div>
-
-      {/* Hard-filter fit (preference) read */}
-      {fit.preference && fit.preference.narrative ? (
-        <div className="lay-match__sec">
-          <div className="lay-match__sec-h">
-            <Icon name="target" size={18} style={{ color: 'var(--ll-blue)' }} />
-            <h3>Passar rollen dina villkor?</h3>
-          </div>
-          <p className="lay-match__item-m" style={{ margin: 0 }}>{fit.preference.narrative}</p>
-        </div>
-      ) : null}
-
-      {/* Det du har — every match cites a real datafact */}
-      <div className="lay-match__sec">
-        <div className="lay-match__sec-h">
-          <Icon name="check" size={18} sw={2.6} style={{ color:'var(--ll-green)' }} />
-          <h3>Det du har</h3>
-          <span className="lay-match__pill lay-match__pill--ok">{matches.length} av {rows.length} krav</span>
-        </div>
-        {matches.length === 0 && <p className="lay-match__item-m" style={{ margin: 0 }}>Inget krav har fullt stöd i din datafakta-pool ännu.</p>}
-        {matches.map((m) => (
-          <div className="lay-match__item" key={m.requirementRef.id}>
-            <div className="lay-match__item-ic lay-match__item-ic--ok"><Icon name="check" size={14} sw={3} /></div>
-            <div className="lay-match__item-b">
-              <div className="lay-match__item-t">{reqText.get(m.requirementRef.id) || m.requirementRef.id}</div>
-              <div className="lay-match__item-m">{m.evidence}</div>
-              <div className="cap" style={{ marginTop:5, fontSize:11.5 }}>
-                <Icon name="doc" size={11} sw={2.4} style={{ display:'inline', verticalAlign:'-1px', marginRight:4 }} />
-                {m.evidenceRef ? `Citerad datafakta · ${m.evidenceRef.id}` : 'Ur din datafakta-pool'}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Delvis täckt */}
-      {partials.length > 0 && (
-        <div className="lay-match__sec">
-          <div className="lay-match__sec-h">
-            <Icon name="doc" size={18} style={{ color:'var(--ll-amber, #F39A1E)' }} />
-            <h3>Delvis täckt</h3>
-            <span className="lay-match__pill lay-match__pill--gap">{partials.length} krav</span>
-          </div>
-          {partials.map((p) => (
-            <div className="lay-match__item" key={p.requirementRef.id}>
-              <div className="lay-match__item-ic lay-match__item-ic--gap"><Icon name="doc" size={13} sw={2.6} /></div>
-              <div className="lay-match__item-b">
-                <div className="lay-match__item-t">{reqText.get(p.requirementRef.id) || p.requirementRef.id}</div>
-                <div className="lay-match__item-m">{p.evidence || 'Delvis stöd — inget fullt belägg i poolen.'}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Luckor + the fill-gap loop */}
-      <div className="lay-match__sec lay-match__sec--gaps">
-        <div className="lay-match__sec-h">
-          <Icon name="bulb" size={18} style={{ color:'var(--ll-coral)' }} />
-          <h3>Luckor att fylla</h3>
-          <span className="lay-match__pill lay-match__pill--gap">{gaps.length} {gaps.length === 1 ? 'lucka' : 'luckor'}</span>
-        </div>
-        {gaps.length === 0 && <p className="lay-match__item-m" style={{ margin: 0 }}>Inga luckor namngavs i analysen.</p>}
-        {gaps.map((g) => (
-          <div className="lay-match__item" key={g.id}>
-            <div className="lay-match__item-ic lay-match__item-ic--gap"><Icon name="plus" size={13} sw={3} /></div>
-            <div className="lay-match__item-b">
-              <div className="lay-match__item-t">{g.what}</div>
-              <div className="lay-match__item-m">{g.why}</div>
-              {g.bridge && (g.bridge.oneLiner || g.bridge.body) ? (
-                <div className="lay-match__item-sug">
-                  <Icon name="sparkle" size={13} />
-                  {BRIDGE_KIND_LABEL[g.bridge.kind] || 'Brygga'}: {g.bridge.oneLiner || g.bridge.body}
-                </div>
-              ) : null}
-              <GapFillForm gap={g} actions={actions} running={running} />
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Deep links to tools */}
-      <div className="lay-match__sec">
-        <div className="lay-match__sec-h">
-          <Icon name="arrow" size={18} style={{ color:'var(--ll-blue)' }} />
-          <h3>Använd det här direkt</h3>
-        </div>
-        <div className="lay__deeps">
-          <a href="#cv"      className="lay__deep" onClick={() => window.dispatchEvent(new CustomEvent('ll:helpful:close'))}>
-            <div className="lay__deep-ic ic-blue"><Icon name="cv" size={20} /></div>
-            <div className="lay__deep-b"><div className="lay__deep-t">Öppna CV-byggaren</div><div className="lay__deep-m">Lägg till det som saknas</div></div>
-            <Icon name="arrow" size={16} className="lay__deep-go" />
-          </a>
-          <a href="#letter"  className="lay__deep" onClick={() => window.dispatchEvent(new CustomEvent('ll:helpful:close'))}>
-            <div className="lay__deep-ic ic-lilac"><Icon name="letter" size={20} /></div>
-            <div className="lay__deep-b"><div className="lay__deep-t">Skriv personligt brev</div><div className="lay__deep-m">Skräddarsy för {job.co}</div></div>
-            <Icon name="arrow" size={16} className="lay__deep-go" />
-          </a>
-          <a href="#review"  className="lay__deep" onClick={() => window.dispatchEvent(new CustomEvent('ll:helpful:close'))}>
-            <div className="lay__deep-ic ic-green"><Icon name="users" size={20} /></div>
-            <div className="lay__deep-b"><div className="lay__deep-t">Be Sara granska</div><div className="lay__deep-m">15 min — hon svarar idag</div></div>
-            <Icon name="arrow" size={16} className="lay__deep-go" />
-          </a>
-          <a href="#match"   className="lay__deep" onClick={() => window.dispatchEvent(new CustomEvent('ll:helpful:close'))}>
-            <div className="lay__deep-ic ic-amber"><Icon name="target" size={20} /></div>
-            <div className="lay__deep-b"><div className="lay__deep-t">Hela matchanalysen</div><div className="lay__deep-m">Med annons-genomgång</div></div>
-            <Icon name="arrow" size={16} className="lay__deep-go" />
-          </a>
-        </div>
-      </div>
-
-      {/* Verdict */}
-      <div className="lay-match__verdict-card">
-        <Clover size={26} color="#fff" />
-        <div className="lay-match__verdict-card-b">
-          <h4>Vår känsla: {verdictHi ? 'gå för det.' : verdictMid ? 'gå för det med en liten polering.' : 'det går — men polera först.'}</h4>
-          <p>{verdictBody}</p>
-        </div>
-      </div>
-    </React.Fragment>
-  );
-}
-
 /* ============================================================
    Letter-review content (kind:'letterreview')
    Opened from Personligt brev screen's "Granska" button.
@@ -764,6 +396,11 @@ function MatchAnalysisContent({ job, caseData, actions, running }) {
    imported from coverLetter.jsx — no window.LetterFlag fallback.
    ============================================================ */
 function LetterReviewContent({ item }) {
+  // The reviewed letter is always the active case's letter (the Personligt brev
+  // screen opens this off useActiveCase), so persist through the same action the
+  // screen's "Spara utkast" uses — a real durable coverLetterDraft, not a dead event.
+  const { caseData, actions } = useActiveCase();
+  const cParts = casePartsView(caseData);
   const person = item.person || {};
   const paras = item.paragraphs || [];
   const unsupported = item.unsupported || [];
@@ -783,9 +420,20 @@ function LetterReviewContent({ item }) {
   const applyComment = (i) =>
     setComments((cs) => cs.map((c, j) => (j === i ? { ...c, applied: !c.applied } : c)));
   const applyAll = () => setComments((cs) => cs.map((c) => ({ ...c, applied: true })));
-  const accept = () => {
-    window.dispatchEvent(new CustomEvent('ll:letter:accept', { detail: { id: item.id } }));
-    window.dispatchEvent(new CustomEvent('ll:helpful:close'));
+  const [saving, setSaving] = React.useState(false);
+  const accept = async () => {
+    setSaving(true);
+    try {
+      await actions.saveLetterDraft({
+        paragraphs: paras,
+        decisions: flagDec,
+        language: (cParts.coverLetter && cParts.coverLetter.language)
+          || (cParts.coverLetterDraft && cParts.coverLetterDraft.language) || 'en',
+      });
+      window.dispatchEvent(new CustomEvent('ll:helpful:close'));
+    } finally {
+      setSaving(false);
+    }
   };
   const dl = () => {
     const html =
@@ -822,7 +470,7 @@ function LetterReviewContent({ item }) {
           </span>
         </div>
         <div className="cvrev__cta">
-          <Button variant="primary" icon="check" onClick={accept}>Spara brev</Button>
+          <Button variant="primary" icon="check" onClick={accept} disabled={saving}>{saving ? 'Sparar…' : 'Spara brev'}</Button>
           <Button variant="secondary" icon="download" onClick={dl}>Ladda ner</Button>
           {item.url && (
             <a href={item.url} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}>
@@ -931,10 +579,10 @@ function CvReviewContent({ item }) {
   const meta = caseMetaView(caseData);
   const person = meta.person || {};
 
-  // cvDraft: { sections[], changes } | null (empty this wave if not yet generated)
+  // cvDraft: { sections:[{ heading, items:[{ text, datafactRef }] }] } | null
+  // (the real generated shape from cv-builder/execute.cjs — no body, no changes).
   const cvDraft = parts.cvDraft;
   const sections = (cvDraft && cvDraft.sections) || [];
-  const changes = (cvDraft && cvDraft.changes != null) ? cvDraft.changes : null;
   const company = item.company || meta.company || '';
   const jobTitle = item.jobTitle || meta.jobTitle || '';
 
@@ -949,10 +597,6 @@ function CvReviewContent({ item }) {
   const applyComment = (i) =>
     setComments((cs) => cs.map((c, j) => (j === i ? { ...c, applied: !c.applied } : c)));
   const applyAll = () => setComments((cs) => cs.map((c) => ({ ...c, applied: true })));
-  const accept = () => {
-    window.dispatchEvent(new CustomEvent('ll:cv:accept', { detail: { id: item.id } }));
-    window.dispatchEvent(new CustomEvent('ll:helpful:close'));
-  };
 
   return (
     <div className="cvrev">
@@ -962,10 +606,12 @@ function CvReviewContent({ item }) {
             <div className="cvrev__co">{company}</div>
             <div className="cvrev__jt">{jobTitle}</div>
           </div>
-          {changes != null && changes > 0 && <span className="cvrev__changes">{changes} ändringar</span>}
         </div>
         <div className="cvrev__cta">
-          <Button variant="primary" icon="check" onClick={accept}>Acceptera CV</Button>
+          {/* No accept/persist action exists yet (caseApi has no "accept CV") — an
+              honest disabled state, not a button that silently drops the click. */}
+          <Button variant="primary" icon="check" disabled>Acceptera CV</Button>
+          <span className="soon-tag">Kommer</span>
           {item.url && (
             <a href={item.url} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}>
               <Button variant="secondary" icon="arrow">Ansök</Button>
@@ -992,9 +638,7 @@ function CvReviewContent({ item }) {
             {sections.map((s, i) => (
               <div key={i} className="cvpaper__sec">
                 <div className="cvpaper__sec-h">{s.heading}</div>
-                {s.body
-                  ? <p className="cvpaper__p">{s.body}</p>
-                  : <ul className="cvpaper__ul">{(s.items || []).map((it, j) => <li key={j}>{it}</li>)}</ul>}
+                <ul className="cvpaper__ul">{(s.items || []).map((it, j) => <li key={j}>{it.text}</li>)}</ul>
               </div>
             ))}
           </div>
@@ -1043,4 +687,4 @@ function CvReviewContent({ item }) {
   );
 }
 
-export { HelpfulLayover, RICH_CONTENT, MatchAnalysisContent };
+export { HelpfulLayover, RICH_CONTENT };
