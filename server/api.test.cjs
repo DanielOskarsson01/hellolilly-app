@@ -85,6 +85,49 @@ test('POST /gap/:gapId/answer accepted flips the fit requirement to match', asyn
   assert.equal(host.store.getCase(caseId).fit.data.capability.requirements[0].status, 'match');
 });
 
+test('accepted answer persists a terminal gap resolution served on reload (survives navigation/reload)', async () => {
+  const llm = { completeJSON: async () => ({ canFill: true, bulletText: 'Built the feature store for 12 models in production.', reason: 'ok' }) };
+  const { host, caseId } = fillGapFixture(llm);
+  const handle = createApiHandler(host, { preferencesPath: null, llm });
+
+  let res = mockRes();
+  await handle(makeReq('POST', `/api/case/${caseId}/gap/gap_1/answer`, { answer: 'I built our feature store for 12 models', requirementId: 'decodedRequirement_1' }), res);
+  assert.equal(res._body.outcome, 'accepted');
+
+  // "Reload" = a fresh GET of the same case. Both the resolution and the migration must persist.
+  res = mockRes();
+  await handle(makeReq('GET', `/api/case/${caseId}`), res);
+  const gap = res._body.case.gaps.data.find((g) => g.id === 'gap_1');
+  assert.equal(gap.resolution, 'accepted', 'accepted gap is terminal in persisted state');
+  assert.equal(res._body.case.fit.data.capability.requirements[0].status, 'match', 'requirement stays migrated');
+});
+
+test('POST /gap/:id/skip persists a terminal skip served on reload and logs gap_skipped', async () => {
+  const { host, caseId } = fillGapFixture({ completeJSON: async () => ({}) });
+  const handle = createApiHandler(host, { preferencesPath: null, llm: { completeJSON: async () => ({}) } });
+
+  let res = mockRes();
+  await handle(makeReq('POST', `/api/case/${caseId}/gap/gap_1/skip`), res);
+  assert.equal(res._status, 200);
+  assert.equal(res._body.outcome, 'skipped');
+
+  res = mockRes();
+  await handle(makeReq('GET', `/api/case/${caseId}`), res);
+  assert.equal(res._body.case.gaps.data.find((g) => g.id === 'gap_1').resolution, 'skipped');
+  assert.equal(host.store.listRecords('activity').filter((r) => r.type === 'gap_skipped').length, 1, 'exactly one gap_skipped row for a confirmed skip');
+});
+
+test('skip of an unknown gap is 500 and writes no activity record (no false success)', async () => {
+  const { host, caseId } = fillGapFixture({ completeJSON: async () => ({}) });
+  const handle = createApiHandler(host, { preferencesPath: null, llm: { completeJSON: async () => ({}) } });
+  const before = host.store.listRecords('activity').length;
+
+  const res = mockRes();
+  await handle(makeReq('POST', `/api/case/${caseId}/gap/gap_NOPE/skip`), res);
+  assert.equal(res._status, 500);
+  assert.equal(host.store.listRecords('activity').length, before, 'a failed skip logs nothing');
+});
+
 test('POST answer with missing fields is 400 and mints nothing', async () => {
   const llm = { completeJSON: async () => ({ canFill: true, bulletText: 'x', reason: 'ok' }) };
   const { host, caseId } = fillGapFixture(llm);

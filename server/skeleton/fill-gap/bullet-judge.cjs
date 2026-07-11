@@ -27,6 +27,24 @@ async function judgeAnswer({ requirement, gap, answer }, llm) {
   return { canFill: !!out.canFill, bulletText: out.canFill ? (out.bulletText || '').trim() : null, reason: out.reason || '' };
 }
 
+// Mark one gap terminal in the persisted `gaps` part. The gaps part is the source of
+// truth for the "Luckor att fylla" column and the completion gate, so a resolution MUST
+// live here (not in transient component state) to survive navigation and reload. Both
+// paths route through here: 'accepted' (from applyAnswer) and 'skipped' (a conscious,
+// legitimate terminal state). writePart re-runs the writing-rules gate on the (unchanged,
+// already-clean) gap prose; a throw persists nothing, so a caller can log success only
+// after this returns.
+function setGapResolution(store, caseId, gapId, resolution) {
+  const theCase = store.getCase(caseId);
+  if (!theCase) throw new Error(`setGapResolution: no such case ${caseId}`);
+  const gaps = (theCase.gaps && theCase.gaps.data) || [];
+  let found = false;
+  const next = gaps.map((g) => (g.id === gapId ? (found = true, { ...g, resolution }) : g));
+  if (!found) throw new Error(`setGapResolution: no such gap ${gapId} in case ${caseId}`);
+  store.writePart(caseId, 'gaps', next);
+  return next.find((g) => g.id === gapId) || null;
+}
+
 async function applyAnswer(store, llm, { caseId, gapId, answer, requirementId, tags = [] }) {
   const theCase = store.getCase(caseId);
   if (!theCase) throw new Error(`applyAnswer: no such case ${caseId}`);
@@ -75,7 +93,12 @@ async function applyAnswer(store, llm, { caseId, gapId, answer, requirementId, t
   );
   store.writePart(caseId, 'fit', fit); // gate runs; fact.text exempt via evidenceRef
 
+  // Mark the gap terminal so the migration, the completion banner, and the CV gate all
+  // read 'handled' from PERSISTED state — not from a card that vanished on navigation.
+  // Done BEFORE returning 'accepted' so a throw here propagates (no success, no activity).
+  setGapResolution(store, caseId, gapId, 'accepted');
+
   return { outcome: 'accepted', newDatafactId: fact.id, updatedFit: store.getCase(caseId).fit.data, reason: verdict.reason };
 }
 
-module.exports = { judgeAnswer, applyAnswer };
+module.exports = { judgeAnswer, applyAnswer, setGapResolution };

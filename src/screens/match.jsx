@@ -57,12 +57,13 @@ function CitationChip({ citation, pool, isNew }) {
 }
 
 /* ---------- Fill-gap loop, for one gap ---------- */
-function FillGap({ gap, reqLabel, onAnswer }) {
+function FillGap({ gap, reqLabel, onAnswer, onSkip }) {
   const initialMode = gap.bridge && gap.bridge.mode === 'suggestion' ? 'suggestion' : 'question';
   const [open, setOpen] = React.useState(false);
   const [mode, setMode] = React.useState(initialMode);
   const [text, setText] = React.useState(gap.bridge && gap.bridge.mode === 'suggestion' ? (gap.bridge.body || '') : '');
   const [busy, setBusy] = React.useState(false);
+  const [skipping, setSkipping] = React.useState(false);
   const [res, setRes] = React.useState(null); // { outcome, reason?, ... }
 
   const reset = () => {
@@ -80,6 +81,17 @@ function FillGap({ gap, reqLabel, onAnswer }) {
     const r = await onAnswer(gap, text, opts || {});
     setBusy(false);
     setRes(r);
+  };
+
+  // Skip is a legitimate terminal state — it PERSISTS ("consciously not filled"), it does
+  // not just collapse the card. On success the refetch drops this gap and the card unmounts;
+  // a failed write shows honestly and keeps the card, never a false "handled".
+  const doSkip = async () => {
+    setSkipping(true);
+    setRes(null);
+    const r = await onSkip(gap);
+    setSkipping(false);
+    if (r && r.outcome === 'skip_failed') setRes(r); // keep the card, surface the failure
   };
 
   if (!open) {
@@ -177,6 +189,17 @@ function FillGap({ gap, reqLabel, onAnswer }) {
           </div>
         )}
 
+        {/* outcome: skip_failed */}
+        {res && res.outcome === 'skip_failed' && (
+          <div className="loop__res loop__res--fail">
+            <Icon name="refresh" size={18} />
+            <div className="loop__res-b">
+              <div className="loop__res-t">{tr({ sv: 'Kunde inte hoppa över', en: "Couldn't skip" })}</div>
+              <div className="loop__res-m">{tr({ sv: 'Luckan står kvar — försök igen.', en: 'The gap is still here — try again.' })}</div>
+            </div>
+          </div>
+        )}
+
         {(!res || res.outcome !== 'accepted') && (
           <div className="loop__acts">
             <Button
@@ -184,7 +207,7 @@ function FillGap({ gap, reqLabel, onAnswer }) {
               size="sm"
               icon={busy ? null : 'check'}
               onClick={() => submit()}
-              disabled={busy}
+              disabled={busy || skipping}
             >
               {busy
                 ? tr({ sv: 'Sparar…', en: 'Saving…' })
@@ -195,9 +218,10 @@ function FillGap({ gap, reqLabel, onAnswer }) {
             <button
               className="ll-link ll-link--text"
               style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '8px 4px' }}
-              onClick={() => { reset(); setOpen(false); }}
+              onClick={doSkip}
+              disabled={busy || skipping}
             >
-              {tr({ sv: 'Hoppa över', en: 'Skip' })}
+              {skipping ? tr({ sv: 'Hoppar över…', en: 'Skipping…' }) : tr({ sv: 'Hoppa över', en: 'Skip' })}
             </button>
           </div>
         )}
@@ -402,6 +426,17 @@ function JobMatchReview() {
     }
   };
 
+  // Skip PERSISTS a terminal "consciously not filled". Only a confirmed write counts as
+  // handled — a failure surfaces on the card and the gap stays open.
+  const onSkip = async (gap) => {
+    try {
+      await actions.skipGap(gap.id);
+      return { outcome: 'skipped' };
+    } catch (err) {
+      return { outcome: 'skip_failed', reason: err.message };
+    }
+  };
+
   // Run the SAME pipeline Snabbkoll uses: research (dossiers + decodedRole) THEN analyze
   // (fit + gaps). analyze() alone throws "decodedRole missing or has no requirements" — the
   // detail-view CTA used to call analyze() directly, so it could never have produced a result.
@@ -593,7 +628,12 @@ function JobMatchReview() {
     const scoreVal = fit && fit.score != null
       ? fit.score
       : (capReqs.length ? Math.round((matches.length / capReqs.length) * 100) : 0);
-    const allFilled = gaps.length === 0;
+    // Open vs handled is read from PERSISTED per-gap resolution ('accepted'/'skipped'),
+    // never transient card state. A gap with no resolution is still open; the completion
+    // banner and CV gate below fire only when every gap is terminal.
+    const openGaps = gaps.filter((g) => !g.resolution);
+    const skippedGaps = gaps.filter((g) => g.resolution === 'skipped');
+    const allFilled = openGaps.length === 0;
 
     body = (
       <React.Fragment>
@@ -758,7 +798,7 @@ function JobMatchReview() {
               <h3>{tr({ sv: 'Luckor att fylla', en: 'Gaps to fill' })}</h3>
               {!allFilled && (
                 <span className="secrow__pill secrow__pill--gap">
-                  {gaps.length} {tr({ sv: 'kvar', en: 'left' })}
+                  {openGaps.length} {tr({ sv: 'kvar', en: 'left' })}
                 </span>
               )}
             </div>
@@ -790,14 +830,21 @@ function JobMatchReview() {
               </div>
             ) : (
               <div className="tri-list">
-                {gaps.map((g) => (
+                {openGaps.map((g) => (
                   <FillGap
                     key={g.id}
                     gap={g}
                     reqLabel={g.what}
                     onAnswer={onAnswer}
+                    onSkip={onSkip}
                   />
                 ))}
+                {skippedGaps.length > 0 && (
+                  <div className="text-muted" style={{ fontSize: 'var(--fs-sm)', marginTop: 'var(--sp-2)' }}>
+                    {tr({ sv: 'Hoppade över (räknas som genomgångna): ', en: 'Skipped (counted as handled): ' })}
+                    {skippedGaps.map((g) => g.what).join(' · ')}
+                  </div>
+                )}
               </div>
             )}
           </ContentBox>

@@ -1,7 +1,7 @@
 'use strict';
 const { test } = require('node:test');
 const assert = require('node:assert');
-const { applyAnswer } = require('./bullet-judge.cjs');
+const { applyAnswer, setGapResolution } = require('./bullet-judge.cjs');
 const { createStore } = require('../store/index.cjs');
 
 function fixtureStore() {
@@ -49,6 +49,27 @@ test('a judge-approved bullet with a banned phrase is rejected pre-mint (stays_g
   assert.match(res.reason, /spearheaded/);
   assert.equal(store.listDatafacts().length, before, 'no banned-word datafact minted');
   assert.equal(store.getCase(caseId).fit.data.capability.requirements.find((r) => r.requirementRef.id === 'decodedRequirement_2').status, 'missing');
+});
+
+test('accepted answer marks the resolved gap terminal in the persisted gaps part', async () => {
+  const llm = { completeJSON: async () => ({ canFill: true, bulletText: 'Built the ML feature store serving 12 models in production.', reason: 'ok' }) };
+  const { store, caseId } = fixtureStore();
+  await applyAnswer(store, llm, { caseId, gapId: 'gap_1', answer: 'I built our feature store for 12 models', requirementId: 'decodedRequirement_2' });
+  const gap = store.getCase(caseId).gaps.data.find((g) => g.id === 'gap_1');
+  assert.equal(gap.resolution, 'accepted', 'the accepted gap is marked terminal so it stops showing as open');
+});
+
+test('setGapResolution persists a skip that survives a re-read', () => {
+  const { store, caseId } = fixtureStore();
+  setGapResolution(store, caseId, 'gap_1', 'skipped');
+  const gap = store.getCase(caseId).gaps.data.find((g) => g.id === 'gap_1');
+  assert.equal(gap.resolution, 'skipped', '"consciously not filled" is stored like any other resolution');
+});
+
+test('setGapResolution on an unknown gap throws and persists nothing', () => {
+  const { store, caseId } = fixtureStore();
+  assert.throws(() => setGapResolution(store, caseId, 'gap_NOPE', 'skipped'), /no such gap/);
+  assert.equal(store.getCase(caseId).gaps.data[0].resolution, undefined);
 });
 
 test('an unknown requirementId mints nothing and stays_gap', async () => {
