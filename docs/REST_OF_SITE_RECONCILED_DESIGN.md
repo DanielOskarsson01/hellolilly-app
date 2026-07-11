@@ -19,6 +19,8 @@ The plan was written against MASTER_STATE's 2026-07-02 reconciliation. The repo 
 
 **Standing rules carried unchanged** from the plan §2 and the non-negotiables: grid.jsx templates on every screen; Daniel persona everywhere except bannered T4 screens (no new Amir content); all data through the backend API (no new localStorage, no browser-direct external calls); the `absent|pending|ready|failed` status envelope; cite-or-refuse honesty on every AI claim about the person; i18n-ready strings via `src/lib/i18n.mjs` on every touched screen; every control works, is visibly disabled with a label, or does not exist.
 
+**Architecture Rules Addendum (D12, standing law from 2026-07-11 — `docs/HELLOLILLY_ARCH_RULES.md`).** The four architecture non-negotiables above (store, templates, status envelope, honesty gate) are extended by the Architecture Rules Addendum: the anti-blame gate (Rule 1), the injection envelope with transitive provenance (Rule 2), maker/checker separation (Rule 3), the eval corpus with zero-tolerance classes (Rule 4), and the inference-surface registry with the real-persons gate (Section 5). **New and edited tool entries below carry their enforcement-tier marking** — runtime-gated (a judge sits in the path) or regression-gated (caught by the eval corpus at change time) — per Section 0 of that document. The 22 existing entries are **not** retro-marked here; that is next-touch territory per `docs/RETROFIT_LEDGER.md`.
+
 ---
 
 ## 1. Current-state vocabulary

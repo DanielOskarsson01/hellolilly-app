@@ -130,6 +130,9 @@ The plan indexes itself here (a prior gap: it never did). All paths under `docs/
 | `HELLOLILLY_HELP_LAYER_CONCEPT.md` | **(new, D11)** The Help Layer spec of record — the crosslink panel + Lilly the assistant. |
 | `KNOWLEDGE_HUB_SEED_LIST.md` | **(new, D11)** The Knowledge Hub seed — ~28 real resources, the F2 approval flow's first content. |
 | `COMMUNITY_FIXTURE_BRIEF.md` | **(new, D11)** The Community fixture brief — demo personas and content, all `demoFixtures`, never migrated. |
+| `HELLOLILLY_ARCH_RULES.md` | **(new, D12)** The Architecture Rules Addendum — standing law extending the four non-negotiables: anti-blame gate, injection envelope + transitive provenance, maker/checker separation, eval corpus, and the inference-surface registry + real-persons gate. |
+| `RETROFIT_LEDGER.md` | **(new, D12)** The shipped paths predating the rules (letter writer, presend judges, Matchanalys prose, A1 researcher); retrofit at next touch, must be empty before any real-jobseeker use. |
+| `inference-surface-registry.json` | **(new, D12)** The single machine-readable inference-surface registry (Section 5) — three registered members, membership declared ahead of build. |
 
 ---
 
