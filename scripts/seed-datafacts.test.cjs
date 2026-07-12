@@ -30,4 +30,11 @@ test('seedDatafacts on the REAL canonical cv_data.json yields a substantial, typ
     assert.ok(types.has(t), `expected datafacts of type ${t}`);
   }
   assert.ok(facts.every((f) => f.language === 'en'));
+  // The corruption guard: NO fact may be a stringified object. Real cv_data.json holds
+  // job results as { text, tags } objects; a mapper regression turns them into
+  // "[object Object]" and silently loses the achievement bullets (see ingest-cv.cjs).
+  const corrupt = facts.filter((f) => f.text === '[object Object]');
+  assert.equal(corrupt.length, 0, `${corrupt.length} datafacts are "[object Object]" — job-result mapping is broken`);
+  const jobResults = facts.filter((f) => f.type === 'job_result');
+  assert.ok(jobResults.length > 0 && jobResults.every((f) => f.text.length > 3), 'job_result facts carry real bullet text');
 });

@@ -32,6 +32,24 @@ test('maps each atomic fact to a datafact with language and tags', () => {
   assert.ok(jobResult.tags.includes('ComeOn'), 'job result tagged with company_short');
 });
 
+test('job results in the real { text, tags } object shape keep verbatim text and carry their own tags', () => {
+  // The real cv_data.json stores each result as { text, tags, impact }, not a bare
+  // string. Passing the object to push() used to store the literal "[object Object]",
+  // destroying ~a quarter of the pool (the achievement bullets). Guard that shape.
+  const facts = cvDataToDatafacts({
+    jobs: [{
+      company_short: 'ComeOn', role: 'CMO', tags: ['igaming'], tasks_summary: 'Ran marketing.',
+      results: [{ text: 'Grew revenue 3x.', tags: ['growth', 'kpi'], impact: 'high' }],
+    }],
+  }, 'en');
+  const jr = facts.find((f) => f.type === 'job_result');
+  assert.ok(jr, 'a job_result fact was produced');
+  assert.equal(jr.text, 'Grew revenue 3x.', 'stores verbatim text, not "[object Object]"');
+  assert.ok(!facts.some((f) => f.text === '[object Object]'), 'no fact is a stringified object');
+  assert.ok(jr.tags.includes('growth') && jr.tags.includes('kpi'), 'the result\'s own tags are carried');
+  assert.ok(jr.tags.includes('ComeOn'), 'still tagged with company_short');
+});
+
 test('language parameter is honoured', () => {
   const facts = cvDataToDatafacts(SAMPLE, 'sv');
   assert.ok(facts.every((f) => f.language === 'sv'));
