@@ -11,12 +11,24 @@
 // only replace its text (and tags) with what the fixed mapper produces. No id changes =>
 // no reference can dangle.
 //
-// Mapping: the seed and a fresh ingest both iterate cv_data.json in the same order, so the
-// store's seeded facts (everything except the minted `fill-gap` answers) line up 1:1, in
-// order, with cvDataToDatafacts(cv_data.json). We assert that every NON-corrupted position
-// already matches by text before touching anything — if the alignment is off, we abort
-// rather than guess. Then each "[object Object]" position takes the fixed mapper's real
-// text and tags, under its original id.
+// Mapping: a fresh ingest of cv_data.json is the canonical pool — real text, full tags, in
+// seed order. We match each stored seeded fact (everything except the minted `fill-gap`
+// answers) to its canonical twin and heal the corrupted ones UNDER THEIR ORIGINAL ID:
+//
+//   - A surviving fact is matched by its exact TEXT (cv_data.json texts are unique). This
+//     verifies its identity by content and is independent of load order, so a re-run on an
+//     already-healed store is a clean no-op no matter how the rows come back.
+//   - A corrupted fact ("[object Object]") has no text to check, so we cannot trust its
+//     position blindly. We verify it by the signal that survived: its job-level TAGS must
+//     be the prefix of the canonical job_result it aligns to (same type, same company/job).
+//     The corrupted facts pair to the destroyed slots in the store's DETERMINISTIC load
+//     order (rowid = seed order); the tag check ABORTS on any cross-job misalignment.
+//
+// ponytail: two corrupted results OF THE SAME JOB are indistinguishable once their text is
+// gone (identical job-level tags, opaque ids), so their relative binding rests on the
+// deterministic load order — not verifiable, only preservable. That is why the SQLite
+// adapter now loads ORDER BY rowid and overwrites in place (no rowid churn): the order the
+// repair trusts is the seed order, pinned. Cross-job reordering IS caught, by the tags.
 //
 // RUN WITH THE SERVER STOPPED, against a store that still has the ORIGINAL seed ids (the
 // pre-reseed backup, if the first re-seed already ran). Idempotent: a store with zero
@@ -58,24 +70,50 @@ function danglingRefs(store) {
   return n;
 }
 
+// `a` is a prefix of `b` (same values, in order, up to a.length). Used to verify a
+// corrupted fact's surviving job-level tags against a canonical fact's fuller tags.
+const isPrefix = (a, b) => a.length <= b.length && a.every((x, i) => x === b[i]);
+
 // Repair in place. Returns { fixed } — how many "[object Object]" facts were healed.
 function repair(store, { jsonPath = DEFAULT_JSON } = {}) {
   const cv = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
   const fresh = cvDataToDatafacts(cv, 'en'); // fixed mapper => real text + tags, in seed order
-  const seeded = store.listDatafacts().filter((f) => !isGapAnswer(f)); // original ids, in order
+  const seeded = store.listDatafacts().filter((f) => !isGapAnswer(f)); // original ids, deterministic order
 
   if (seeded.length !== fresh.length) {
-    throw new Error(`alignment: store has ${seeded.length} seeded facts, cv_data.json yields ${fresh.length} — cannot map by position`);
+    throw new Error(`alignment: store has ${seeded.length} seeded facts, cv_data.json yields ${fresh.length} — cannot map`);
   }
 
-  // Build the whole repair plan BEFORE writing (so writes never disturb the alignment).
+  // Pass 1 — VERIFY every surviving fact by its exact text and claim its canonical slot.
+  // Order-independent (texts are unique), so this is exactly what makes a re-run a no-op.
+  const canonByText = new Map(fresh.map((f) => [f.text, { f, claimed: false }]));
+  const corrupt = []; // corrupted facts, in the store's deterministic load order
+  for (const s of seeded) {
+    if (s.text === CORRUPT) { corrupt.push(s); continue; }
+    const c = canonByText.get(s.text);
+    if (!c || c.claimed) {
+      throw new Error(`alignment: seeded fact not in cv_data.json (store drifted) — type=${s.type} text=${JSON.stringify(s.text).slice(0, 60)}`);
+    }
+    if (c.f.type !== s.type) throw new Error(`alignment: type mismatch for ${JSON.stringify(s.text).slice(0, 40)} — store=${s.type} cv=${c.f.type}`);
+    c.claimed = true;
+  }
+
+  // Pass 2 — the unclaimed canonical facts are exactly the destroyed slots. Pair them to
+  // the corrupted facts in seed/load order and VERIFY each pairing by tags (the surviving
+  // signal): abort rather than bind a bullet to the wrong id.
+  const destroyed = fresh.filter((f) => !canonByText.get(f.text).claimed); // seed order
+  if (corrupt.length !== destroyed.length) {
+    throw new Error(`alignment: ${corrupt.length} corrupted facts but ${destroyed.length} destroyed slots in cv_data.json`);
+  }
   const plan = [];
-  for (let i = 0; i < seeded.length; i++) {
-    const s = seeded[i];
-    const f = fresh[i];
-    if (s.text === f.text) continue; // already correct at this position
-    if (s.text !== CORRUPT) {
-      throw new Error(`alignment broken at index ${i}: expected "${CORRUPT}" or a match, got type=${s.type} text=${JSON.stringify(s.text).slice(0, 60)}`);
+  for (let k = 0; k < corrupt.length; k++) {
+    const s = corrupt[k];
+    const f = destroyed[k];
+    if (s.type !== f.type || !isPrefix(s.tags || [], f.tags || [])) {
+      throw new Error(
+        `alignment: corrupted fact ${s.id} (${s.type}, tags ${JSON.stringify(s.tags)}) does not match the ${f.type} it aligns to ` +
+        `(tags ${JSON.stringify(f.tags)}) — refusing to bind the wrong evidence to an id`,
+      );
     }
     plan.push({ ...s, text: f.text, tags: f.tags }); // same id => in-place overwrite
   }
