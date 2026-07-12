@@ -43,13 +43,22 @@ function createSqliteStore({ path: dbPath } = {}) {
 
   const stmt = {
     putCase: db.prepare('INSERT OR REPLACE INTO cases (id, data) VALUES (?, ?)'),
-    putFact: db.prepare('INSERT OR REPLACE INTO datafacts (id, data) VALUES (?, ?)'),
+    // Upsert that UPDATEs the existing row in place rather than delete+reinsert, so a
+    // fact keeps its rowid — and therefore its position — when its data is overwritten.
+    // INSERT OR REPLACE reassigned the rowid on every overwrite, silently reordering the
+    // fact pool (the in-place repair's healed rows jumped to the end, breaking a re-run's
+    // positional alignment). listDatafacts() order is load-bearing (the repair aligns on
+    // it; cv-builder mines it), so it must survive a rewrite.
+    putFact: db.prepare('INSERT INTO datafacts (id, data) VALUES (?, ?) ON CONFLICT(id) DO UPDATE SET data = excluded.data'),
     putRecord: db.prepare('INSERT OR REPLACE INTO collection_records (name, id, data) VALUES (?, ?, ?)'),
     delRecord: db.prepare('DELETE FROM collection_records WHERE name = ? AND id = ?'),
     delCase: db.prepare('DELETE FROM cases WHERE id = ?'),
     delFact: db.prepare('DELETE FROM datafacts WHERE id = ?'),
     allCases: db.prepare('SELECT id, data FROM cases'),
-    allFacts: db.prepare('SELECT id, data FROM datafacts'),
+    // Deterministic load: rowid = insertion order = seed order. Without this the pool
+    // loaded in SQLite's unspecified row order, so anything that reads it positionally
+    // (the repair) rested on an ordering it never actually pinned down.
+    allFacts: db.prepare('SELECT id, data FROM datafacts ORDER BY rowid'),
     allRecords: db.prepare('SELECT name, id, data FROM collection_records'),
   };
 

@@ -30,11 +30,18 @@ function cvDataToDatafacts(cv = {}, language = 'en') {
   // competencies (group -> each line)
   for (const [group, lines] of Object.entries(cv.competencies || {})) for (const line of lines || []) push('competency', line, ['competency', group]);
 
-  // jobs: tasks_summary + each result bullet, tagged with the job + company_short
+  // jobs: tasks_summary + each result bullet, tagged with the job + company_short.
+  // A result is either a bare string (legacy/test shape) or a { text, tags, impact }
+  // object (the real cv_data.json shape) — take its verbatim text and carry its own
+  // tags. Passing the object straight to push() stored the literal "[object Object]",
+  // silently destroying the achievement bullets (the strongest CV evidence) at ingest.
   for (const j of cv.jobs || []) {
     const jobTags = [j.company_short, ...(j.tags || [])].filter(Boolean);
     push('job_summary', j.tasks_summary, ['job', ...jobTags, j.role].filter(Boolean));
-    for (const r of j.results || []) push('job_result', r, ['job-result', ...jobTags]);
+    for (const r of j.results || []) {
+      const text = typeof r === 'string' ? r : r && r.text;
+      push('job_result', text, ['job-result', ...jobTags, ...((r && r.tags) || [])]);
+    }
   }
 
   // other_work
