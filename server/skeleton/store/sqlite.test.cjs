@@ -12,10 +12,25 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { DatabaseSync } = require('node:sqlite');
 const { createSqliteStore } = require('./sqlite.cjs');
 
 function tmpDbPath() {
   return path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'll-sqlite-')), 'store.db');
+}
+
+// Make the cases-row write itself fail at the SQLite layer (no stubs): a trigger on the
+// cases table aborts every insert. Datafact/record writes are untouched. Returns an undo.
+function breakCaseWrites(dbPath) {
+  const db = new DatabaseSync(dbPath);
+  db.exec(`CREATE TRIGGER fail_case_writes BEFORE INSERT ON cases
+           BEGIN SELECT RAISE(ABORT, 'simulated disk failure'); END;`);
+  db.close();
+  return () => {
+    const d = new DatabaseSync(dbPath);
+    d.exec('DROP TRIGGER fail_case_writes');
+    d.close();
+  };
 }
 
 function seedStore(store) {
@@ -144,10 +159,87 @@ test('detachment across ALL ingest paths, proven against the durable store: in-s
   b.close();
 });
 
+test('a failed SQLite case write rolls the LIVE store back — served state never outruns disk', () => {
+  const p = tmpDbPath();
+  const a = createSqliteStore({ path: p });
+  const caseId = seedStore(a);
+  a.writeParts(caseId, {
+    fit: { capability: { requirements: [], overall: 'Plain.' }, preference: { narrative: '' } },
+    gaps: [{ id: 'gap_1', what: 'A gap.' }],
+  });
+
+  const undo = breakCaseWrites(p);
+  // writeParts: the accept path's atomic fit+resolution write
+  assert.throws(
+    () => a.writeParts(caseId, {
+      fit: { capability: { requirements: [], overall: 'Changed.' }, preference: { narrative: '' } },
+      gaps: [{ id: 'gap_1', what: 'A gap.', resolution: 'accepted' }],
+    }),
+    /simulated disk failure/,
+  );
+  assert.equal(a.getCase(caseId).fit.data.capability.overall, 'Plain.', 'live fit does not serve the failed write');
+  assert.equal(a.getCase(caseId).gaps.data[0].resolution, undefined, 'live gap stays unresolved');
+  // writePart: the skipped-resolution path
+  assert.throws(() => a.writePart(caseId, 'gaps', [{ id: 'gap_1', what: 'A gap.', resolution: 'skipped' }]), /simulated disk failure/);
+  assert.equal(a.getCase(caseId).gaps.data[0].resolution, undefined, 'writePart rolls back too');
+  // setPartStatus and createCase follow the same all-or-nothing rule
+  assert.throws(() => a.setPartStatus(caseId, 'gaps', 'failed', 'x'), /simulated disk failure/);
+  assert.equal(a.getCase(caseId).gaps.status, 'ready');
+  const casesBefore = a.listCases().length;
+  assert.throws(() => a.createCase({ company: 'Never', role: 'Persisted' }), /simulated disk failure/);
+  assert.equal(a.listCases().length, casesBefore, 'a case that never reached disk is not served');
+  undo();
+  a.close();
+
+  const b = createSqliteStore({ path: p });
+  assert.equal(b.getCase(caseId).fit.data.capability.overall, 'Plain.', 'disk tells the same story');
+  assert.equal(b.getCase(caseId).gaps.data[0].resolution, undefined);
+  b.close();
+});
+
 test('adapter self-describes for the health route', () => {
   const p = tmpDbPath();
   const store = createSqliteStore({ path: p });
   assert.equal(store.adapter, 'sqlite');
   assert.equal(store.path, p);
   store.close();
+});
+
+test('removeCase and removeDatafact delete durably (gone after reopen)', () => {
+  const p = tmpDbPath();
+  const a = createSqliteStore({ path: p });
+  const caseId = seedStore(a);
+  assert.equal(a.removeCase(caseId), true);
+  assert.equal(a.removeDatafact('datafact_1'), true);
+  assert.equal(a.removeCase('case_NOPE'), false, 'removeRecord convention: false, no throw');
+  a.close();
+
+  const b = createSqliteStore({ path: p });
+  assert.equal(b.getCase(caseId), null, 'case row deleted on disk');
+  assert.equal(b.getDatafact('datafact_1'), null, 'datafact row deleted on disk');
+  b.close();
+});
+
+test('writeParts applies all parts together and a gate violation persists NONE of them', () => {
+  const p = tmpDbPath();
+  const a = createSqliteStore({ path: p });
+  const caseId = seedStore(a);
+
+  a.writeParts(caseId, { fit: { capability: { requirements: [], overall: 'Plain.' }, preference: { narrative: '' } }, gaps: [{ id: 'gap_1', what: 'A gap.' }] });
+  a.close();
+  const b = createSqliteStore({ path: p });
+  assert.equal(b.getCase(caseId).fit.data.capability.overall, 'Plain.', 'both parts landed');
+  assert.equal(b.getCase(caseId).gaps.data[0].id, 'gap_1');
+
+  // One clean part + one banned part: the write must be all-or-nothing.
+  assert.throws(
+    () => b.writeParts(caseId, { fit: { capability: { requirements: [], overall: 'Still plain.' }, preference: { narrative: '' } }, gaps: [{ id: 'gap_1', what: 'We spearheaded it.' }] }),
+    /spearheaded/,
+  );
+  assert.equal(b.getCase(caseId).fit.data.capability.overall, 'Plain.', 'clean part NOT applied when a sibling part violates');
+  b.close();
+
+  const c = createSqliteStore({ path: p });
+  assert.equal(c.getCase(caseId).fit.data.capability.overall, 'Plain.', 'nothing from the failed write on disk either');
+  c.close();
 });

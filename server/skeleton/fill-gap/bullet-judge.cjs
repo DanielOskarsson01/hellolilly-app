@@ -27,11 +27,32 @@ async function judgeAnswer({ requirement, gap, answer }, llm) {
   return { canFill: !!out.canFill, bulletText: out.canFill ? (out.bulletText || '').trim() : null, reason: out.reason || '' };
 }
 
+// Mark one gap terminal in the persisted `gaps` part. The gaps part is the source of
+// truth for the "Luckor att fylla" column and the completion gate, so a resolution MUST
+// live here (not in transient component state) to survive navigation and reload. Both
+// paths route through here: 'accepted' (from applyAnswer) and 'skipped' (a conscious,
+// legitimate terminal state). writePart re-runs the writing-rules gate on the (unchanged,
+// already-clean) gap prose; a throw persists nothing, so a caller can log success only
+// after this returns.
+function setGapResolution(store, caseId, gapId, resolution) {
+  const theCase = store.getCase(caseId);
+  if (!theCase) throw new Error(`setGapResolution: no such case ${caseId}`);
+  const gaps = (theCase.gaps && theCase.gaps.data) || [];
+  let found = false;
+  const next = gaps.map((g) => (g.id === gapId ? (found = true, { ...g, resolution }) : g));
+  if (!found) throw new Error(`setGapResolution: no such gap ${gapId} in case ${caseId}`);
+  store.writePart(caseId, 'gaps', next);
+  return next.find((g) => g.id === gapId) || null;
+}
+
 async function applyAnswer(store, llm, { caseId, gapId, answer, requirementId, tags = [] }) {
   const theCase = store.getCase(caseId);
   if (!theCase) throw new Error(`applyAnswer: no such case ${caseId}`);
   const gaps = (theCase.gaps && theCase.gaps.data) || [];
   const gap = gaps.find((g) => g.id === gapId) || null;
+  // The resolution target must exist BEFORE anything durable happens (was: discovered
+  // by setGapResolution after the mint + fit flip had already persisted).
+  if (!gap) throw new Error(`applyAnswer: no such gap ${gapId} in case ${caseId}`);
   const reqs = ((theCase.decodedRole && theCase.decodedRole.data && theCase.decodedRole.data.requirements) || []);
   const requirement = (reqs.find((r) => r.id === requirementId) || {}).requirement || '';
 
@@ -64,7 +85,7 @@ async function applyAnswer(store, llm, { caseId, gapId, answer, requirementId, t
     tags: [`addresses:${requirementId}`, 'fill-gap', ...tags].filter(Boolean),
     language: 'en',
   };
-  store.ingestDatafact(fact);
+  store.ingestDatafact(fact); // must precede the fit write: the gate exempts fact.text only via a ref to a STORED fact
 
   // Flip the requirement to match; attach evidenceRef so the re-write survives the
   // ref-scoped exact-equality gate (Task 3) — fact.text is exempt only via its ref.
@@ -73,9 +94,25 @@ async function applyAnswer(store, llm, { caseId, gapId, answer, requirementId, t
       ? { ...r, status: 'match', evidence: fact.text, evidenceRef: { kind: 'datafact', id: fact.id } }
       : r,
   );
-  store.writePart(caseId, 'fit', fit); // gate runs; fact.text exempt via evidenceRef
+  const nextGaps = gaps.map((g) => (g.id === gapId ? { ...g, resolution: 'accepted' } : g));
+
+  // Fit migration + gap resolution land in ONE atomic write (single case-row persist in
+  // the sqlite adapter): the store can never durably say 'match' while the gap is still
+  // unresolved. If that write fails, unmint the fact — the cv-builder mines
+  // listDatafacts() directly, so a stray fill-gap fact would leak into generated CVs.
+  // The throw then propagates: no 'accepted', no gap_filled activity. (The adapter also
+  // rolls its in-memory state back on a failed persist, so the LIVE store never serves
+  // the migration disk refused.) KNOWN RESIDUAL: the fact is persisted separately, so a
+  // process CRASH between its disk write and this one leaves an orphan fact on disk —
+  // never a false success (fit/resolution untouched); cleanup is scripts/scrub-case.
+  try {
+    store.writeParts(caseId, { fit, gaps: nextGaps });
+  } catch (err) {
+    store.removeDatafact(fact.id);
+    throw err;
+  }
 
   return { outcome: 'accepted', newDatafactId: fact.id, updatedFit: store.getCase(caseId).fit.data, reason: verdict.reason };
 }
 
-module.exports = { judgeAnswer, applyAnswer };
+module.exports = { judgeAnswer, applyAnswer, setGapResolution };

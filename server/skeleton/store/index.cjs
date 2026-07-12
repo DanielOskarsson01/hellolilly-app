@@ -25,7 +25,7 @@
 // This is the interface A0 commits to. Swapping to Hello Lilly's real DB later =
 // reimplement these methods behind the same signatures.
 
-const { createCase, setPartData, setPartStatus } = require('../contract/case.cjs');
+const { createCase, setPartData, setPartStatus, PARTS } = require('../contract/case.cjs');
 const { enforce } = require('../writing-rules/gate.cjs');
 
 // Detach every value that crosses the store boundary, in BOTH directions, so the only way
@@ -77,6 +77,22 @@ function createStore() {
     return [...cases.values()].map(detach);
   }
 
+  // Case delete — same convention as removeRecord: boolean result, no throw on a
+  // missing id. Exists for operator cleanup (scrub-case.cjs); no API route exposes it.
+  function removeCase(caseId) {
+    return cases.delete(caseId);
+  }
+
+  // Adapter rollback hook: reinstate a previously READ case (already gated, detached)
+  // after a failed durability write, or drop the id when there was no prior case. Takes
+  // only what getCase returned, so it cannot smuggle new prose past the writing-rules
+  // gate. Host/adapter-level only — tools.store is an explicit whitelist
+  // (capabilities.cjs), so submodules never see it.
+  function restoreCase(caseId, prior) {
+    if (prior == null) cases.delete(caseId);
+    else cases.set(caseId, detach(prior));
+  }
+
   // AUTHORED-PROSE path. The single persist chokepoint for generated text. The gate
   // ALWAYS runs — no opt-out. A violation throws and nothing is written. The persisted
   // value is a detached copy, so the caller can't mutate it into the store after the fact.
@@ -87,6 +103,24 @@ function createStore() {
     const exemptTexts = [...collectRefdFactTexts(data)];
     enforce(data, exemptTexts);
     return detach(setPartData(c, part, detach(data)));
+  }
+
+  // Multi-part write on ONE case: validate part names and run the writing-rules gate on
+  // EVERY value first, then apply all. After validation nothing in the apply loop can
+  // throw, so the parts change together or not at all — and the sqlite adapter persists
+  // them as a single case-row write. Exists so the accept path can land the fit
+  // migration and the gap resolution atomically (a durable fit that says 'match' while
+  // the gap is still unresolved is exactly the partial-success state this forbids).
+  function writeParts(caseId, parts) {
+    const c = requireCase(caseId);
+    const entries = Object.entries(parts);
+    for (const [part, data] of entries) {
+      if (!PARTS.includes(part)) throw new Error(`Unknown case part: ${part}`);
+      enforce(data, [...collectRefdFactTexts(data)]);
+    }
+    const out = {};
+    for (const [part, data] of entries) out[part] = setPartData(c, part, detach(data));
+    return detach(out);
   }
 
   function setStatus(caseId, part, status, error) {
@@ -179,11 +213,22 @@ function createStore() {
     return [...datafacts.values()].map(detach);
   }
 
+  // Datafact delete — removeRecord convention. Exists for compensation (a minted
+  // fill-gap fact whose resolution write failed must not linger: the cv-builder mines
+  // listDatafacts() directly, so a stray fact would leak into generated CVs) and for
+  // operator cleanup. Host-level like ingestDatafact — not on tools.store.
+  function removeDatafact(id) {
+    return datafacts.delete(id);
+  }
+
   return {
     createCase: createCaseRecord,
     getCase,
     listCases,
+    removeCase,
+    restoreCase,
     writePart,
+    writeParts,
     setPartStatus: setStatus,
     scratch,
     putRecord,
@@ -193,6 +238,7 @@ function createStore() {
     ingestDatafact,
     getDatafact,
     listDatafacts,
+    removeDatafact,
     snapshot,
     hydrate,
   };

@@ -13,7 +13,7 @@ const { createStore } = require('./index.cjs');
 
 // Every method that changes durable state (cases / datafacts / collections).
 // scratch is intentionally absent — it is private per-run state and not snapshotted.
-const MUTATORS = ['createCase', 'writePart', 'setPartStatus', 'ingestDatafact', 'putRecord', 'removeRecord'];
+const MUTATORS = ['createCase', 'removeCase', 'writePart', 'writeParts', 'setPartStatus', 'ingestDatafact', 'removeDatafact', 'putRecord', 'removeRecord'];
 
 function createPersistentStore({ path: filePath, debounceMs = 300 } = {}) {
   if (!filePath) throw new Error('createPersistentStore: a path is required');

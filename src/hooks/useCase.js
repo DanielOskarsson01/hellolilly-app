@@ -76,6 +76,7 @@ export function useCase(caseId) {
       analyze: wrap('analyze', () => caseApi.analyze(caseId)),
       generate: wrap('generate', () => caseApi.generate(caseId)),
       answerGap: wrap('answerGap', (gapId, payload) => caseApi.answerGap(caseId, gapId, payload)),
+      skipGap: wrap('skipGap', (gapId) => caseApi.skipGap(caseId, gapId)),
       saveLetterDraft: wrap('saveLetterDraft', (payload) => caseApi.saveCoverLetterDraft(caseId, payload)),
       alignKeyword: wrap('alignKeyword', (payload) => caseApi.alignKeyword(caseId, payload)),
     };

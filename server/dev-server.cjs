@@ -10,7 +10,7 @@ const {
 const { createHost } = require('./skeleton/host.cjs');
 const { bootstrapStore, seedDatafactsIfEmpty } = require('./store-bootstrap.cjs');
 const { createAnthropicClient } = require('./skeleton/clients/anthropic.cjs');
-const { applyAnswer } = require('./skeleton/fill-gap/bullet-judge.cjs');
+const { applyAnswer, setGapResolution } = require('./skeleton/fill-gap/bullet-judge.cjs');
 const { applyAlign } = require('./skeleton/fill-gap/keyword-judge.cjs');
 const { logActivity } = require('./activity-log.cjs');
 
@@ -190,7 +190,7 @@ function createApiHandler(host, { preferencesPath, llm } = {}) {
       return true;
     }
 
-    const m = req.url.match(/^\/api\/case\/([^/]+)(\/analyze|\/generate|\/research|\/letter-draft|\/cv\/align-keyword|\/gap\/([^/]+)\/answer)?$/);
+    const m = req.url.match(/^\/api\/case\/([^/]+)(\/analyze|\/generate|\/research|\/letter-draft|\/cv\/align-keyword|\/gap\/([^/]+)\/answer|\/gap\/([^/]+)\/skip)?$/);
     if (!m) return false;
     const caseId = decodeURIComponent(m[1]);
     const action = m[2];
@@ -251,6 +251,21 @@ function createApiHandler(host, { preferencesPath, llm } = {}) {
             meta: { gapId, requirementId: body.requirementId, datafactId: out.newDatafactId } });
         }
         sendJson(res, 200, { ok: true, ...out });
+      } catch (err) {
+        sendJson(res, 500, { ok: false, error: err.message });
+      }
+      return true;
+    }
+
+    if (req.method === 'POST' && m[4]) { // /gap/:gapId/skip — a conscious, terminal "not filled"
+      const gapId = decodeURIComponent(m[4]);
+      if (!host.store.getCase(caseId)) { sendJson(res, 404, { ok: false, error: 'no such case' }); return true; }
+      try {
+        // Persist the skip FIRST; a throw here skips logActivity, so a failed write
+        // produces no success and no activity record (Wave A rule, extended to skip).
+        setGapResolution(host.store, caseId, gapId, 'skipped');
+        logActivity(host.store, { type: 'gap_skipped', caseId, label: 'Lucka medvetet hoppad över', meta: { gapId } });
+        sendJson(res, 200, { ok: true, outcome: 'skipped' });
       } catch (err) {
         sendJson(res, 500, { ok: false, error: err.message });
       }

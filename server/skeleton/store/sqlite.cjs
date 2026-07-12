@@ -46,6 +46,8 @@ function createSqliteStore({ path: dbPath } = {}) {
     putFact: db.prepare('INSERT OR REPLACE INTO datafacts (id, data) VALUES (?, ?)'),
     putRecord: db.prepare('INSERT OR REPLACE INTO collection_records (name, id, data) VALUES (?, ?, ?)'),
     delRecord: db.prepare('DELETE FROM collection_records WHERE name = ? AND id = ?'),
+    delCase: db.prepare('DELETE FROM cases WHERE id = ?'),
+    delFact: db.prepare('DELETE FROM datafacts WHERE id = ?'),
     allCases: db.prepare('SELECT id, data FROM cases'),
     allFacts: db.prepare('SELECT id, data FROM datafacts'),
     allRecords: db.prepare('SELECT name, id, data FROM collection_records'),
@@ -66,6 +68,23 @@ function createSqliteStore({ path: dbPath } = {}) {
   });
 
   const saveCase = (caseId) => stmt.putCase.run(caseId, JSON.stringify(inner.getCase(caseId)));
+
+  // Inner-first ordering (gates run in memory, then one row write) means a FAILED row
+  // write would leave memory claiming what disk never accepted — a live server would
+  // serve fit 'match' / resolution 'accepted' until a restart silently reverted it. So
+  // every case write rolls the inner store back to its pre-mutation state on a SQLite
+  // failure: all-or-nothing holds for what the store SERVES, not only what it saves.
+  function caseWrite(caseId, mutate) {
+    const before = inner.getCase(caseId); // detached copy; the case must already exist
+    const out = mutate(); // gate/scope throws happen here — nothing mutated, nothing saved
+    try {
+      saveCase(caseId);
+    } catch (err) {
+      inner.restoreCase(caseId, before);
+      throw err;
+    }
+    return out;
+  }
 
   function rewriteAll() {
     // Full rewrite inside one transaction — the migration/hydrate path only.
@@ -92,18 +111,33 @@ function createSqliteStore({ path: dbPath } = {}) {
 
     createCase(meta) {
       const c = inner.createCase(meta); // may throw (invalid status) — nothing persisted then
-      saveCase(c.meta.id);
+      try {
+        saveCase(c.meta.id);
+      } catch (err) {
+        inner.removeCase(c.meta.id); // never reached disk — do not serve it either
+        throw err;
+      }
       return c;
     },
     writePart(caseId, part, data) {
-      const out = inner.writePart(caseId, part, data); // gate runs here; a throw persists nothing
-      saveCase(caseId);
+      return caseWrite(caseId, () => inner.writePart(caseId, part, data)); // gate runs inside
+    },
+    writeParts(caseId, parts) {
+      // ONE row REPLACE — the parts hit disk together or not at all
+      return caseWrite(caseId, () => inner.writeParts(caseId, parts));
+    },
+    removeCase(caseId) {
+      const out = inner.removeCase(caseId);
+      stmt.delCase.run(caseId);
+      return out;
+    },
+    removeDatafact(id) {
+      const out = inner.removeDatafact(id);
+      stmt.delFact.run(id);
       return out;
     },
     setPartStatus(caseId, part, status, error) {
-      const out = inner.setPartStatus(caseId, part, status, error);
-      saveCase(caseId);
-      return out;
+      return caseWrite(caseId, () => inner.setPartStatus(caseId, part, status, error));
     },
     ingestDatafact(df) {
       const out = inner.ingestDatafact(df);

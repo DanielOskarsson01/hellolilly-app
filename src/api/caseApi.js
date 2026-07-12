@@ -71,6 +71,14 @@ export function answerGap(caseId, gapId, { answer, requirementId, tags }) {
   }).then((b) => { notifyActivityChanged(); return b; });
 }
 
+// Skip a gap: a conscious, persisted terminal "not filled" state. No answer/mint —
+// just marks the gap handled so the completion gate counts it, and it survives reload.
+export function skipGap(caseId, gapId) {
+  return request(`/api/case/${encodeURIComponent(caseId)}/gap/${encodeURIComponent(gapId)}/skip`, {
+    method: 'POST',
+  }).then((b) => { notifyActivityChanged(); return b; });
+}
+
 export function searchJobs(query) {
   return request('/api/jobs/search', { method: 'POST', body: JSON.stringify(query) });
 }
