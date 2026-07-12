@@ -100,7 +100,11 @@ async function applyAnswer(store, llm, { caseId, gapId, answer, requirementId, t
   // the sqlite adapter): the store can never durably say 'match' while the gap is still
   // unresolved. If that write fails, unmint the fact — the cv-builder mines
   // listDatafacts() directly, so a stray fill-gap fact would leak into generated CVs.
-  // The throw then propagates: no 'accepted', no gap_filled activity.
+  // The throw then propagates: no 'accepted', no gap_filled activity. (The adapter also
+  // rolls its in-memory state back on a failed persist, so the LIVE store never serves
+  // the migration disk refused.) KNOWN RESIDUAL: the fact is persisted separately, so a
+  // process CRASH between its disk write and this one leaves an orphan fact on disk —
+  // never a false success (fit/resolution untouched); cleanup is scripts/scrub-case.
   try {
     store.writeParts(caseId, { fit, gaps: nextGaps });
   } catch (err) {

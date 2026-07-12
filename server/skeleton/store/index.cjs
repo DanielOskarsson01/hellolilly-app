@@ -83,6 +83,16 @@ function createStore() {
     return cases.delete(caseId);
   }
 
+  // Adapter rollback hook: reinstate a previously READ case (already gated, detached)
+  // after a failed durability write, or drop the id when there was no prior case. Takes
+  // only what getCase returned, so it cannot smuggle new prose past the writing-rules
+  // gate. Host/adapter-level only — tools.store is an explicit whitelist
+  // (capabilities.cjs), so submodules never see it.
+  function restoreCase(caseId, prior) {
+    if (prior == null) cases.delete(caseId);
+    else cases.set(caseId, detach(prior));
+  }
+
   // AUTHORED-PROSE path. The single persist chokepoint for generated text. The gate
   // ALWAYS runs — no opt-out. A violation throws and nothing is written. The persisted
   // value is a detached copy, so the caller can't mutate it into the store after the fact.
@@ -216,6 +226,7 @@ function createStore() {
     getCase,
     listCases,
     removeCase,
+    restoreCase,
     writePart,
     writeParts,
     setPartStatus: setStatus,
