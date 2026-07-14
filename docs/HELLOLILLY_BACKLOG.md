@@ -2,7 +2,7 @@
 
 Parked work and deferred decisions. None blocking. Kept here so they survive (chat-only items get lost - the recurring lesson). Commit this to `docs/` so it's durable in the repo.
 
-Last updated: 2026-07-08 (Kind-1 spine complete; Progress Support wave opening).
+Last updated: 2026-07-14 (Wave A merged; first real-user walkthrough complete; North Star adopted, D14-D18).
 
 ---
 
@@ -35,6 +35,15 @@ Last updated: 2026-07-08 (Kind-1 spine complete; Progress Support wave opening).
 
 ---
 
+## The CV-builder side project (D15 - after current work)
+
+### CV-builder accumulation brief
+- **What:** after the current work, gather the original JobSearch/CVs machinery, the CV templates, the orientation report in `WALKTHROUGH_FINDINGS_COMPLETE.md`, and the walkthrough findings into a spec package for another agent to spec the CV-builder side project, which then integrates into HelloLilly.
+- **Why deferred:** D15 - the CV builder is in scope but built separately, after current work. Not the focus of the current discussion, by Daniel's instruction.
+- **Full framing:** `HELLOLILLY_NORTH_STAR.md` §2 and §7. (This is a note that the brief is owed, not the brief itself - briefs are produced separately, WHAT/WHY only.)
+
+---
+
 ## Docs corrections (keep the plan-of-record accurate)
 
 ### Naming split - "Innan du skickar" vs "Ansökningskoll"
@@ -60,6 +69,9 @@ Last updated: 2026-07-08 (Kind-1 spine complete; Progress Support wave opening).
 - **Delete orphaned JobAnalysisContent + localStorage-link imports** (dead code from the core-loop wave).
 - **Point-and-build the #ansokningskoll route** - three shipped screens link to it and dead-end on the ComingSoon stub (this is the tracking screen, a later build).
 - **Merged-branch/worktree cleanup** - delete merged branches + remove stale worktrees after each merge (recurring collision hazard when left around).
+- **Orphan-datafact sweep** - documented crash-window residual: a minted fill-gap fact whose resolution write fails can linger unreferenced, and the cv-builder mines `listDatafacts()` directly, so a stray fact could leak into a generated CV. One-off sweep for datafacts referenced by no case. (Sibling of the orphan activity rows with no `caseId`.)
+- **Node x64/arm64 Rolldown arch mismatch** - flagged in review: the Vite/Rolldown native binary must match the running machine's architecture; an x64 `node_modules` opened under arm64 Node (or the reverse) breaks the build. Fix is a reinstall on the running arch. Pairs with the Dropbox-two-machines risk below.
+- **Repo-in-Dropbox-two-machines risk** (risk to mitigate, not a feature) - the repo lives under Dropbox; two machines syncing it can corrupt `.git`, race `node_modules`/native binaries (see the Rolldown item above), and clobber each other's `main`. Mitigation: one active build machine at a time, one machine owns `main`, never build on both concurrently. (Noted as a hazard in the master plan; recorded here so it survives as a tracked item.)
 
 ---
 
