@@ -1,6 +1,6 @@
 # HelloLilly - Master Plan
 
-**As of:** 2026-07-09. Written after a machine crash wiped the chat windows. This is the single durable picture: what is built, what is being built, what comes next, and every parked decision.
+**As of:** 2026-07-14 (first written 2026-07-09, after a machine crash wiped the chat windows). This is the single durable picture: what is built, what is being built, what comes next, and every parked decision.
 
 **Repo:** `github.com/DanielOskarsson01/hellolilly-app` · local `Projects/hello lily - app`
 **Main:** run `git log --oneline -1` (a stated hash rots — this one already did)
@@ -36,33 +36,30 @@ The complete personal job-search loop, real and honest on durable data. Merged, 
 
 ---
 
-## NOW: Progress Support, Wave A
+## DONE: Progress Support Wave A, the first real-user walkthrough, and two data-integrity fixes
 
-**Branch:** `progress-support-wave-a` (off `398c740`, not merged)
-**State:** spec (`4d3571e`) and 8-task plan (`db69e7f`) committed and independently re-verified against the code. Three doc nits being fixed. Build has not started.
+**Progress Support Wave A - merged, on main.** The reusable D5 collection mechanism (`useCollection`, generic collection CRUD routes, the `id`/`at`/`caseId` record convention), the append-only `activity` collection, action-level emitters (`activity-log.cjs`, emitting on the confirmed success path only), and the plainly-labelled verification view. The mandated correctness test holds: a gate-thrown mutation writes NO activity record. Build record: `docs/verification/2026-07-09-wave-a-build-report.md`.
 
-**Why this is first in Kind-3.** Every week activity is not logged is data the future learning layer loses forever. It cannot be backfilled. This wave starts the clock. It also builds D5, the generic collection mechanism nearly every later tool inherits.
+**The first real-user walkthrough - complete.** Daniel's first genuine end-to-end run of the full pipeline. It now completes end to end (it never did before); the problem is no longer that it breaks but the QUALITY and STANCE of the output, concentrated in the CV surface and the tool's voice. Durable record: `WALKTHROUGH_FINDINGS_COMPLETE.md`. The principle it surfaced - advocate, do not audit - is now D14; the CV decisions it deferred are dissolved by `HELLOLILLY_NORTH_STAR.md` (D15-D17).
 
-**What Wave A builds.**
-
-- **D5, the reusable foundation.** The storage primitive already exists (`putRecord` / `getRecord` / `listRecords` / `removeRecord`, plus a generic `collection_records` table in SQLite, used today by jobs, jobSources, jobRules, filterSet). A new collection is new rows under a new name - zero DDL. Three thin additions turn it into a product: a `useCollection(name)` hook generalized from the working `useJobs`, generic collection CRUD routes generalized from the jobs routes, and a record convention (`id`, `at`, `caseId`).
-- **The `activity` collection** - append-only records `{ id, at, type, caseId?, label, meta }`.
-- **Action-level emitters.** One `activity-log.cjs`; each server action handler calls `logActivity(...)` on its success path, after the confirmed store call. Not store-level interception - that mislabels align-vs-generate and gap-fill-vs-analyze (both write the same part), double-emits on bundled actions, and floods the log with seeding noise. A mislabeled log is worse than a slightly riskier emitter, because Wave B and the learning layer consume these labels.
-- **A minimal, plainly-labelled verification view** - a chronological list, honest states, nothing designed.
-
-**The mandated test.** A gate-thrown mutation writes NO activity record. The log records what happened, never what was attempted. This is Wave A's correctness point, the equivalent of the draft-coverage test on the last screen.
-
-**Two decisions locked into the record shape.**
-- **One collection, two audiences.** The same activity collection feeds the jobseeker's "Min aktivitet" (real, Wave B) and the coach-facing "Ärendevy" (a labelled demo until the D4 trigger fires). One source of truth, so the two views cannot drift, and when the coach view goes real it reads history that has been accumulating since Wave A. `CASE_RECORD` in `src/data/strategyData.js` is the target shape.
-- **Local-backend.** D5 storage is SQLite via the dev-server. No client-side adapter for the static build.
-
-**One open verification for the build.** `research_run`: it is unconfirmed whether dossiers persist before a decoder failure. If they do not, `research_run` must not emit on partial failure. This is the one place the confirmed-not-attempted property could leak. Verify, do not assume.
+**Two data-integrity fixes - merged.** The three-layer gap-persistence fix (accepted answers can no longer half-persist; fit + resolution land atomically) and the cv-ingest "[object Object]" corruption fix with its verify-by-identity in-place repair (merged `b48d6eb`; live store clean - pool 143, every reference resolves to the correct source bullet).
 
 ---
 
-## NEXT: Progress Support, Wave B
+## NOW: sequencing pending - to be decided against `HELLOLILLY_NORTH_STAR.md`
 
-Design pass (Claude Design), then build, against the real logged data Wave A produces. That is the point of the split - the designer sees the actual activity stream rather than an invented fixture.
+With Wave A done and the walkthrough in, the next wave is **not yet chosen**. The candidates below are recorded **without an order**; each will be judged against founding intent (`HELLOLILLY_NORTH_STAR.md` §3 and §7: does it translate a proven step of the original system into the product, at outcome parity, as a reusable module?). No sequence is set here.
+
+- **CV-tailoring correction** - bring the live "Skapa anpassad CV" step in line with D15/D16: content adaptation against assumed templates under the outcome-parity standard, not improvised whole-CV structure. (`HELLOLILLY_NORTH_STAR.md` §2, §5b.)
+- **Gap-drafting plus the intake engine** - the advocacy-shaped gap-fill drafting (D14) together with the CV-intake datafact-mint engine that turns uploaded documents into verified facts.
+- **#8 background analysis** - the background-analysis surface raised as finding #8 in `WALKTHROUGH_FINDINGS_COMPLETE.md`.
+- **Progress Support Wave B (demoted)** - deprioritised per the first real-user activity-log read (D18); detail below, now a candidate rather than the automatic next.
+
+---
+
+## CANDIDATE (demoted): Progress Support, Wave B
+
+**Deprioritised 2026-07-14 (D18)** per the first real-user activity-log read - no longer the automatic next, now one of the undecided candidates in NOW. Detail preserved here for when it is picked up. Design pass (Claude Design), then build, against the real logged data Wave A produces. That is the point of the split - the designer sees the actual activity stream rather than an invented fixture.
 
 The fuller surface: the activity timeline proper, weekly cadence, task-breakdown (a second `tasks` collection, proving D5 generalizes), next-step and overdue rules derived from state, and the motivational framing. Tone matters here and is a correctness property, not polish: the strategy paper says activity logging exists "to help the person remember, restart, and recover. It is not a monitoring tool." This surface is aimed at people with low energy, ADHD, anxiety, where the next small step is the difference between progress and paralysis.
 
@@ -99,7 +96,7 @@ The most native area: its stages map onto contract slots that already exist (`pr
 
 ## Decisions of record
 
-The full set (D1–D13, with D6–D8 deliberately skipped) lives in `docs/DECISIONS_ADDENDUM.md` — the single source of truth. This plan no longer mirrors the decisions here: the mirrored table went stale twice (it stopped at D9 and still carried D4's pre-refinement trigger), so the mirror is retired in favour of this pointer.
+The full set (D1–D18, with D6–D8 deliberately skipped) lives in `docs/DECISIONS_ADDENDUM.md` — the single source of truth. This plan no longer mirrors the decisions here: the mirrored table went stale twice (it stopped at D9 and still carried D4's pre-refinement trigger), so the mirror is retired in favour of this pointer.
 
 ---
 
@@ -116,7 +113,7 @@ The plan indexes itself here (a prior gap: it never did). All paths under `docs/
 | `REST_OF_SITE_DATA_CONTRACT_ADDENDUM.md` | The noun vocabulary — every stored shape, read model, the non-shapes (§21), and the activity taxonomy (§T). |
 | `WAVE_1_BACKEND_BUILD_BRIEF.md` | The Wave 1 backend-slice brief (activity/planner collections, read models, host-layer emission). |
 | `KIND3_ROADMAP.md` | The dependency-ordered map of everything after the Kind-1 spine. |
-| `DECISIONS_ADDENDUM.md` | The decisions of record (D1–D13; D6–D8 deliberately skipped). |
+| `DECISIONS_ADDENDUM.md` | The decisions of record (D1–D18; D6–D8 deliberately skipped). |
 | `HELLOLILLY_BACKLOG.md` | The parked backlog — deferred features, docs corrections, engineering follow-ups. |
 | `HELLOLILLY_HELP_LAYER_CONCEPT.md` | **(new, D11)** The Help Layer spec of record — the crosslink panel + Lilly the assistant. |
 | `KNOWLEDGE_HUB_SEED_LIST.md` | **(new, D11)** The Knowledge Hub seed — ~28 real resources, the F2 approval flow's first content. |
@@ -125,6 +122,8 @@ The plan indexes itself here (a prior gap: it never did). All paths under `docs/
 | `RETROFIT_LEDGER.md` | **(new, D12)** The shipped paths predating the rules (letter writer, presend judges, Matchanalys prose, A1 researcher); retrofit at next touch, must be empty before any real-jobseeker use. |
 | `inference-surface-registry.json` | **(new, D12)** The single machine-readable inference-surface registry (Section 5) — three registered members, membership declared ahead of build. |
 | `HELLOLILLY_PHASE_AFTER_PLAN.md` | **(new, D13)** The Phase-After Plan — doc of record for the governance review the real-persons gate waits on, the second human's two paths, the k ≥ 5 learning-layer floor, the padlock rule, and the pilot's smallest honest version. |
+| `HELLOLILLY_NORTH_STAR.md` | **(new)** Founding intent + the CV decision — dissolves the CV architecture fork, sets the outcome-parity standard, and holds the full reasoning behind D14–D18. |
+| `WALKTHROUGH_FINDINGS_COMPLETE.md` | **(new)** The first real-user end-to-end walkthrough — findings by surface, the advocate-not-audit principle, the CV-machinery orientation, and the deferred CV decisions. |
 
 ---
 
