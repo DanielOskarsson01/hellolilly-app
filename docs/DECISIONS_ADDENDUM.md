@@ -134,6 +134,36 @@ The Phase-After Plan is adopted as the doc of record defining the governance rev
 - **Design** - "compliant by design" is banned from all surfaces and documents until the review exists to back it.
 - **Planner** - the plan's §2 review sections, path preconditions and stop conditions are standing preconditions for any pilot planning; the D4 trigger reads as refined below.
 
+## D14 - The advocacy principle: advocate, do not audit
+
+**Date:** 2026-07-14. **Status:** decided by Daniel. **Full reasoning: `HELLOLILLY_NORTH_STAR.md` §6 and `WALKTHROUGH_FINDINGS_COMPLETE.md` §2 (not duplicated here — mirror-goes-stale).** (D14 is the next decision number after D13, clear of both this addendum's D1-D5 line and the Omställning area's D4-D8 range; D15-D18 continue from it.)
+
+The tool advocates FOR the jobseeker; it does not audit them. Three commitments: maximum truthful strength, warn-do-not-block (never censor the user's own judgement in honesty's name), and end-to-end honesty with the interview-prep tools sharing one state. This reframes the walkthrough's central failure — a tool performing honesty AT the user in a compliance-auditor voice. It governs HOW content is adapted and gaps are filled, operating inside the CV handoff boundary D15 sets.
+
+## D15 - The CV builder: in scope, built as a separate side project, then integrated
+
+**Date:** 2026-07-14. **Status:** decided by Daniel. **Full reasoning: `HELLOLILLY_NORTH_STAR.md` §2 and §7.**
+
+There MUST be a CV builder in HelloLilly (the strategy paper lists it as a first-class Execution tool) — but it is built as a SEPARATE SIDE PROJECT, after the current work, then integrated soon (not someday). Its spec comes from accumulated material via another agent (see the accumulation brief, `HELLOLILLY_BACKLOG.md`). Until it lands, the working assumption stands: the CV builder and templates EXIST (the original machinery is the stand-in), and HelloLilly's job is to hold the content base, create adapted content, fill gaps, and hand off to the templates. Supersedes the CV-architecture fork (findings doc, Decision 1), now dissolved.
+
+## D16 - Build doctrine: replace, do not repair
+
+**Date:** 2026-07-14. **Status:** decided by Daniel. **Full reasoning: `HELLOLILLY_NORTH_STAR.md` §5b.**
+
+Cheap reimplementations of proven tools (the live "Skapa anpassad CV" step is the clear case) are NOT patched — a tool wrong at birth is an endless negotiation with a broken architecture. Instead: proven engines behind, Claude Design screens in front, disposable plumbing between. Reuse a proven original where it can be called; where architecture forces a rebuild, judge it by the outcome-parity standard (same input, same outcome as the original). Boundary: this governs REIMPLEMENTED tools only; new-ground capability (datafact pool, gap-fill loop, honesty gates, store) is evolved, not replaced.
+
+## D17 - Information architecture: the two CV tools get two menu items
+
+**Date:** 2026-07-14. **Status:** decided by Daniel. **Full reasoning: `HELLOLILLY_NORTH_STAR.md` §5c.**
+
+The builder/tailor split becomes visible in the nav. CV-BYGGAREN = the job-independent builder (the D15 side project); until it lands its menu item sits in the honest-disabled "Kommer" state, reserving the slot. ANPASSAD CV = the job-bound tailor (content-only adaptation within a locked template). Near-free first move: the current "CV-byggaren" menu item is mislabelled — it opens the per-case tailored draft — so rename it to Anpassad CV (the nav then tells the truth) and add CV-byggaren as the reserved "Kommer" item. Standing boundary: the tailor never gains structural powers; the builder never becomes job-aware.
+
+## D18 - Progress Support Wave B deprioritised
+
+**Date:** 2026-07-14. **Status:** decided by Daniel. **Full reasoning: `WALKTHROUGH_FINDINGS_COMPLETE.md` and `HELLOLILLY_NORTH_STAR.md` §7.**
+
+Off the back of the first real-user run reading the real activity log, Wave B (the fuller Progress Support surface) is deprioritised: it is no longer the automatic next wave but one undecided candidate among several, to be sequenced against `HELLOLILLY_NORTH_STAR.md` (see the master plan's NOW section). No new order is chosen here. Wave A — the activity collection it depends on — remains merged and done.
+
 ## Persona note (already in the seed, restated because it interacts with D3)
 New/rebuilt screens use the real persona (Daniel Oskarsson, iGaming/marketing) with real data. The Amir Hassan fixture persona survives ONLY inside labelled demo screens. No new Amir content.
 
