@@ -1,6 +1,6 @@
 # HelloLilly - North Star: Founding Intent and the CV Decision
 
-Date: 2026-07-13, amended 2026-07-14 against the strategy bundle
+Date: 2026-07-13, amended 2026-07-14 against the strategy bundle, amended again 2026-07-14 per adversarial review (CTO pass: SOUND WITH AMENDMENTS, all four amendments applied; brutal-critic pass on Wave 1 brief: NOT FIT, brief rewritten)
 Status: Founding intent as stated by Daniel, verbatim in substance. This document
 takes a position; it is not a menu. It dissolves the CV architecture fork raised in
 WALKTHROUGH_FINDINGS_COMPLETE.md (Decision 1) and sets the standard every HelloLilly
@@ -63,9 +63,17 @@ templates, judged by the parity standard below, until the real builder integrate
 For every tool and step translated from the original system into HelloLilly:
 
 - USE the existing tools where they can be used.
-- Where architecture requires a rebuild, the rebuilt version must produce THE
-  EXACT SAME OUTCOME as the original. Architecture is free to differ; outcomes
-  are not.
+- Where architecture requires a rebuild, the rebuilt version must achieve
+  STRUCTURAL PARITY (matching structure/schema with the original's output) and
+  SEMANTIC EQUIVALENCE (content judged equivalent against the original's output
+  for the same pinned input). Architecture is free to differ; outcomes are not.
+  Token-for-token equality is explicitly NOT required - the pipelines are
+  LLM-driven and non-deterministic. (Amended 2026-07-14 per CTO review: the
+  original "exact same outcome" wording was an engineering trap.)
+- Parity is only testable against a FROZEN BASELINE: for each translated tool, a
+  pinned input and a captured reference output, captured per the FIXTURE LAW
+  below (synthetic committed; real content held as local parity references),
+  with the reference run's configuration recorded. No baseline, no parity claim.
 
 This gives the project an objective acceptance test it has not had: the original
 tool's outputs are the gold standard. Any HelloLilly step can be put next to the
@@ -100,6 +108,13 @@ DESIGN screens sit in front, and everything between them is disposable plumbing.
   VERBATIM from the old system, is the one pipeline surface that survived the
   walkthrough without complaint. Carried-over-intact kept quality;
   reimplemented-from-philosophy lost it.
+
+Caveat (per CTO review): "call the proven tool" does not mean deploying
+run-by-hand CLI scripts as production services raw. Where a legacy script is
+called, it is abstracted behind an API/service boundary (or its prompt and
+behaviour ported verbatim, the cover-letter method) so it cannot block the
+serving path or leak file-system assumptions into the product. The doctrine
+protects the BEHAVIOUR of the proven tools, not their packaging.
 
 Boundary: this doctrine governs the REIMPLEMENTED tools - where a proven original
 exists. It does not condemn the new-ground capability (datafact pool, gap-fill
@@ -141,22 +156,57 @@ that produced the walkthrough's poor CV.
    amended: section 1 widened to the full system vision, section 2 corrected to
    CV-builder-in-scope-sequenced-separately. The bundle is the canon this document
    serves.
-2. THE HANDOFF INTERFACE DEFINED. If HelloLilly assumes the CV tool and templates
-   exist, the boundary must be specified: exactly WHAT HelloLilly hands over
-   (selected/adapted content, gap answers, keyword alignments, role variant
-   choice?) and WHAT comes back (a rendered document? a reference?). This is the
-   design decision that replaces the dissolved fork, and it is much smaller than
-   the fork was.
+2. THE HANDOFF INTERFACE - DECIDED 2026-07-14 (per CTO review, Risk 1). The
+   lingua franca between builder, tailor, and rendering is a STRUCTURED CV
+   REPRESENTATION (JSON / AST): the builder produces the structure, the tailor
+   modifies content nodes within it and never invents structure, and a separate
+   rendering step turns the final structure into documents (.docx and friends).
+   Neither the builder nor the tailor manipulates rendered documents directly -
+   document surgery is brittle and recreates the invented-structure bug. The
+   full renderer lands with the D15 side project; within current waves the
+   tailor already operates on the structured representation.
 3. PARITY BASELINES CAPTURED. For each translated tool, the acceptance reference
    is the original system's output. Concretely for the CV chain: the original
    generate-tailored-cv.js outputs (tailored CV .docx + suggestions/gaps doc) are
    the gold standard the HelloLilly flow must meet or beat.
+   STAGED CLAIM (2026-07-14): full-chain parity completes when the D15 side
+   project delivers rendering and the suggestions/gaps counterpart. Until then
+   a wave may claim PARTIAL parity (e.g. tailoring parity: content selection
+   within the frozen structure) if it names exactly which original outcomes it
+   covers and which remain owed. Owed outcomes stay on the ledger; they do not
+   silently disappear into "parity passed".
+   FIXTURE LAW (2026-07-14, reconciling D12; precision added after the repo
+   fact-check): eval FIXTURES are SYNTHETIC ONLY and committed - D12's
+   invariant stands untouched. Real-content material used for parity (pinned
+   ads, corpus snapshots, captured reference outputs) is NOT a fixture: it is
+   a LOCAL PARITY REFERENCE - never committed, checksummed, resolvable via a
+   committed manifest. The run REPORTS are committed; the content is not.
+   Disclosure classes, stated accurately: this law protects contact PII, the
+   evidence pool (data/cv_data.json, the datafact store), and captured CV
+   artefacts. Daniel's career biography is a separate, deliberate class -
+   committed by design as the real persona (writer prompt, persona pack,
+   product-vision docs) per the standing decision. The law does not pretend
+   otherwise. RATIFICATION REQUIRED: the fixture-vs-local-parity-reference
+   distinction amends D12's scope and binds only on Daniel's explicit
+   confirmation, recorded as a decision entry.
 4. THE ADVOCACY PRINCIPLE APPLIED WITHIN THIS FRAME. The advocate-not-audit
    principle (findings doc, section 2) governs HOW content is adapted and gaps are
    filled: maximum truthful strength, warn-do-not-block, end-to-end honesty with
    the interview tools sharing state. It operates INSIDE the boundary this
    document sets - it shapes the content HelloLilly prepares, not the document
    the CV tool renders.
+   AMENDED 2026-07-14 (per CTO review, Risk 2 - the broken safety net): bold
+   claims are safe BECAUSE the later tools carry the user, so the system must
+   not silently let the user skip the carrying. Every bold/bridged claim the
+   system helps produce is tagged HIGH-RISK in the shared state, and at export
+   or send time the user is explicitly warned which claims they carry and that
+   interview prep exists to rehearse them. TRIGGER CLAUSE (2026-07-14): this
+   obligation binds from the first wave that introduces bold/bridged
+   GENERATION. Waves whose adaptation is selection/reordering of approved text
+   only produce no bridged claims by construction and carry no tagging work. Warn, never block - but the warning
+   is mandatory, visible, and specific. A user-accepted override is
+   authorisation, NOT evidence: user acceptance never converts an unsupported
+   claim into an approved source for any tool-side generation.
 
 ## 7. What this deprioritises or reframes
 
@@ -178,6 +228,9 @@ that produced the walkthrough's poor CV.
 ## 8. Standing constraints (unchanged)
 
 Three-Claude workflow; independent review before merge; one wave at a time;
-British English; hyphens only; briefs are WHAT/WHY only. The findings record
+British English; hyphens only. BRIEF AUTHORITY (amended 2026-07-14): briefs
+state WHAT and WHY, and may fix behavioural and boundary positions -
+interfaces, forbidden routes, defined tests - where adversarial review demands
+them; code structure within those boundaries stays the builder's. The findings record
 (WALKTHROUGH_FINDINGS_COMPLETE.md) remains the session-level detail behind this
 document. Both should be committed to docs/ in the repo.

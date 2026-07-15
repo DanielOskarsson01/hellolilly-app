@@ -164,6 +164,14 @@ The builder/tailor split becomes visible in the nav. CV-BYGGAREN = the job-indep
 
 Off the back of the first real-user run reading the real activity log, Wave B (the fuller Progress Support surface) is deprioritised: it is no longer the automatic next wave but one undecided candidate among several, to be sequenced against `HELLOLILLY_NORTH_STAR.md` (see the master plan's NOW section). No new order is chosen here. Wave A — the activity collection it depends on — remains merged and done.
 
+## D19 - Adversarial-review regime for build briefs
+
+Large waves and doctrine documents get hostile external review before build; Wave 1 passed FIT TO BUILD after six rounds (40 -> 27 -> 11 -> 4 -> 2 -> 0 findings). Records: `docs/reviews/wave1/`.
+
+## D20 - Daniel's ratifications of 2026-07-16
+
+**Date:** 2026-07-16. Three parts: (a) real-content parity material is a LOCAL PARITY REFERENCE, not a fixture - D12's synthetic-only fixture invariant stands untouched; (b) career biography remains committed-by-design per the standing persona decision, while contact PII, the evidence pool, and captured CV artefacts never enter the repo; (c) the Wave 1 tailor is selection/reordering only - the suggestion engine (AI-drafted bullets from cover letters, interview Q&A and prior answers, human accept-and-mint, bridging under the HIGH-RISK machinery) is the immediate next wave. Full reasoning: `HELLOLILLY_NORTH_STAR.md`.
+
 ## Persona note (already in the seed, restated because it interacts with D3)
 New/rebuilt screens use the real persona (Daniel Oskarsson, iGaming/marketing) with real data. The Amir Hassan fixture persona survives ONLY inside labelled demo screens. No new Amir content.
 
