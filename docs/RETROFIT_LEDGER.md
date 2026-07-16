@@ -12,3 +12,14 @@ Created with D12, 2026-07-11. One line per shipped path.
 | **The A1 researcher prompts** - `server/submodules/researcher/execute.cjs` | Rule 2 (researcher fetches are untrusted ingestion; dossiers are untrusted-derived and permanently tainted), Rule 4 (authored research prose), Rule 1 where output characterizes the person | Next touch of the researcher submodule | Ingestion-class adversarial cases + prose eval cases exist before it leaves the ledger |
 
 **No dedicated retrofit wave** (D12 / Rule 4's frozen-zone note): retrofit happens next-touch while demo-only, with this ledger as the honest debt record. Retiring the last row is a precondition for opening the real-persons gate.
+
+---
+
+## Designated D12 modules (built under the rules, not retrofit debt)
+
+Recorded here per the Wave 1 brief's Rule 2 resolution ("if none is yet designated, the tailor's assembly module IS registered as the named module... exactly one named owner, never a second assembly point").
+
+| Concern | Named owner | Notes |
+|---|---|---|
+| **Rule 2 prompt assembly** (INVARIANT-assembly) | `server/skeleton/prompt-assembly/index.cjs` | The ONE module that owns envelope + provenance/taint + output-schema validation. Injected as `tools.assembly`. Untrusted / untrusted-derived content enters prompts only through it. First consumer: the Wave 1 cv-tailor. The four ledger rows above still assemble their own prompts inline (that is their retrofit debt); they move behind this module at next touch. |
+
