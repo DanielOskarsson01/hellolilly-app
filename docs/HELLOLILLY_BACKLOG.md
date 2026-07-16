@@ -2,7 +2,7 @@
 
 Parked work and deferred decisions. None blocking. Kept here so they survive (chat-only items get lost - the recurring lesson). Commit this to `docs/` so it's durable in the repo.
 
-Last updated: 2026-07-14 (Wave A merged; first real-user walkthrough complete; North Star adopted, D14-D18).
+Last updated: 2026-07-16 (PDF-as-first-class-output requirement added to the CV-builder wave). 2026-07-14: Wave A merged; first real-user walkthrough complete; North Star adopted, D14-D18.
 
 ---
 
@@ -41,6 +41,12 @@ Last updated: 2026-07-14 (Wave A merged; first real-user walkthrough complete; N
 - **What:** after the current work, gather the original JobSearch/CVs machinery, the CV templates, the orientation report in `WALKTHROUGH_FINDINGS_COMPLETE.md`, and the walkthrough findings into a spec package for another agent to spec the CV-builder side project, which then integrates into HelloLilly.
 - **Why deferred:** D15 - the CV builder is in scope but built separately, after current work. Not the focus of the current discussion, by Daniel's instruction.
 - **Full framing:** `HELLOLILLY_NORTH_STAR.md` §2 and §7. (This is a note that the brief is owed, not the brief itself - briefs are produced separately, WHAT/WHY only.)
+
+### PDF as a first-class output, not only .docx (Daniel, 2026-07-16)
+- **Requirement:** the CV tool must produce a ready-to-send **PDF**, not just an editable `.docx`. PDF is part of the process and the tool - a first-class output, not a manual afterthought. (Applies to cover letters too.)
+- **Mechanism (proven in Wave 1 Phase 0):** the `docx` library emits `.docx` only; convert with **LibreOffice headless** as a post-render step - `soffice --headless --convert-to pdf <file>.docx`. High fidelity, already installed locally; it is exactly what produced the Phase 0 CV/PDF previews.
+- **Deployment note:** a hosted renderer needs LibreOffice (or an equivalent docx->pdf engine) available server-side - pairs with the hosted-persistence bundle above.
+- **Owner:** rendering is an owed-later outcome per the Wave 1 brief; it lands with this CV-builder wave, wired as a post-render step (docx -> PDF). NOT welded into the Wave 1 tailor.
 
 ---
 
