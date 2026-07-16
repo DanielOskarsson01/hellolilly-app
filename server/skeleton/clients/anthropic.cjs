@@ -8,15 +8,21 @@ const utils = require('../utils.cjs'); // shared JSON recovery (one maintained c
 
 const DEFAULT_MODEL = 'claude-opus-4-8';
 const API_URL = 'https://api.anthropic.com/v1/messages';
+// Models that 400 on `temperature` ("deprecated for this model"): the Opus 4.x line and Sonnet 5
+// (verified live: opus-4-8 rejects, sonnet-4-6 accepts). `temperature` is sent ONLY when the caller
+// explicitly passes it AND the model accepts it — so existing callers (which pass none) are unchanged.
+const TEMPERATURE_DEPRECATED = /(opus-4|sonnet-5)/;
 
 function createAnthropicClient({ apiKey, defaultModel = DEFAULT_MODEL, timeoutMs = 240000 } = {}) {
   if (!apiKey) throw new Error('anthropic client: ANTHROPIC_API_KEY missing');
 
-  async function complete({ system, prompt, model, maxTokens = 4096 }) {
-    // Note: `temperature` is deliberately not sent — it is deprecated on Opus 4.8.
+  async function complete({ system, prompt, model, maxTokens = 4096, temperature }) {
+    const m = model || defaultModel;
+    const sendTemp = temperature != null && !TEMPERATURE_DEPRECATED.test(m);
     const body = JSON.stringify({
-      model: model || defaultModel,
+      model: m,
       max_tokens: maxTokens,
+      ...(sendTemp ? { temperature } : {}),
       ...(system ? { system } : {}),
       messages: [{ role: 'user', content: prompt }],
     });
@@ -55,7 +61,10 @@ function createAnthropicClient({ apiKey, defaultModel = DEFAULT_MODEL, timeoutMs
 
   // Structured generation with a markdown->JSON safety net + one corrective retry
   // (the seo-planner v2.2.1 lesson: models sometimes wrap JSON in prose/fences).
-  async function completeJSON({ system, prompt, model, maxTokens = 4096, temperature = 0.3 }) {
+  // temperature defaults to undefined -> not sent (preserves every existing caller's behavior);
+  // a caller that wants deterministic-leaning output passes it explicitly (honoured for models
+  // that accept it, e.g. the cv-tailor's claude-sonnet-4-6).
+  async function completeJSON({ system, prompt, model, maxTokens = 4096, temperature }) {
     const raw = await complete({ system, prompt, model, maxTokens, temperature });
     const parsed = utils.parseJSON(raw);
     if (parsed !== undefined) return parsed;
@@ -65,7 +74,7 @@ function createAnthropicClient({ apiKey, defaultModel = DEFAULT_MODEL, timeoutMs
       prompt: `${prompt}\n\nYour previous reply was not valid JSON. Reply with ONLY the JSON object, no prose, no code fences.`,
       model,
       maxTokens,
-      temperature: 0,
+      temperature,
     });
     const reparsed = utils.parseJSON(retry);
     if (reparsed !== undefined) return reparsed;

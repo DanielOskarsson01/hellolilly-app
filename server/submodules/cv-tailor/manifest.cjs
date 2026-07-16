@@ -5,5 +5,5 @@ module.exports = {
   reads: ['meta', 'decodedRole', 'fit'],
   writes: ['cvDraft'],
   capabilities: ['store', 'llm', 'datalayer', 'assembly'],
-  options: { model: 'claude-sonnet-4-6', language: 'en' },
+  options: { model: 'claude-sonnet-4-6', language: 'en', temperature: 0 },
 };
