@@ -608,6 +608,11 @@
 .subnav--soon { cursor: default; opacity: .62; }
 .subnav--soon:hover { background: none; color: var(--ll-ink-soft); }
 .subnav--soon .soon-tag { margin-left: auto; }
+/* Item 3 gaps bridge on Anpassad CV: surfaces the job's gaps/analysis + the fill-loop link */
+.gapsbridge { display: flex; align-items: center; gap: 10px; margin: var(--sp-2) 0 var(--sp-3); padding: 10px 14px; border-radius: var(--r-md); background: var(--ll-blue-tint-2); border: 1px solid var(--ll-border); }
+.gapsbridge__b { flex: 1; min-width: 0; font-size: var(--fs-sm); color: var(--ll-ink); }
+.gapsbridge__link { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; font-weight: var(--fw-bold); font-size: var(--fs-sm); color: var(--ll-blue-deep); text-decoration: none; }
+.gapsbridge__link:hover { text-decoration: underline; }
 .subnav__lbl { flex: 1; min-width: 0; }
 .subnav--active {
   background: var(--ll-blue-tint);

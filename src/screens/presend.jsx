@@ -244,9 +244,12 @@ function CheckedState({ parts, actions }) {
                         ? tr({ sv: 'Ditt utkast nuddar vid det här kravet, men säger det inte tydligt nog. ', en: "Your draft touches this requirement but doesn't say it clearly enough. " })
                         : tr({ sv: 'Ditt utkast säger inte det här — även om din bakgrund kanske gör det. Vi läser bara det du skrivit, och hittar aldrig på en match åt dig.', en: "Your draft doesn't say this — even if your background might. We read only what you wrote, and never invent a match for you." })}
                     </div>
-                    <a className="caprow__fix" href="#match">
+                    {/* Item 3: retargeted from #match (which stranded the user on a list where this
+                        job is gone) to the job's Anpassad CV surface, where its gaps are visible and
+                        the fill loop is reachable. Label names the actual destination (finding 54). */}
+                    <a className="caprow__fix" href="#cv">
                       <Icon name="target" size={13} sw={2.4} />
-                      {tr({ sv: 'Utforska och fyll den i Matchanalys', en: 'Explore and fill it in Match analysis' })}
+                      {tr({ sv: 'Se luckan i Anpassad CV', en: 'See the gap in Anpassad CV' })}
                     </a>
                   </React.Fragment>
                 )}
@@ -318,9 +321,10 @@ function CheckedState({ parts, actions }) {
                       <div className="kw__resbody">
                         <b>{tr({ sv: 'Det ordet lägger vi inte till', en: "We won't add that word" })}</b>
                         {tr({ sv: `Att skriva in "${m.term}" skulle påstå något ditt CV inte styrker. Vi alignar formulering — vi hittar inte på erfarenhet. Ta upp det ärligt istället.`, en: `Writing in "${m.term}" would claim something your CV doesn't support. We align wording — we don't invent experience. Address it honestly instead.` })}
-                        <a className="kw__reflink" href="#match">
+                        {/* Item 3: retargeted #match → #cv (see note on the gap-card link above). */}
+                        <a className="kw__reflink" href="#cv">
                           <Icon name="target" size={13} sw={2.4} />
-                          {tr({ sv: 'Bryggan i Matchanalys', en: 'The bridge in Match analysis' })}
+                          {tr({ sv: 'Se bryggan i Anpassad CV', en: 'See the bridge in Anpassad CV' })}
                         </a>
                       </div>
                     </div>

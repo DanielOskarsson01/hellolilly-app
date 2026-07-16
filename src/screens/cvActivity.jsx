@@ -9,8 +9,39 @@ import { tr, useLang, LangToggle } from '../lib/i18n.mjs';
 import { ContentArea, ContentBox, CrossColumn, PageTemplate } from '../components/grid.jsx';
 import { listCases } from '../api/caseApi.js';
 import { sectionItems } from '../lib/cvDraftItems.mjs';
+import { computeDraftCoverage } from '../lib/presendCoverage.mjs';
 
 const sectionLeafCount = (s) => sectionItems(s).length;
+
+/* ---------- Item 3: the gaps/analysis bridge on the Anpassad CV surface ----------
+   Retargeted "Innan du skickar" links land here; the promised context (the job's gaps/analysis
+   state) must be visible and the existing fill loop reachable via the #match/<caseId> deep-open. */
+function GapsBridge({ parts, caseId }) {
+  const fitStatus = parts.statusOf('fit');
+  const deep = caseId ? `#match/${encodeURIComponent(caseId)}` : '#match';
+  if (fitStatus !== 'ready') {
+    return (
+      <div className="gapsbridge">
+        <Icon name="bulb" size={16} sw={2.4} />
+        <div className="gapsbridge__b">{tr({ sv:'Matchanalysen för den här rollen är inte klar än — där ser du vilka krav som är svaga eller saknas.', en:"The match analysis for this role isn't done yet — that's where you see which requirements are weak or missing." })}</div>
+        <a className="gapsbridge__link" href={deep}><Icon name="target" size={13} sw={2.4} />{tr({ sv:'Öppna Matchanalys', en:'Open Match analysis' })}</a>
+      </div>
+    );
+  }
+  const cov = computeDraftCoverage({ fit: parts.fit, cvDraft: parts.cvDraft, decodedRole: parts.decodedRole });
+  const toStrengthen = cov.counts.weak + cov.counts.missing;
+  return (
+    <div className="gapsbridge">
+      <Icon name="target" size={16} sw={2.4} />
+      <div className="gapsbridge__b">
+        {toStrengthen > 0
+          ? tr({ sv:`${toStrengthen} krav är svaga eller saknas i utkastet. Fyll luckorna där du stärker dem — vi hittar aldrig på en match åt dig.`, en:`${toStrengthen} requirements are weak or missing in the draft. Fill the gaps where you strengthen them — we never invent a match for you.` })
+          : tr({ sv:'Utkastet täcker kraven analysen hittade. Du kan ändå öppna hela analysen.', en:'The draft covers the requirements the analysis found. You can still open the full analysis.' })}
+      </div>
+      <a className="gapsbridge__link" href={deep}><Icon name="target" size={13} sw={2.4} />{tr({ sv:'Fyll luckorna i Matchanalys', en:'Fill the gaps in Match analysis' })}</a>
+    </div>
+  );
+}
 
 // HelloLilly — CV-byggaren (design-system era, bound to cvDraft)
 // Ported from design/design/screens-cv2.jsx; wired to real data hooks.
@@ -195,7 +226,7 @@ function CVBuilder() {
   const head = (
     <div className="ll-pagehead">
       <div className="ll-pagehead__b">
-        <h1>{tr({ sv:'CV-byggaren', en:'CV builder' })}</h1>
+        <h1>{tr({ sv:'Anpassad CV', en:'Anpassad CV' })}</h1>
         <p className="ll-pagehead__sub">{tr({ sv:'Förbi det tomma pappret: dina svar blir byggstenar, Lilly väljer ihop dem till ett CV för rollen - aldrig något påhittat.', en:'Past the blank page: your answers become building blocks, Lilly assembles them into a role-tailored CV - never anything invented.' })}</p>
       </div>
       <div className="ll-pagehead__actions"><LangToggle /></div>
@@ -293,7 +324,7 @@ function CVBuilder() {
       label="CV-byggaren"
       nav={<Sidebar active="cv" />}
       cross={cross}
-      content={<ContentArea>{head}{ctx}{body}</ContentArea>}
+      content={<ContentArea>{head}{ctx}{caseData && <GapsBridge parts={parts} caseId={caseData.meta && caseData.meta.id} />}{body}</ContentArea>}
     />
   );
 }
