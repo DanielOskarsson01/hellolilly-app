@@ -169,9 +169,15 @@ function generateFixture(llm) {
   return { host, caseId: c.meta.id };
 }
 
-test('POST /generate runs cv-builder + writer and returns both parts ready', async () => {
+// cv-tailor returns a SELECTION of datafact ids per fixed template node (datafact_x is a ComeOn result).
+const TAILOR_SELECTION = { summary: [], highlights: [], competencies: [], other: [], jobs: {
+  onlyigaming: { intro: [], bullets: [] }, coinhero: { intro: [], bullets: [] }, betclic: { intro: [], bullets: [] },
+  comeon: { intro: [], bullets: ['datafact_x'] }, mrgreen: { intro: [], bullets: [] } } };
+const isTailorCall = (prompt) => prompt.includes('fixed CV section');
+
+test('POST /generate runs cv-tailor + writer and returns both parts ready', async () => {
   const llm = { completeJSON: async ({ prompt }) => {
-    if (prompt.includes('SELECT')) return { sections: [{ key: 'experience', heading: 'Experience', datafactIds: ['datafact_x'] }] };
+    if (isTailorCall(prompt)) return TAILOR_SELECTION;
     return { paragraphs: ['A clear opening line.', 'A solid middle paragraph.', 'An honest bridge.', 'A closing line.'], unsupported_by_cv: [] };
   } };
   const { host, caseId } = generateFixture(llm);
@@ -182,6 +188,7 @@ test('POST /generate runs cv-builder + writer and returns both parts ready', asy
   assert.equal(res._status, 200);
   assert.equal(res._body.ok, true);
   assert.equal(host.store.getCase(caseId).cvDraft.status, 'ready');
+  assert.equal(host.store.getCase(caseId).cvDraft.data.provenance, 'untrusted-derived'); // D12 transitive taint
   assert.equal(host.store.getCase(caseId).coverLetter.status, 'ready');
   assert.ok(res._body.coverLetter.paragraphs.length >= 4);
 });
@@ -322,7 +329,7 @@ test('POST research on an unknown case is 404; a partial (decoder failed) run is
 test('POST /generate is 207 with a per-generator error when one fails', async () => {
   // writer emits a banned phrase -> the writing-rules gate fails the coverLetter part.
   const llm = { completeJSON: async ({ prompt }) => {
-    if (prompt.includes('SELECT')) return { sections: [{ key: 'experience', heading: 'Experience', datafactIds: ['datafact_x'] }] };
+    if (isTailorCall(prompt)) return TAILOR_SELECTION;
     return { paragraphs: ['I am a perfect fit and would hit the ground running.'], unsupported_by_cv: [] };
   } };
   const { host, caseId } = generateFixture(llm);
@@ -332,7 +339,7 @@ test('POST /generate is 207 with a per-generator error when one fails', async ()
   await handle(makeReq('POST', `/api/case/${caseId}/generate`), res);
   assert.equal(res._status, 207);
   assert.equal(res._body.ok, false);
-  assert.equal(host.store.getCase(caseId).cvDraft.status, 'ready', 'cv-builder still succeeded');
+  assert.equal(host.store.getCase(caseId).cvDraft.status, 'ready', 'cv-tailor still succeeded');
   assert.equal(host.store.getCase(caseId).coverLetter.status, 'failed', 'writer failed the gate');
   assert.ok(res._body.writer_error, 'the writer error is surfaced');
 });

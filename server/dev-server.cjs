@@ -320,7 +320,7 @@ function createApiHandler(host, { preferencesPath, llm } = {}) {
 
     if (req.method === 'POST' && action === '/generate') {
       const out = {};
-      for (const id of ['cv-builder', 'writer']) {
+      for (const id of ['cv-tailor', 'writer']) { // Wave 1: cv-tailor replaces cv-builder (cv-builder kept, untouched)
         try { await host.invoke(id, { caseId }); } catch (err) { out[`${id}_error`] = err.message; }
       }
       const c = host.store.getCase(caseId);
