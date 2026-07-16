@@ -20,7 +20,7 @@ import { InnanDuSkickar } from './screens/presend.jsx';
 
 const LL_ROUTES = {
   home: { c: () => <HomeExpanded />, title: 'Hem' },
-  cv: { c: () => <CVBuilder />, title: 'CV-byggaren', template: true },
+  cv: { c: () => <CVBuilder />, title: 'Anpassad CV', template: true }, // Wave 1 D17: the #cv route shows the tailored draft (route unchanged; label truthful)
   letter: { c: () => <CoverLetter />, title: 'Personligt brev', template: true },
   interview: { c: () => <InterviewTrainer />, title: 'Intervjuträning' },
   activity: { c: () => <ActivityTracker />, title: 'Min aktivitet' },

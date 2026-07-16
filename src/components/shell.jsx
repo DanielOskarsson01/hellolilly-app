@@ -2,66 +2,10 @@ import React from 'react';
 import { Icon, Clover, Logo, Photo, Avatar, AvatarStack, Tag, Chip, Button, Rating, SectionHeader } from './primitives.jsx';
 import { CoachSidebar, COACH_NAV_INDEX } from '../screens/coach.jsx';
 import { TOOL_SPECS, COACH_TOOL_SPECS } from '../data/strategyData.js';
+import { NAV_GROUPS } from './navGroups.mjs';
 
-// HelloLilly — app shell + dashboard widgets
-// Two-level navigation: 7 top-level groups with sub-items. The active group
-// auto-opens; the others stay collapsed so the structure stays scannable.
-const NAV_GROUPS = [
-  { id:'plan',     label:'Plan',      icon:'activity',  items: [
-    { id:'home',           label:'Framstegsstöd' },
-    { id:'activity',       label:'Min aktivitet' },
-    { id:'activity-log',   label:'Aktivitetslogg (verifiering)' },
-    { id:'calendar',       label:'Kalender' },
-    { id:'uppgifter',      label:'Uppgifter' },
-    { id:'paminnelser',    label:'Påminnelser' },
-    { id:'arendevy-plan',  label:'Ärendevy' },
-  ]},
-  { id:'jobb',     label:'Jobb',      icon:'briefcase', items: [
-    { id:'jobbsok',        label:'Jobbsök' },
-    { id:'match',          label:'Matchanalys' },
-    { id:'jobbradar',      label:'Jobbradar' },
-    { id:'foretagslista',  label:'Företagslista' },
-    { id:'sparade-jobb',   label:'Sparade jobb' },
-  ]},
-  { id:'ansok',    label:'Ansök',     icon:'pen',       items: [
-    { id:'cv',             label:'CV-byggare' },
-    { id:'letter',         label:'Personligt brev' },
-    { id:'ansokningskoll',    label:'Ansökningskoll' },
-    { id:'innan-du-skickar', label:'Innan du skickar' },
-    { id:'review',            label:'Coachgranskning' },
-    { id:'studio',         label:'Bildstöd' },
-  ]},
-  { id:'intervju', label:'Intervju',  icon:'mic',       items: [
-    { id:'interview',            label:'Intervjuträning', badge:1 },
-    { id:'intervjuforberedelse', label:'Intervjuförberedelse' },
-    { id:'researchstod',         label:'Researchstöd' },
-    { id:'ovningshistorik',      label:'Övningshistorik' },
-  ]},
-  { id:'natverk',  label:'Nätverk',   icon:'globe',     items: [
-    { id:'linkedin',          label:'LinkedIn-stöd' },
-    { id:'kontaktplan',       label:'Kontaktplan' },
-    { id:'natverksmatch',     label:'Nätverksmatch' },
-    { id:'spontanansokningar',label:'Spontanansökningar' },
-    { id:'kontakter',         label:'Kontakter' },
-  ]},
-  { id:'stod',     label:'Stöd',      icon:'library',   items: [
-    { id:'kunskapshubb', label:'Kunskapshubb' },
-    { id:'community',    label:'Community' },
-    { id:'library',      label:'Mallar' },
-    { id:'videos',       label:'Videos' },
-    { id:'guider',       label:'Guider' },
-    { id:'kurser',       label:'Kurser' },
-    { id:'diskussioner', label:'Diskussioner' },
-  ]},
-  { id:'mincoach', label:'Min coach', icon:'users',     items: [
-    { id:'meddelanden',     label:'Meddelanden' },
-    { id:'moten',           label:'Möten' },
-    { id:'arendevy-coach',  label:'Ärendevy' },
-    { id:'review',          label:'Coachgranskning' },
-    { id:'delade-dokument', label:'Delade dokument' },
-    { id:'nastasteg',       label:'Nästa steg' },
-  ]},
-];
+// HelloLilly — app shell + dashboard widgets. NAV_GROUPS (the two-level nav data) lives in
+// navGroups.mjs so it is pure and unit-testable (shell.test.mjs); this file renders it.
 
 /* Flat lookup: route key → { label, group } — used by ComingSoon and the
    sidebar to find which group should auto-open. */
@@ -99,6 +43,13 @@ function Sidebar({ active = 'home' }) {
               {isOpen && (
                 <div className="navgroup__items">
                   {g.items.map(i => {
+                    // Honest-disabled ("Kommer"): visibly present but not navigable — never a dead link.
+                    if (i.soon) return (
+                      <span key={i.id + '-' + g.id} className="subnav subnav--soon" aria-disabled="true">
+                        <span className="subnav__lbl">{i.label}</span>
+                        <span className="soon-tag">Kommer</span>
+                      </span>
+                    );
                     const isActive = i.id === active;
                     const cls = `subnav ${isActive ? 'subnav--active' : ''}`;
                     const inner = (<React.Fragment>

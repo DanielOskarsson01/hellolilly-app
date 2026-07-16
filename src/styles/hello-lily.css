@@ -604,6 +604,10 @@
   transition: background .14s, color .14s;
 }
 .subnav:hover { background: var(--ll-blue-tint-2); color: var(--ll-ink); }
+/* honest-disabled nav item ("Kommer"): visible, muted, not interactive */
+.subnav--soon { cursor: default; opacity: .62; }
+.subnav--soon:hover { background: none; color: var(--ll-ink-soft); }
+.subnav--soon .soon-tag { margin-left: auto; }
 .subnav__lbl { flex: 1; min-width: 0; }
 .subnav--active {
   background: var(--ll-blue-tint);
