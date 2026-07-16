@@ -124,6 +124,7 @@ The plan indexes itself here (a prior gap: it never did). All paths under `docs/
 | `HELLOLILLY_PHASE_AFTER_PLAN.md` | **(new, D13)** The Phase-After Plan — doc of record for the governance review the real-persons gate waits on, the second human's two paths, the k ≥ 5 learning-layer floor, the padlock rule, and the pilot's smallest honest version. |
 | `HELLOLILLY_NORTH_STAR.md` | **(new)** Founding intent + the CV decision — dissolves the CV architecture fork, sets the outcome-parity standard, and holds the full reasoning behind D14–D18. |
 | `WALKTHROUGH_FINDINGS_COMPLETE.md` | **(new)** The first real-user end-to-end walkthrough — findings by surface, the advocate-not-audit principle, the CV-machinery orientation, and the deferred CV decisions. |
+| `COACH_VAULT_ENRICHMENT_BRIEF.md` | **(new, D21)** External evidence for D21 (coach network reach) — another project's implementation brief for the cookie-free LinkedIn enrichment route, committed unmodified as proof of feasibility (~$4/1000 profiles, proven 2026-07-16). Its repo conventions (tools.http, Rule 3/10, pipeline pool, Supabase) are that project's, **not** this repo's — see the file's header. |
 
 ---
 
