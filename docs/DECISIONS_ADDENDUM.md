@@ -43,6 +43,8 @@ Nearly every Kind-3 tool needs "a new kind of record the store has no home for" 
 
 **Date:** 2026-07-09. **Status:** decided by Daniel. (D10 is the next decision number after D9, clear of both this addendum's D1-D5 line and the Omställning area's D4-D8 range.)
 
+**Amendment pointer (added with D21, 2026-07-16):** D21 narrowly amends the standing "no scraping of people or LinkedIn" refusal — cookie-free enrichment of a coach's own network, run by/for the coach on her own data, is permitted; the refusal stands for everything else. (The refusal itself is stated in `HELLOLILLY_REST_OF_SITE_PLAN_v3.md` §6 and the reconciled design's refused-on-principle list, not verbatim in this D10 entry — pointer placed here per the D21 instruction, which treats it as D10's reaffirmed refusal.)
+
 Daniel reviewed an external outbound-communication design of his own — a separate product, a separate repo — for reusable ideas. This decision records what transferred. Nothing here touches work in progress (Wave A, Wave B, interview-prep); every adoption lands on the still-unbuilt Wave 2+ tools. The external project is referenced only at this level — no name, no file paths.
 
 **Adopted (five; specced in `REST_OF_SITE_RECONCILED_DESIGN.md` and `REST_OF_SITE_DATA_CONTRACT_ADDENDUM.md`):**
@@ -171,6 +173,34 @@ Large waves and doctrine documents get hostile external review before build; Wav
 ## D20 - Daniel's ratifications of 2026-07-16
 
 **Date:** 2026-07-16. Three parts: (a) real-content parity material is a LOCAL PARITY REFERENCE, not a fixture - D12's synthetic-only fixture invariant stands untouched; (b) career biography remains committed-by-design per the standing persona decision, while contact PII, the evidence pool, and captured CV artefacts never enter the repo; (c) the Wave 1 tailor is selection/reordering only - the suggestion engine (AI-drafted bullets from cover letters, interview Q&A and prior answers, human accept-and-mint, bridging under the HIGH-RISK machinery) is the immediate next wave. Full reasoning: `HELLOLILLY_NORTH_STAR.md`.
+
+## D21 - Coach network reach: local vault, edge judge, binary verdicts
+
+**Date:** 2026-07-16. **Status:** decided by Daniel. (D21 is the next decision number after D20, clear of this addendum's D1-D5 line and the Omställning area's D4-D8 range.)
+
+Daniel decided the architecture for coach network reach — **Network Match (E3)** and **Coach Network (F3)** — after a multi-turn design iteration that killed three earlier versions (a contact database; a human-readable coarse index; a centrally-held vault). This is v5. The enrichment route's evidence is attached as a document of record: `docs/COACH_VAULT_ENRICHMENT_BRIEF.md` (an external project's implementation brief, committed unmodified; its conventions are another repo's — see its header).
+
+**The architecture (binding):**
+- Each coach exports her OWN LinkedIn connections (the official export) and may optionally enrich them with full career histories via the cookie-free third-party route documented in `docs/COACH_VAULT_ENRICHMENT_BRIEF.md` (proven 2026-07-16, ~$4 per 1000 profiles). Enrichment runs on the coach's own behalf, never on coaches' LinkedIn accounts (no logged-in scraping, ever).
+- The full vault (names, URLs, histories) lives encrypted on the coach's own machine ONLY. HelloLilly never receives, stores, queries or has access to vault rows. The vault is the coach's personal professional equity — local ownership is both the legal posture and the adoption story.
+- Matching runs at the edge, on the coach's side, with vault content entering the judge inside the injection envelope (D12 Rule 2: profile text is untrusted-derived).
+- Only binary verdicts (JA/NEJ) plus opaque row IDs ever transit to HelloLilly. No names, no rows, no descriptive text crosses the boundary. The judge is contracted per D12 Rule 3: it answers yes or no, nothing else.
+- On JA the owner coach resolves the opaque IDs locally to her real rows — names and all — judges them, and makes the intro herself from her own LinkedIn. The precision exists in the system but is visible only to its owner.
+- Everyone else sees only a uniform sentence ("en förfrågan har gått till en coach" / "ingen träff just nu"). No free-text query interface exists; matching runs only on a case's real need. Both rules guard against probing leakage.
+- Enrichment-at-resolution is demoted to an optional note field; nothing depends on it (Daniel's verdict: coverage math kills it as a mechanism at 1000 contacts).
+
+**The refusal amendment.** D10's reaffirmed refusal "no scraping of people or LinkedIn" is AMENDED by D21: cookie-free third-party enrichment of a coach's own network, run by/for the coach on her own data, is permitted per the evidence brief. Named plainly, not hidden: this remains against LinkedIn's platform ToS; the account risk sits with the third-party provider, never on coaches' accounts. The refusal stands unchanged for everything else: no scraping into HelloLilly's own systems, no enrichment of anyone outside a coach's own network, no logged-in automation.
+
+**The legal working hypothesis (for the §2 governance review, per D13's hypothesis discipline — asserted by no one until counsel rules).** The coach acts as independent controller of her local vault (professional activity, not household exemption — stated honestly); HelloLilly is a tool provider processing only verdicts and opaque IDs. Counsel confirms or refutes before any real vault touches the product.
+
+**The gates.** Anything central runs on synthetic vaults only until the governance review; real coach uploads are Path A territory (D13). A new data category = D13 material-change trigger, review scope before reality. Daniel's personal prototyping on his own export, on his own machine, is his own activity outside the product's gates.
+
+**One disposition for traceability.** The evidence brief's acceptance test uses a real person's public profile; Daniel ruled it stays as-is — it lives in the external pipeline's own verification, outside this repo, so HelloLilly's synthetic-fixtures rules (D12/D13) are untouched.
+
+**What each stream does with this:**
+- **Build** — nothing now; the vault/judge tooling is post-Path-A work and enters the roadmap when coaches exist.
+- **Design** — the E3/F3 screens keep demo tier; the uniform-sentence rule is a copy commitment.
+- **Planner** — the §2 review scope gains the controller/tool-provider hypothesis and the enrichment-route question; E3/F3 briefs inherit this architecture.
 
 ## Persona note (already in the seed, restated because it interacts with D3)
 New/rebuilt screens use the real persona (Daniel Oskarsson, iGaming/marketing) with real data. The Amir Hassan fixture persona survives ONLY inside labelled demo screens. No new Amir content.
