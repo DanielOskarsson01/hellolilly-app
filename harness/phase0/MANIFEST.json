@@ -108,11 +108,11 @@
   "corpus": {
     "datafact_pool": {
       "count": 144,
-      "pool_sha256": "145c52c22a5c45f7bb172a19a737940bef9acf0f4f685a437b8d21f58cefd5fa",
+      "pool_sha256": "2752555246fd1cbb225599357677b957fadb15785997f93b63af1f08e5309b24",
       "items": [
         {
           "id": "datafact_03114785",
-          "sha256": "ddbf7a2cadb017bd2a9408dd3a2c3f76e3286964e1e46d42a60af36862b8fdd1"
+          "sha256": "4767e046c53608377991d692907bf6ef6e6abe48573d8c3bc52175c3deadf8bd"
         },
         {
           "id": "datafact_03d59711",
@@ -204,7 +204,7 @@
         },
         {
           "id": "datafact_2ef9c1f5",
-          "sha256": "3e7f37327ca4aead231573953fd62b5b908fa0bd412c01903e05d4ea6123f3e0"
+          "sha256": "107fa91c4a8df307b06b5d57b9fb81fa86381a6a6c55939365ab688ef79a5481"
         },
         {
           "id": "datafact_2fce3f77",
@@ -220,7 +220,7 @@
         },
         {
           "id": "datafact_34e36e0e",
-          "sha256": "20b0c72a7ba380ef741c50cf1540a827a733fcabfcd7c23e91f2885b4dba2cda"
+          "sha256": "29147f8c5ea62caeac07c65c67ed52f898b6680d66d7c8ed09782f9bb443e32d"
         },
         {
           "id": "datafact_34fc25e6",
@@ -236,7 +236,7 @@
         },
         {
           "id": "datafact_3b736026",
-          "sha256": "0e8fa12cdd2845912b03b3bf358b313189c7561ebcadbc79e8f330db6ba36487"
+          "sha256": "83c43251652f2041cc29197b94db25c157a350f4adad9d7b2698ef470d5d4783"
         },
         {
           "id": "datafact_42c2860d",
@@ -276,7 +276,7 @@
         },
         {
           "id": "datafact_4ec705b7",
-          "sha256": "bd6f08484dc7dde8ea5d0e42c97f1702a71cf23cbc6480302230bb44a979b52b"
+          "sha256": "9eb477e9f724f601a8191523e3d4f7707d1c3d13b736868aca121a5f037fa4db"
         },
         {
           "id": "datafact_5192405f",
@@ -296,7 +296,7 @@
         },
         {
           "id": "datafact_55d9b2b4",
-          "sha256": "fcaa682e62bdfa812a4097b8ed6725a0f6a1fe2ac02619df5b3132c9aa3d16a5"
+          "sha256": "96d87d3d8d1906cca0c2e639464897f1392bf396ac85b0d9ab2f64c5d7475da0"
         },
         {
           "id": "datafact_56de2e41",
@@ -312,11 +312,11 @@
         },
         {
           "id": "datafact_5a744672",
-          "sha256": "48c70306061603e12206366c7264cef6130f72203681d10273bef99401ffc283"
+          "sha256": "44bf12409d88e4f3f73bd81c09e2a4dd5adc764e03ecde59fd4e9ab236efe164"
         },
         {
           "id": "datafact_5d1db384",
-          "sha256": "d9bd452b2daa52c3766aee01fbdc23554d709c0d10fd4f5da9e6fef1f3be6d7e"
+          "sha256": "e60d6cc85556c8e572b14cf652dda8858d0abbbc599b75aa0f027b9cee187f98"
         },
         {
           "id": "datafact_5fc4baa1",
@@ -332,7 +332,7 @@
         },
         {
           "id": "datafact_64ba3dac",
-          "sha256": "ae0ce2c5dfb457d8ccc9dc1b433223656f10a5ec295e89b5fab8f52210b96dc4"
+          "sha256": "10d81bb2597e3aaea1e4f14ed9f53be64a31417702fb2df4a491dd2639100cd8"
         },
         {
           "id": "datafact_669b2eed",
@@ -340,7 +340,7 @@
         },
         {
           "id": "datafact_6987e86a",
-          "sha256": "3f6c0741d96ebc25e739205f32f3cb77725e7a9c915bc438e0ed738690ab49b1"
+          "sha256": "b1fbc21fd9cec30b2c233097989a43032bf692bf0343331bd8560704d06bab97"
         },
         {
           "id": "datafact_6c8e00aa",
@@ -364,7 +364,7 @@
         },
         {
           "id": "datafact_7a0e2412",
-          "sha256": "c4c707ee12ea3c579214b60b9d8d5f1d665738aaef5fe3ad45f63e70f195091e"
+          "sha256": "90e96914f9f4295381bcf3dbacfd806e379e9f9fad43311461816c1fdd772c49"
         },
         {
           "id": "datafact_7a3c2a60",
@@ -428,7 +428,7 @@
         },
         {
           "id": "datafact_938cc745",
-          "sha256": "c82c28b74a928862c5ea6f4ff208676207a958b0ef484dce5c7f7e0d66c198ad"
+          "sha256": "205f6bffbedf449ebe4022b7afaf2abc0e2a1ceab97691bce7d62cb0a6dd6eb7"
         },
         {
           "id": "datafact_93c76de8",
@@ -464,11 +464,11 @@
         },
         {
           "id": "datafact_9c434fa1",
-          "sha256": "d4b00089392755e554ed910c49a5f473e6ce6d1b7a4d58b541c700541579644d"
+          "sha256": "2c78d8e00da8d9f7cfe363e1d4339e05bdc4fc97e87f08b02aa229c413f1b93c"
         },
         {
           "id": "datafact_9e6858db",
-          "sha256": "156e6d084b0547e17897cc8acb5ea1a2f3da79d75bc3c989b26429cea67822cf"
+          "sha256": "23ab0c01395f640e4a0943c3bd7cd72f8a4bf905747e34e8228b89e8b5735b48"
         },
         {
           "id": "datafact_9f068dae",
@@ -480,7 +480,7 @@
         },
         {
           "id": "datafact_a3244ac7",
-          "sha256": "4d87b2c39238935c2d702bc8fa70dff9294ebb5bee274ac690daf8ede32c7d33"
+          "sha256": "1fa4dc38857298730b03b60401ec1dec9e008a4bdd0bc497edf0a8572de2c9c7"
         },
         {
           "id": "datafact_a5810fdf",
@@ -488,7 +488,7 @@
         },
         {
           "id": "datafact_a918efa9",
-          "sha256": "801510f772ae827cf4121078cb9c6b69de7fd7fd9db1551e0fc097d9ffe1379b"
+          "sha256": "a1d5577d2d1443a2819e0c2f275c007c77f5ad9d8717963b8f6576a67813461d"
         },
         {
           "id": "datafact_a9626485",
@@ -496,7 +496,7 @@
         },
         {
           "id": "datafact_a9939d9d",
-          "sha256": "a908132e0075435fd60c65d138dd4b2c1b88151fc2a4300faafab6dbfddab8f8"
+          "sha256": "1b9e73b6eb8d0c9c39b866a424507f80e7ef274e278ec4b7deeaa58c278dbf2d"
         },
         {
           "id": "datafact_ac4d0253",
@@ -504,7 +504,7 @@
         },
         {
           "id": "datafact_ae90fcd3",
-          "sha256": "012f6a0339f8014118b5c5f829976f1803c35b2f6690888563df5217a32164f9"
+          "sha256": "bfe15729f7fed6757abe708ec1b6b4127380b6bd6fb61f320d22f11a2aa03d7a"
         },
         {
           "id": "datafact_b05da0b6",
@@ -520,7 +520,7 @@
         },
         {
           "id": "datafact_b4974ee2",
-          "sha256": "cbe554bb554b170f7ef21bb6946566f4947679cef668c2a2bd89bd5e4ee2c1f2"
+          "sha256": "59a844c5ca8d1d943faaf275391e95979e5f0620f5b04ee43c568afff6155f12"
         },
         {
           "id": "datafact_b5c19e54",
@@ -560,7 +560,7 @@
         },
         {
           "id": "datafact_c9a95a41",
-          "sha256": "fbaee8a293937468896dee8dd54c0ebbb510cf3a20dc5c39ff7b618658327939"
+          "sha256": "09e18bb2ea1af4964319530755ccd6bb5692f6d47de0ff0df870d04da4101086"
         },
         {
           "id": "datafact_cd24c6c7",
@@ -580,7 +580,7 @@
         },
         {
           "id": "datafact_cf617ac6",
-          "sha256": "21583704fa8af0eb5f46c574a4acb920b43a95f7d889064021ccdae8608388c8"
+          "sha256": "4258f6cc3e85af0f4876c8d426f4536a95d0616fed9d97a573a159bacce65ff2"
         },
         {
           "id": "datafact_d17d7055",
@@ -588,7 +588,7 @@
         },
         {
           "id": "datafact_d3c7a621",
-          "sha256": "89fe7371d3e5aba22aed68a8db6350ef58168bf93d3c04750098246da816b635"
+          "sha256": "8902551ae87860e3a77da99f787899d8575efcda7523dc9e24ffa11e5293f3d3"
         },
         {
           "id": "datafact_d5275311",
@@ -616,7 +616,7 @@
         },
         {
           "id": "datafact_de11931d",
-          "sha256": "865c0526ce1dfd3a4fc03abff0d4637537eca9a212efafd08891ec38ea5bce3f"
+          "sha256": "bf5bbeba620724d3c7c8eeaea85d0b4d216d2137f551c768927b14be9c68b7ca"
         },
         {
           "id": "datafact_e8ec7b32",
@@ -640,11 +640,11 @@
         },
         {
           "id": "datafact_ece470a5",
-          "sha256": "732590178a8046b98b0c39faf93fa1f3a88c6a3194571410fa0b7a13b6f4fa5f"
+          "sha256": "2057534c4ae54e55a8088c943563c767c26f1adb01eef226b0e8e44e9eb5803c"
         },
         {
           "id": "datafact_edd9bfe4",
-          "sha256": "45fa2aafd374105fd195a68e585462f0d5351c58c46f8589bbe49307794edb2f"
+          "sha256": "295b1284e70e0529a8429579df9befc86867de81ba30bf5a28fec4897ca2798a"
         },
         {
           "id": "datafact_f2271ec2",
@@ -728,5 +728,17 @@
       }
     ],
     "corpus_version": "a1d95743a06d969900f3ce103de5fc7f83be7dbef6c5628d03524b712906429f"
-  }
+  },
+  "amendments": [
+    {
+      "date": "2026-07-16",
+      "change": "Enriched the 25 competency datafacts with a `category` field {id, title, group, source}; ids unchanged, no facts added/deleted, all case references still resolve.",
+      "source": "COMPETENCY_MASTER_POOL.json (category titles; checksummed as corpus.curated corpus.competency_pool). Item→category grouping is the pre-existing cv_data.competencies group carried on each fact (ingest-cv.cjs).",
+      "reason": "The live datafact pool lacked the category structure the frozen template requires (TEMPLATE_DEFINITION.md §5 / JC1: 3 categories, 4-6 items). Route B, approved by Daniel.",
+      "script": "scripts/enrich-competency-categories.cjs",
+      "previous_pool_sha256": "145c52c22a5c45f7bb172a19a737940bef9acf0f4f685a437b8d21f58cefd5fa",
+      "new_pool_sha256": "2752555246fd1cbb225599357677b957fadb15785997f93b63af1f08e5309b24",
+      "oracle_unchanged": "The three captured reference outputs (0e baseline) are untouched; this amends the pool checksums only."
+    }
+  ]
 }
