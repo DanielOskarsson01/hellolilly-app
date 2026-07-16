@@ -3,65 +3,64 @@
 Branch: `wave1-phase0-baseline` off `main` @ `165920f`.
 Governing spec: `docs/WAVE_1_BRIEF_honest-tailor_v3.4.md`, Phase 0 (0a-0e). The brief wins where this doc differs.
 
-Reference machinery (LOCAL PARITY REFERENCE, never committed):
-`JobSearch/CVs/generate-tailored-cv.js` + `generate_core_cvs.js`. English pipeline. Swedish output owed-later (out of scope) but SV sources preflighted per 0a.
+**State: 0a-0d COMPLETE. STOPPED at 0e for Daniel's baseline confirmation (mandated gate).**
+
+Reference machinery (LOCAL PARITY REFERENCE, never committed): `JobSearch/CVs/generate-tailored-cv.js` + `generate_core_cvs.js`. English pipeline.
+
+---
+
+## Model substitution (recorded in the manifest)
+
+Original pinned model `claude-sonnet-4-20250514` reached **EOL 2026-06-15** and now 404s. Per Daniel's approval, substituted with **`claude-sonnet-4-6`** (current Sonnet, direct successor) on 2026-07-16, reason: EOL. Method: a local copy of the reference with ONLY the model id changed (original untouched; diff at `harness/phase0/local/reference-substitute/model-swap.diff`; original sha `4155bd8c…` unchanged).
+
+**Standing rule (manifest):** all parity runs this wave use the SAME model id (`claude-sonnet-4-6`) for BOTH the reference substitute and the HelloLilly tailor - the model is held constant so the machinery is the only variable the parity tests measure.
 
 ---
 
 ## 0a PREFLIGHT - PASS
+`harness/phase0/preflight.cjs`: 16/16 required reference inputs load non-empty; `ANTHROPIC_API_KEY` present.
 
-Gate: `harness/phase0/preflight.cjs`. Criterion is NON-EMPTY loads (the reference `loadFile()` warns-and-returns-`""` on a missing soft input, so "no errors" is not the test). **16/16 required inputs load non-empty**; `ANTHROPIC_API_KEY` present. (Full table in the prior commit's version of this file; unchanged.)
+## 0b ADS - verified & pinned (LOCAL, never committed)
+| Ad | Source (same listing id) | Title / company | sha256 / bytes |
+|----|----|----|----|
+| PRIMARY Wrknest | JobTech live `/ad/30629138` | `Vikarierande Marknadschef…` / `Wrknest AB` | `02eafdae…` / 3794 |
+| SECOND Aloi AI | JobTech historical `/ad/31216243` | `Senior Marketing Manager` / `Aloi AI AB` | `b566fb22…` / 2406 |
+| CONTROL Ramen Bae | RemoteOK page body | `Creative Strategist` / `Ramen Bae` | `496a487a…` / 5868 |
+All three verified (title+company match, complete). Pinned at `harness/phase0/local/ads/`.
 
----
+## 0c CAPTURES - DONE (3 runs, one per ad)
+Ran the substitute reference once per ad. Outputs (RESPONSE json + tailored CV docx + suggestions docx + run log) captured to `harness/phase0/local/captures/<role>/` (never committed).
 
-## 0b ADS - APPROVED, FETCHED, VERIFIED, PINNED
+| Ad | Selected variant | Company slug |
+|----|------------------|--------------|
+| PRIMARY Wrknest | `cmo` | Wrknest_Marknadschef_Fintech |
+| SECOND Aloi AI | `cmo` | Aloi |
+| CONTROL Ramen Bae | `cmo` | RamenBae |
 
-Daniel approved: PRIMARY Wrknest, SECOND Aloi AI, CONTROL Ramen Bae; instruction: fetch the three source URLs, extract verbatim ad text only, verify title+company match and completeness, keep as LOCAL PARITY REFERENCES (never committed, checksums in the manifest).
+**Observation for your 0e review:** all three selected the `cmo` variant (each ad's own run is recorded per the brief - this is allowed). The CONTROL landing on the same variant as the PRIMARY means P3's differential signal will come from the *content selection within* the variant, not the variant choice. That selection *does* differ: competency categories per ad - PRIMARY {Marketing & Growth, Leadership & Scaling, Operations & Execution}, SECOND {Marketing & Growth, Data & Analytics, Digital & Innovation}, CONTROL {Marketing & Growth, Data & Analytics, Operations & Execution}; item counts differ too. It responds to the ad, but PRIMARY vs CONTROL overlap is moderate. If you want a sharper CONTROL for P3 headroom, name a replacement now - it re-passes the 0b approval step. Otherwise this stands.
 
-The store `sourceInput` held only ~280-char snippets, so the full ad text was fetched from each listing's own data endpoint (same listing ID; page-as-data, verbatim body only):
+## 0d FIXTURES / TEMPLATE / MANIFEST - DONE (committed, synthetic tier)
+- `harness/phase0/TEMPLATE_DEFINITION.md` - structural definition from the reference code, cross-checked against the 3 captures, with the **two named judgement calls** (JC1 cardinality bounds; JC2 all-sections-non-empty), both validated against captures and **vetoable by you at 0e**.
+- `harness/phase0/fixtures/` - `synthetic-ad.txt`, `synthetic-corpus.json` (same shape as real data, fabricated), `extraction-and-normalisation-rules.md`, `normalise.cjs` (self-check passes).
+- `harness/phase0/MANIFEST.json` - identifiers + content checksums for the 3 ads, 3 captured outputs, the 144-item datafact pool snapshot, and the curated corpus; plus run config (model, sampling temp 0.2 / max_tokens 8000, prompt version = reference code sha, corpus version, run date) and the substitution + same-model records. No real content.
+- `harness/phase0/local/corpus/corpus-snapshot.json` - the real datafact-pool state + curated refs (never committed).
 
-| Ad | Source (same listing) | Title / company vs case | Verify | Bytes / sha256 |
-|----|----|----|----|----|
-| PRIMARY Wrknest | JobTech live API `/ad/30629138` | `Vikarierande Marknadschef till Göteborg 🚀` / `Wrknest AB` | MATCH, complete | 3794 / `02eafdae…e62f5a43` |
-| SECOND Aloi AI | JobTech historical API `/ad/31216243` (expired from live feed) | `Senior Marketing Manager` / `Aloi AI AB` | MATCH, complete | 2406 / `b566fb22…93206366` |
-| CONTROL Ramen Bae | RemoteOK page body (JSON-LD was a truncated teaser; full body from visible HTML) | `Creative Strategist` / `Ramen Bae` | MATCH, complete | 5868 / `496a487a…c05298063` |
-
-Pinned at `harness/phase0/local/ads/{primary-wrknest,second-aloi,control-ramenbae}.txt` (git-ignored). No STOP triggered - all three verified.
-
-Fetch-method note: the literal SPA/page URLs return no ad text to a fetcher (Arbetsförmedlingen is a JS shell; RemoteOK 403s bots). The data endpoints above serve the SAME listing IDs verbatim - not a substitution.
-
----
-
-## 0c CAPTURE - BLOCKED: the reference's pinned model is END-OF-LIFE
-
-Running `generate-tailored-cv.js` on the PRIMARY ad failed:
-
-```
-NotFoundError: 404 {"type":"not_found_error","message":"model: claude-sonnet-4-20250514"}
-The model 'claude-sonnet-4-20250514' is deprecated and reached end-of-life on June 15th, 2026.
-```
-
-The reference hardcodes `model: "claude-sonnet-4-20250514"` (generate-tailored-cv.js:452). That model is dead as of 2026-06-15; the API returns 404. The key works (this is a model error, not auth). No outputs were produced.
-
-Per 0a's rule ("if the reference cannot be made to run faithfully on full inputs, STOP - there is no oracle") this is a STOP. The captured baseline **must** be the CVs Daniel remembers as good; the model is a recorded run-integrity field, and swapping it changes what the oracle produces. That is Daniel's decision, not the builder's.
-
-**Needed from Daniel to unblock 0c (pick one):**
-1. Approve substituting the reference model with a current one - recommended `claude-sonnet-5` (same tier, direct successor). I would run a local copy of the reference with only the model id changed (original reference left untouched), and record the substitution prominently as a run-integrity field in the manifest (original pinned model `claude-sonnet-4-20250514`, EOL 2026-06-15; substitute + date). The 0e gate then does its job: confirm the three outputs still look like the good CVs. If they do not, the baseline is rejected there.
-2. Name a different model to standardise on.
-3. Point at a captured set of the original sonnet-4 reference outputs from your own records (if any exist), to use as the frozen baseline without re-running.
-
-Whichever path: a model substitution re-touches the oracle, so it is recorded and surfaced at 0e, exactly like an ad replacement re-passes approval.
+`npm run verify` green offline (279/279 + build); `normalise.cjs` and `preflight.cjs` self-checks pass.
 
 ---
 
-## Done this session
-- 0b ads fetched, verified (title+company match, complete), pinned as LOCAL PARITY REFERENCES with checksums.
-- `harness/phase0/local/` created and git-ignored (FIXTURE LAW: real content never committed).
+## 0e - STOPPED HERE: your baseline confirmation is required (mandated gate)
 
-## Gated - NOT done
-- **0c captures / 0d fixtures + template definition / manifest:** blocked on the reference-model decision above. The template definition cross-checks against the captured outputs and the cardinality judgement call is validated against them, so 0d cannot complete before 0c.
-- **0e baseline confirmation:** downstream of 0c-0d.
-- **Item 1+**: not started.
+Per 0e, before Item 1 can start you must confirm: **do the three reference outputs look like the good CVs you remember?** If not, STOP - the baseline is wrong.
 
-## Committed on branch (push deferred until Phase 0 completes, per the brief)
-- `harness/phase0/preflight.cjs` (0a gate), `.gitignore` (local-parity-reference rule), `docs/phase0/PHASE0_STATUS.md` (this file).
+Open these three (local, git-ignored):
+- `harness/phase0/local/captures/primary-wrknest/CV_Daniel_Oskarsson_Wrknest_Marknadschef_Fintech_tailored.docx`
+- `harness/phase0/local/captures/second-aloi/CV_Daniel_Oskarsson_Aloi_tailored.docx`
+- `harness/phase0/local/captures/control-ramenbae/CV_Daniel_Oskarsson_RamenBae_tailored.docx`
+
+Please confirm (1) the three CVs look right (recorded as your baseline confirmation), (2) the model substitution to `claude-sonnet-4-6` is accepted as baseline, (3) the two named judgement calls (JC1/JC2 in TEMPLATE_DEFINITION.md) - accept or veto, and (4) whether the CONTROL stands or you want a sharper one (which re-passes 0b).
+
+On your confirmation: I record it, Phase 0 completes, I push the branch, and Item 1 build can start. **Item 1 is NOT started.**
+
+## Committed on branch (push deferred until 0e confirmation, per the brief)
+`harness/phase0/`: `preflight.cjs`, `build-manifest.py`, `MANIFEST.json`, `TEMPLATE_DEFINITION.md`, `fixtures/*`; `docs/phase0/PHASE0_STATUS.md`; `.gitignore` (local rule).

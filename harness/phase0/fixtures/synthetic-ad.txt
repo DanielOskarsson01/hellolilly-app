@@ -1,0 +1,22 @@
+Marketing Lead (Synthetic Fixture Ad - not a real job)
+
+Northwind Widgets is hiring a Marketing Lead to own brand, growth, and demand
+generation for our B2B widget platform. You will build and lead a small team,
+run data-driven acquisition and retention campaigns across paid and organic
+channels, and set the go-to-market strategy for new product lines.
+
+What you'll do
+- Own the marketing strategy end to end: positioning, brand, and go-to-market
+- Build and lead the marketing team as we scale
+- Run performance marketing across paid social, search, and email
+- Stand up analytics and reporting so decisions are data-driven
+- Partner with product on launches and lifecycle messaging
+
+What we're looking for
+- Proven marketing leadership at a scaling company
+- Hands-on performance marketing and CRM experience
+- Comfort with analytics, experimentation, and budget ownership
+- Strong brand and creative judgement
+
+Fully remote. This is a synthetic advertisement used only to drive offline,
+CI-runnable structure and provenance tests. It contains no real employer.
