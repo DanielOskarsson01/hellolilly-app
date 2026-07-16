@@ -3,7 +3,7 @@
 Branch: `wave1-phase0-baseline` off `main` @ `165920f`.
 Governing spec: `docs/WAVE_1_BRIEF_honest-tailor_v3.4.md`, Phase 0 (0a-0e). The brief wins where this doc differs.
 
-**State: 0a-0d COMPLETE. STOPPED at 0e for Daniel's baseline confirmation (mandated gate).**
+**State: PHASE 0 COMPLETE. 0e confirmed by Daniel on 2026-07-16. Branch pushed. Item 1 NOT started (separate task).**
 
 Reference machinery (LOCAL PARITY REFERENCE, never committed): `JobSearch/CVs/generate-tailored-cv.js` + `generate_core_cvs.js`. English pipeline.
 
@@ -49,18 +49,18 @@ Ran the substitute reference once per ad. Outputs (RESPONSE json + tailored CV d
 
 ---
 
-## 0e - STOPPED HERE: your baseline confirmation is required (mandated gate)
+## 0e - CONFIRMED (Daniel, 2026-07-16)
 
-Per 0e, before Item 1 can start you must confirm: **do the three reference outputs look like the good CVs you remember?** If not, STOP - the baseline is wrong.
+Baseline confirmation recorded (see `MANIFEST.json` -> `phase0_decisions`):
+1. The three reference CVs look like the good CVs - **baseline confirmed**.
+2. Model substitution to `claude-sonnet-4-6` **accepted** as the Wave 1 baseline. Wave 1 does no writing (selection/reordering only), so `claude-opus-4-8` is **designated for the next wave** (the suggestion engine, D20c) where writing happens - not used this wave. Both model ids validated live.
+3. Named judgement calls JC1 (cardinality) and JC2 (all-sections-non-empty) **adopted** (not vetoed).
+4. CONTROL (Ramen Bae) **stands** (not replaced).
 
-Open these three (local, git-ignored):
-- `harness/phase0/local/captures/primary-wrknest/CV_Daniel_Oskarsson_Wrknest_Marknadschef_Fintech_tailored.docx`
-- `harness/phase0/local/captures/second-aloi/CV_Daniel_Oskarsson_Aloi_tailored.docx`
-- `harness/phase0/local/captures/control-ramenbae/CV_Daniel_Oskarsson_RamenBae_tailored.docx`
+### Header-image design decision
+The reference forces the header shorter than its true aspect at width 800 (medium 280 vs natural 316; large 400 vs 452; small 160 vs 181 - all slightly squished). Decision: the **HelloLilly renderer** uses natural/undistorted heights **316/452/181**; the **reference oracle stays frozen** at 280/400/160 (honest historical baseline). Image is static/structural, not a parity-graded node - a deliberate design improvement, not a regression. Recorded in `TEMPLATE_DEFINITION.md` and `MANIFEST.json`. Item 1's renderer applies these heights.
 
-Please confirm (1) the three CVs look right (recorded as your baseline confirmation), (2) the model substitution to `claude-sonnet-4-6` is accepted as baseline, (3) the two named judgement calls (JC1/JC2 in TEMPLATE_DEFINITION.md) - accept or veto, and (4) whether the CONTROL stands or you want a sharper one (which re-passes 0b).
+**Phase 0 is COMPLETE.** Branch pushed. Item 1 build is a separate task - NOT started here.
 
-On your confirmation: I record it, Phase 0 completes, I push the branch, and Item 1 build can start. **Item 1 is NOT started.**
-
-## Committed on branch (push deferred until 0e confirmation, per the brief)
+## Committed on branch (pushed - Phase 0 complete)
 `harness/phase0/`: `preflight.cjs`, `build-manifest.py`, `MANIFEST.json`, `TEMPLATE_DEFINITION.md`, `fixtures/*`; `docs/phase0/PHASE0_STATUS.md`; `.gitignore` (local rule).

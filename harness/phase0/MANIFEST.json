@@ -14,6 +14,28 @@
     "method": "local copy of generate-tailored-cv.js with ONLY the model id changed (original untouched); diff at harness/phase0/local/reference-substitute/model-swap.diff"
   },
   "standing_rule_same_model": "For all parity runs this wave, the reference substitute AND the HelloLilly tailor use THE SAME model id (claude-sonnet-4-6). The model is held constant so the machinery is the only variable the parity tests measure.",
+  "phase0_decisions": {
+    "baseline_confirmed_by": "Daniel",
+    "baseline_confirmed_on": "2026-07-16",
+    "baseline_confirmation": "The three reference CVs look like the good CVs (0e gate passed).",
+    "wave1_model": "claude-sonnet-4-6 (selection/reordering only - Wave 1 does no writing)",
+    "writing_wave_model": "claude-opus-4-8 - designated for the NEXT wave (the suggestion engine, D20c), where AI actually drafts content; validated live. Not used this wave.",
+    "judgement_calls": "JC1 (cardinality) and JC2 (all-sections-non-empty) adopted as-is, not vetoed.",
+    "control_ad": "Ramen Bae stands as the CONTROL (not replaced).",
+    "header_image_height": {
+      "decision": "HelloLilly renderer uses natural/undistorted heights at width 800; reference oracle frozen.",
+      "reference_frozen": {
+        "medium": 280,
+        "large": 400,
+        "small": 160
+      },
+      "hellolilly_template": {
+        "medium": 316,
+        "large": 452,
+        "small": 181
+      }
+    }
+  },
   "run_config": {
     "model": "claude-sonnet-4-6",
     "sampling": {

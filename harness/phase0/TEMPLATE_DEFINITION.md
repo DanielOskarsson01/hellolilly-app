@@ -76,6 +76,27 @@ The reference renders every section unconditionally (`buildCV` pushes all sectio
     "bullets_per_job": {"min": 1, "note": "exact count variant-fixed"},
     "otherExp": {"min": 1}
   },
-  "all_sections_non_empty": true
+  "all_sections_non_empty": true,
+  "header_image": {
+    "render_width": 800,
+    "reference_heights_frozen": {"medium": 280, "large": 400, "small": 160},
+    "hellolilly_template_heights": {"medium": 316, "large": 452, "small": 181},
+    "note": "HelloLilly renderer uses natural (undistorted) heights at width 800; reference oracle stays frozen"
+  }
 }
 ```
+
+## Header image (HelloLilly template design value, confirmed 0e)
+
+The header image is variant-driven (`IMAGE_MAP`), rendered at fixed `width: 800`.
+The reference forces heights 280 (medium) / 400 (large) / 160 (small) - all BELOW
+the natural height at width 800, so every header renders slightly vertically
+squished. Original banners are all 2480px wide: medium 2480x980 -> natural 316,
+large 2480x1400 -> natural 452, small 2480x560 -> natural 181.
+
+Daniel's decision (0e): the **HelloLilly renderer** uses the natural/undistorted
+heights **medium 316, large 452, small 181** (un-squished). The **reference oracle
+stays frozen** at its historical 280/400/160 - it remains the honest baseline. The
+image is static/structural and not a parity-graded node, so this HelloLilly-vs-
+reference image delta is a deliberate design improvement, not a regression (P4 may
+note structural fidelity; taller-correct is "better", allowed).
