@@ -2,6 +2,8 @@
 // server/submodules/stage2-filter/execute.cjs (compileRules/bodyRules), but this module runs
 // in the browser bundle and must not import server .cjs code across the client/server boundary.
 // It is ~8 trivial lines; independently tested here.
+import { cvDraftItems } from './cvDraftItems.mjs';
+
 const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 function termPresent(text, term) {
   return new RegExp(`\\b${escapeRegex(String(term).toLowerCase())}\\b`, 'i').test(String(text || '').toLowerCase());
@@ -20,13 +22,13 @@ export function extractAdTerms(decodedRole) {
 }
 
 function cvText(cvDraft) {
-  return ((cvDraft && cvDraft.sections) || []).flatMap(s => s.items || []).map(i => i.text || '').join('\n');
+  return cvDraftItems(cvDraft).map(i => i.text || '').join('\n');
 }
 
 // A basis is a CV datafact whose text lexically overlaps the term (shared token/substring),
 // i.e. the fact already expresses the concept — aligning only relabels wording. No overlap → not alignable.
 function findBasis(term, cvDraft) {
-  const items = ((cvDraft && cvDraft.sections) || []).flatMap(s => s.items || []);
+  const items = cvDraftItems(cvDraft);
   const toks = term.toLowerCase().split(/\W+/).filter(t => t.length >= 3);
   for (const it of items) {
     const t = String(it.text || '').toLowerCase();

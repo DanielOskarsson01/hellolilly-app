@@ -3799,6 +3799,9 @@ body.ll-template { background: var(--ll-cream); }
 .paper--cv .paper__contact { color: var(--ll-ink-mute); font-size: var(--fs-2xs); margin-top: 2px; }
 .paper__summary { margin: var(--sp-3) 0; color: var(--ll-ink-soft); }
 .paper__sec-h { font-family: var(--font-display); font-weight: var(--fw-extrabold); font-size: var(--fs-sm); color: var(--ll-blue-deep); text-transform: uppercase; letter-spacing: .04em; border-bottom: 1.5px solid var(--ll-border); padding-bottom: 3px; margin: var(--sp-4) 0 var(--sp-2); }
+/* competency category + job sub-headings (nested inside a section) */
+.paper__cat-h, .paper__job-h { font-family: var(--font-display); font-weight: var(--fw-bold); font-size: var(--fs-xs); color: var(--ll-ink); letter-spacing: .01em; margin: var(--sp-2) 0 2px; }
+.cvlive__cat + .cvlive__cat, .cvlive__job + .cvlive__job { margin-top: var(--sp-1); }
 .paper__item-t { font-weight: var(--fw-bold); color: var(--ll-ink); }
 .paper__item-d { color: var(--ll-ink-mute); font-size: var(--fs-2xs); }
 .paper ul { margin: 4px 0 var(--sp-2); padding-left: 18px; }
@@ -4124,6 +4127,8 @@ body.ll-template { background: var(--ll-cream); }
 .cvpaper__contact { color: var(--ll-ink-mute); font-size: 12px; margin-top: 4px; }
 .cvpaper__sec { margin-top: 20px; }
 .cvpaper__sec-h { font-family: var(--font-display); font-weight: 800; font-size: 12.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--cv-accent, var(--ll-blue-deep)); border-bottom: 1.5px solid var(--ll-border); padding-bottom: 4px; margin-bottom: 8px; }
+.cvpaper__cat-h, .cvpaper__job-h { font-family: var(--font-display); font-weight: 700; font-size: 11.5px; color: var(--ll-ink); margin: 6px 0 2px; }
+.cvpaper__cat + .cvpaper__cat, .cvpaper__job + .cvpaper__job { margin-top: 4px; }
 .cvpaper__p { margin: 0; color: var(--ll-ink-soft); }
 .cvpaper__ul { margin: 0; padding-left: 18px; }
 .cvpaper__ul li { margin-bottom: 5px; }

@@ -8,6 +8,9 @@ import { PartGate, PartState, PartSkeleton, STATUS } from '../components/partGat
 import { tr, useLang, LangToggle } from '../lib/i18n.mjs';
 import { ContentArea, ContentBox, CrossColumn, PageTemplate } from '../components/grid.jsx';
 import { listCases } from '../api/caseApi.js';
+import { sectionItems } from '../lib/cvDraftItems.mjs';
+
+const sectionLeafCount = (s) => sectionItems(s).length;
 
 // HelloLilly — CV-byggaren (design-system era, bound to cvDraft)
 // Ported from design/design/screens-cv2.jsx; wired to real data hooks.
@@ -65,10 +68,33 @@ function ImproveStrip({ section }) {
 }
 
 /* ---------- The living CV preview (renders cvDraft.sections[]) ---------- */
+// Section body renders one of three shapes: Core Competencies -> categories[] (title + items),
+// Professional Experience -> jobs[] (company·period + items), everything else -> flat items.
+function SectionBody({ sec, resolve }) {
+  if (sec.categories) {
+    return sec.categories.filter(c => (c.items || []).length).map(cat => (
+      <div className="cvlive__cat" key={cat.id}>
+        <div className="paper__cat-h">{cat.title}</div>
+        <ul>{cat.items.map((it, i) => <CvItem key={i} item={it} resolve={resolve} asBullet />)}</ul>
+      </div>
+    ));
+  }
+  if (sec.jobs) {
+    return sec.jobs.filter(j => (j.items || []).length).map(job => (
+      <div className="cvlive__job" key={job.key}>
+        <div className="paper__job-h">{job.company} · {job.period}</div>
+        <ul>{job.items.map((it, i) => <CvItem key={i} item={it} resolve={resolve} asBullet />)}</ul>
+      </div>
+    ));
+  }
+  if (sec.key === 'summary') return sec.items.map((it, i) => <CvItem key={i} item={it} resolve={resolve} />);
+  return <ul>{(sec.items || []).map((it, i) => <CvItem key={i} item={it} resolve={resolve} asBullet />)}</ul>;
+}
+
 function CvLive({ cvDraft, meta, resolve }) {
   const person = meta.person || {};
-  // Only sections with at least one renderable item render (spec: select, never invent).
-  const sections = (cvDraft.sections || []).filter(s => (s.items || []).length > 0);
+  // Only sections with at least one renderable leaf render (spec: select, never invent).
+  const sections = (cvDraft.sections || []).filter(s => sectionLeafCount(s) > 0);
   return (
     <div className="cvlive">
       <div className="paper paper--cv">
@@ -78,9 +104,7 @@ function CvLive({ cvDraft, meta, resolve }) {
         {sections.map(sec => (
           <div className="cvlive__sec" key={sec.key}>
             <div className="paper__sec-h">{sec.heading}</div>
-            {sec.key === 'summary'
-              ? sec.items.map((it, i) => <CvItem key={i} item={it} resolve={resolve} />)
-              : <ul>{sec.items.map((it, i) => <CvItem key={i} item={it} resolve={resolve} asBullet />)}</ul>}
+            <SectionBody sec={sec} resolve={resolve} />
             <ImproveStrip section={sec} />
           </div>
         ))}
