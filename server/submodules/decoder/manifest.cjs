@@ -7,6 +7,6 @@ module.exports = {
   description: 'Stage 2 decoder: reads the ad together with culture/stage/ambition/niche signals and outputs the true-job profile (decodedRole) — the real requirements beneath the ad.',
   reads: ['dossiers'],
   writes: ['decodedRole'],
-  capabilities: ['store', 'logger', 'llm', 'utils'],
+  capabilities: ['store', 'logger', 'llm', 'utils', 'assembly'],
   options: { model: 'claude-opus-4-8' },
 };

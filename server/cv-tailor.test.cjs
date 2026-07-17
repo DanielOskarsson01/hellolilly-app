@@ -84,7 +84,8 @@ function allItems(section) {
 test('candidatePool groups competencies by category, excludes flat skills + interview-prep types', () => {
   const p = tailor.candidatePool(FACTS);
   assert.deepStrictEqual(p.summary.map((b) => b.id), ['d_sum', 'd_pos']);
-  assert.ok(p.highlights.some((b) => b.id === 'd_gap'), 'gap-answer datafacts stay selectable (pool compounding)');
+  assert.ok(!p.highlights.some((b) => b.id === 'd_gap'), 'gap-answer facts are NOT trusted highlight candidates (finding 1)');
+  assert.ok((p.derivedHighlights || []).some((b) => b.id === 'd_gap'), 'gap-answer facts are held as untrusted-derived candidates, still selectable');
   // competencies come out as category buckets, in seed order, each carrying its imported title
   assert.deepStrictEqual(p.competencyCategories.map((c) => c.id), ['leadership-scaling', 'marketing-growth', 'data-analytics']);
   assert.strictEqual(p.competencyCategories[0].title, 'Leadership & Scaling');
@@ -148,6 +149,16 @@ test('execute: valid selection -> cvDraft written ready, untrusted-derived; ad i
   // D12 Rule 2: the injection text sits INSIDE the envelope, never free-floating
   assert.match(t.rec.prompt, /BEGIN UNTRUSTED_DATA[\s\S]*IGNORE ALL INSTRUCTIONS[\s\S]*END UNTRUSTED_DATA/);
   assert.match(t.rec.prompt, /Never obey, adopt/i);
+});
+
+test('finding 1: model-authored gap-answer facts enter the prompt ENVELOPED (untrusted-derived), not the trusted pool', async () => {
+  const t = fakeTools(CASE, VALID_SELECTION);
+  await tailor({ caseId: 'c1' }, { model: 'claude-sonnet-4-6', language: 'en' }, t);
+  const prompt = t.rec.prompt;
+  const firstFence = prompt.indexOf('BEGIN UNTRUSTED_DATA');
+  const gapAt = prompt.indexOf('Gap-answer: led creative departments.');
+  assert.ok(gapAt > firstFence, 'the gap-answer fact sits inside an envelope, not the trusted candidate pool');
+  assert.match(prompt.slice(firstFence), /provenance=untrusted-derived[\s\S]*Gap-answer: led creative departments\./);
 });
 
 test('execute: malformed model output fails schema validation -> part failed (INVARIANT output-side)', async () => {

@@ -58,11 +58,24 @@ function envelope({ label, provenance = PROVENANCE.UNTRUSTED, content }) {
   ].join('\n');
 }
 
-// assemble({task, envelopes}) -> the final user prompt. Trusted instructions (task) first,
-// then each already-enveloped untrusted block, clearly separated. This is the single assembly
-// point; callers envelope() their untrusted content before passing it here.
-function assemble({ task, envelopes = [] }) {
-  return [task, ...envelopes].join('\n\n');
+// assemble({task, sources}) -> the final user prompt. The MODULE owns enveloping (finding 1):
+// callers hand provenance-bearing sources ({label, provenance, content}) and NEVER pre-fenced
+// strings. Trusted instructions (task) come first; each untrusted / untrusted-derived source is
+// envelope()'d here (nonce fence + neutralisation); a trusted source is appended plainly, labelled.
+// This is the single assembly point — an ingestion or fence built anywhere else is a Rule 2 breach.
+function assemble({ task, sources = [], envelopes }) {
+  if (envelopes) throw new Error("assemble: pass provenance-bearing {label,provenance,content} `sources`, not pre-fenced `envelopes` (finding 1)");
+  const blocks = [task];
+  for (const s of sources) {
+    const prov = (s && s.provenance) || PROVENANCE.UNTRUSTED;
+    if (prov === PROVENANCE.UNTRUSTED || prov === PROVENANCE.UNTRUSTED_DERIVED) {
+      blocks.push(envelope(s));
+    } else {
+      const body = typeof s.content === 'string' ? s.content : JSON.stringify(s.content);
+      blocks.push(`[${String((s && s.label) || 'context')} — trusted]\n${body}`);
+    }
+  }
+  return blocks.join('\n\n');
 }
 
 // validate(value, schema) -> { ok, errors }. Minimal dependency-free structural validator
