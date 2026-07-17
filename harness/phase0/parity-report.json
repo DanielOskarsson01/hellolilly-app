@@ -1,11 +1,11 @@
 {
   "wave": "Wave 1 — The Honest Tailor",
   "harness": "P1 (structure) + P2 (provenance) + P3 (job sensitivity)",
-  "run_date": "2026-07-16",
+  "run_date": "2026-07-17",
   "run_integrity": {
     "tailor_model": "claude-sonnet-4-6",
-    "decoder_model": "claude-opus-4-8 (upstream input step; recorded, not the parity-graded model)",
-    "sampling": "tailor temperature=0 (stable selection; sonnet-4-6 honours it); decoder temperature not sent (deprecated on opus-4-8). maxTokens tailor=2000, decoder=3000",
+    "decoder_model": "claude-sonnet-4-6 (single-model chain; decode + tailor same model — finding 7)",
+    "sampling": "HelloLilly: decoder temperature not sent, maxTokens 3000; tailor temperature=0 (stable selection), maxTokens 2000 — single model claude-sonnet-4-6. Reference oracle samples at temperature 0.2 / maxTokens 8000 (recorded divergence, same model; backstopped by P4).",
     "corpus_version": "a1d95743a06d969900f3ce103de5fc7f83be7dbef6c5628d03524b712906429f",
     "pool_sha256": "2752555246fd1cbb225599357677b957fadb15785997f93b63af1f08e5309b24",
     "pool_size": 144,
@@ -27,696 +27,115 @@
         "local_file": "ads/second-aloi.txt"
       }
     ],
-    "resolved_source_ids": 55,
+    "resolved_source_ids": 0,
     "note": "Selections are datafact ids (opaque refs, no content) — fixture-law safe to commit."
   },
   "per_run": [
     {
       "ad": "primary",
       "run": 1,
-      "tailor": "ready",
-      "p1": true,
-      "p1_errors": [],
-      "p2": true,
-      "p2_errors": [],
-      "sections": 8,
-      "selection": {
-        "summary": [
-          "datafact_5fc4baa1"
-        ],
-        "highlights": [
-          "datafact_e8ec7b32",
-          "datafact_d5eb142d",
-          "datafact_d982a863",
-          "datafact_93c76de8",
-          "datafact_bde8595e",
-          "datafact_42c2860d"
-        ],
-        "competencies": [
-          "datafact_b4974ee2",
-          "datafact_a9939d9d",
-          "datafact_d3c7a621",
-          "datafact_64ba3dac",
-          "datafact_a918efa9",
-          "datafact_9c434fa1",
-          "datafact_7a0e2412",
-          "datafact_2ef9c1f5",
-          "datafact_5d1db384",
-          "datafact_ece470a5",
-          "datafact_9e6858db",
-          "datafact_ae90fcd3",
-          "datafact_c9a95a41",
-          "datafact_03114785",
-          "datafact_34e36e0e"
-        ],
-        "experience": [
-          "datafact_746c388a",
-          "datafact_befcf36f",
-          "datafact_cedaccbb",
-          "datafact_f8f01fd8",
-          "datafact_2a00d8df",
-          "datafact_887cb869",
-          "datafact_d712adee",
-          "datafact_2fce3f77",
-          "datafact_cd24c6c7",
-          "datafact_9b59515b",
-          "datafact_5ff21212",
-          "datafact_d5275311",
-          "datafact_c7bb6b02",
-          "datafact_f958ac88",
-          "datafact_968df6f9",
-          "datafact_9f068dae",
-          "datafact_95e5bc75",
-          "datafact_992d70fb",
-          "datafact_451e2942",
-          "datafact_15f0f405",
-          "datafact_d17d7055",
-          "datafact_db9f5057",
-          "datafact_7a72d9c7",
-          "datafact_f38c50da",
-          "datafact_7f97c6e8",
-          "datafact_07a5c0c7"
-        ],
-        "other": [
-          "datafact_1c430b89"
-        ]
-      }
+      "tailor": "failed",
+      "error": "cv-tailor: draft failed pre-write validation — experience item datafact_f65adb5d does not belong to job coinhero (false attribution)"
     },
     {
       "ad": "primary",
       "run": 2,
-      "tailor": "ready",
-      "p1": true,
-      "p1_errors": [],
-      "p2": true,
-      "p2_errors": [],
-      "sections": 8,
-      "selection": {
-        "summary": [
-          "datafact_5fc4baa1"
-        ],
-        "highlights": [
-          "datafact_e8ec7b32",
-          "datafact_d5eb142d",
-          "datafact_d982a863",
-          "datafact_93c76de8",
-          "datafact_bde8595e",
-          "datafact_42c2860d"
-        ],
-        "competencies": [
-          "datafact_b4974ee2",
-          "datafact_d3c7a621",
-          "datafact_a9939d9d",
-          "datafact_64ba3dac",
-          "datafact_a918efa9",
-          "datafact_9c434fa1",
-          "datafact_2ef9c1f5",
-          "datafact_7a0e2412",
-          "datafact_5d1db384",
-          "datafact_ece470a5",
-          "datafact_ae90fcd3",
-          "datafact_9e6858db",
-          "datafact_03114785",
-          "datafact_34e36e0e",
-          "datafact_c9a95a41"
-        ],
-        "experience": [
-          "datafact_746c388a",
-          "datafact_befcf36f",
-          "datafact_cedaccbb",
-          "datafact_2a00d8df",
-          "datafact_887cb869",
-          "datafact_b250dd91",
-          "datafact_d712adee",
-          "datafact_2fce3f77",
-          "datafact_cd24c6c7",
-          "datafact_5ff21212",
-          "datafact_d5275311",
-          "datafact_c7bb6b02",
-          "datafact_9b59515b",
-          "datafact_f958ac88",
-          "datafact_95e5bc75",
-          "datafact_968df6f9",
-          "datafact_9f068dae",
-          "datafact_992d70fb",
-          "datafact_451e2942",
-          "datafact_15f0f405",
-          "datafact_d17d7055",
-          "datafact_db9f5057",
-          "datafact_f38c50da",
-          "datafact_7f97c6e8",
-          "datafact_7a72d9c7",
-          "datafact_07a5c0c7"
-        ],
-        "other": [
-          "datafact_1c430b89"
-        ]
-      }
+      "tailor": "failed",
+      "error": "cv-tailor: draft failed pre-write validation — experience item datafact_887cb869 does not belong to job coinhero (false attribution)"
     },
     {
       "ad": "primary",
       "run": 3,
-      "tailor": "ready",
-      "p1": true,
-      "p1_errors": [],
-      "p2": true,
-      "p2_errors": [],
-      "sections": 8,
-      "selection": {
-        "summary": [
-          "datafact_5fc4baa1"
-        ],
-        "highlights": [
-          "datafact_e8ec7b32",
-          "datafact_bde8595e",
-          "datafact_d982a863",
-          "datafact_d5eb142d",
-          "datafact_93c76de8",
-          "datafact_42c2860d"
-        ],
-        "competencies": [
-          "datafact_9c434fa1",
-          "datafact_2ef9c1f5",
-          "datafact_7a0e2412",
-          "datafact_5d1db384",
-          "datafact_ece470a5",
-          "datafact_b4974ee2",
-          "datafact_d3c7a621",
-          "datafact_a9939d9d",
-          "datafact_64ba3dac",
-          "datafact_a918efa9",
-          "datafact_ae90fcd3",
-          "datafact_9e6858db",
-          "datafact_03114785",
-          "datafact_34e36e0e",
-          "datafact_c9a95a41"
-        ],
-        "experience": [
-          "datafact_746c388a",
-          "datafact_befcf36f",
-          "datafact_cedaccbb",
-          "datafact_2a00d8df",
-          "datafact_887cb869",
-          "datafact_f8f01fd8",
-          "datafact_d712adee",
-          "datafact_2fce3f77",
-          "datafact_cd24c6c7",
-          "datafact_5ff21212",
-          "datafact_c7bb6b02",
-          "datafact_d5275311",
-          "datafact_9b59515b",
-          "datafact_f958ac88",
-          "datafact_95e5bc75",
-          "datafact_968df6f9",
-          "datafact_9f068dae",
-          "datafact_992d70fb",
-          "datafact_451e2942",
-          "datafact_15f0f405",
-          "datafact_d17d7055",
-          "datafact_db9f5057",
-          "datafact_7f97c6e8",
-          "datafact_f38c50da",
-          "datafact_7a72d9c7",
-          "datafact_03d59711"
-        ],
-        "other": [
-          "datafact_1c430b89"
-        ]
-      }
+      "tailor": "failed",
+      "error": "cv-tailor: draft failed pre-write validation — experience item datafact_f65adb5d does not belong to job coinhero (false attribution)"
     },
     {
       "ad": "control",
       "run": 1,
-      "tailor": "ready",
-      "p1": true,
-      "p1_errors": [],
-      "p2": true,
-      "p2_errors": [],
-      "sections": 8,
-      "selection": {
-        "summary": [
-          "datafact_5fc4baa1"
-        ],
-        "highlights": [
-          "datafact_e8ec7b32",
-          "datafact_93c76de8",
-          "datafact_42c2860d",
-          "datafact_d982a863",
-          "datafact_bde8595e",
-          "datafact_d5eb142d"
-        ],
-        "competencies": [
-          "datafact_9c434fa1",
-          "datafact_2ef9c1f5",
-          "datafact_7a0e2412",
-          "datafact_5d1db384",
-          "datafact_ece470a5",
-          "datafact_ae90fcd3",
-          "datafact_9e6858db",
-          "datafact_34e36e0e",
-          "datafact_03114785",
-          "datafact_c9a95a41",
-          "datafact_b4974ee2",
-          "datafact_d3c7a621",
-          "datafact_a9939d9d",
-          "datafact_64ba3dac",
-          "datafact_a918efa9"
-        ],
-        "experience": [
-          "datafact_746c388a",
-          "datafact_f8f01fd8",
-          "datafact_befcf36f",
-          "datafact_cedaccbb",
-          "datafact_2a00d8df",
-          "datafact_887cb869",
-          "datafact_d712adee",
-          "datafact_2fce3f77",
-          "datafact_9b59515b",
-          "datafact_5ff21212",
-          "datafact_d5275311",
-          "datafact_c7bb6b02",
-          "datafact_cd24c6c7",
-          "datafact_f958ac88",
-          "datafact_95e5bc75",
-          "datafact_451e2942",
-          "datafact_15f0f405",
-          "datafact_968df6f9",
-          "datafact_992d70fb",
-          "datafact_9f068dae",
-          "datafact_d17d7055",
-          "datafact_db9f5057",
-          "datafact_f38c50da",
-          "datafact_07a5c0c7",
-          "datafact_7f97c6e8",
-          "datafact_03d59711"
-        ],
-        "other": [
-          "datafact_1c430b89"
-        ]
-      }
+      "tailor": "failed",
+      "error": "cv-tailor: draft failed pre-write validation — duplicate id datafact_d712adee in section experience"
     },
     {
       "ad": "control",
       "run": 2,
-      "tailor": "ready",
-      "p1": true,
-      "p1_errors": [],
-      "p2": true,
-      "p2_errors": [],
-      "sections": 8,
-      "selection": {
-        "summary": [
-          "datafact_5fc4baa1"
-        ],
-        "highlights": [
-          "datafact_e8ec7b32",
-          "datafact_93c76de8",
-          "datafact_42c2860d",
-          "datafact_d982a863",
-          "datafact_bde8595e",
-          "datafact_d5eb142d"
-        ],
-        "competencies": [
-          "datafact_9c434fa1",
-          "datafact_2ef9c1f5",
-          "datafact_7a0e2412",
-          "datafact_5d1db384",
-          "datafact_ece470a5",
-          "datafact_ae90fcd3",
-          "datafact_9e6858db",
-          "datafact_34e36e0e",
-          "datafact_03114785",
-          "datafact_c9a95a41",
-          "datafact_b4974ee2",
-          "datafact_d3c7a621",
-          "datafact_a9939d9d",
-          "datafact_64ba3dac",
-          "datafact_a918efa9"
-        ],
-        "experience": [
-          "datafact_746c388a",
-          "datafact_f8f01fd8",
-          "datafact_befcf36f",
-          "datafact_cedaccbb",
-          "datafact_2a00d8df",
-          "datafact_d712adee",
-          "datafact_2fce3f77",
-          "datafact_9b59515b",
-          "datafact_5ff21212",
-          "datafact_cd24c6c7",
-          "datafact_d5275311",
-          "datafact_c7bb6b02",
-          "datafact_f958ac88",
-          "datafact_95e5bc75",
-          "datafact_451e2942",
-          "datafact_15f0f405",
-          "datafact_992d70fb",
-          "datafact_968df6f9",
-          "datafact_d17d7055",
-          "datafact_db9f5057",
-          "datafact_f38c50da",
-          "datafact_07a5c0c7",
-          "datafact_7f97c6e8",
-          "datafact_03d59711"
-        ],
-        "other": [
-          "datafact_1c430b89"
-        ]
-      }
+      "tailor": "failed",
+      "error": "cv-tailor: draft failed pre-write validation — job coinhero has no bullets"
     },
     {
       "ad": "control",
       "run": 3,
-      "tailor": "ready",
-      "p1": true,
-      "p1_errors": [],
-      "p2": true,
-      "p2_errors": [],
-      "sections": 8,
-      "selection": {
-        "summary": [
-          "datafact_5fc4baa1"
-        ],
-        "highlights": [
-          "datafact_e8ec7b32",
-          "datafact_93c76de8",
-          "datafact_42c2860d",
-          "datafact_d982a863",
-          "datafact_bde8595e",
-          "datafact_d5eb142d"
-        ],
-        "competencies": [
-          "datafact_9c434fa1",
-          "datafact_2ef9c1f5",
-          "datafact_7a0e2412",
-          "datafact_5d1db384",
-          "datafact_ece470a5",
-          "datafact_ae90fcd3",
-          "datafact_9e6858db",
-          "datafact_34e36e0e",
-          "datafact_03114785",
-          "datafact_c9a95a41",
-          "datafact_b4974ee2",
-          "datafact_d3c7a621",
-          "datafact_a9939d9d",
-          "datafact_64ba3dac",
-          "datafact_a918efa9"
-        ],
-        "experience": [
-          "datafact_746c388a",
-          "datafact_f8f01fd8",
-          "datafact_befcf36f",
-          "datafact_cedaccbb",
-          "datafact_2a00d8df",
-          "datafact_d712adee",
-          "datafact_2fce3f77",
-          "datafact_9b59515b",
-          "datafact_5ff21212",
-          "datafact_d5275311",
-          "datafact_cd24c6c7",
-          "datafact_c7bb6b02",
-          "datafact_f958ac88",
-          "datafact_95e5bc75",
-          "datafact_992d70fb",
-          "datafact_968df6f9",
-          "datafact_451e2942",
-          "datafact_15f0f405",
-          "datafact_d17d7055",
-          "datafact_db9f5057",
-          "datafact_f38c50da",
-          "datafact_07a5c0c7",
-          "datafact_7a72d9c7",
-          "datafact_03d59711"
-        ],
-        "other": [
-          "datafact_1c430b89"
-        ]
-      }
+      "tailor": "failed",
+      "error": "cv-tailor: draft failed pre-write validation — experience item datafact_f65adb5d does not belong to job coinhero (false attribution)"
     },
     {
       "ad": "second",
       "run": 1,
-      "tailor": "ready",
-      "p1": true,
-      "p1_errors": [],
-      "p2": true,
-      "p2_errors": [],
-      "sections": 8,
-      "selection": {
-        "summary": [
-          "datafact_5fc4baa1"
-        ],
-        "highlights": [
-          "datafact_e8ec7b32",
-          "datafact_89063946",
-          "datafact_4d58d195",
-          "datafact_7f8a77bd",
-          "datafact_d982a863",
-          "datafact_42c2860d"
-        ],
-        "competencies": [
-          "datafact_9c434fa1",
-          "datafact_2ef9c1f5",
-          "datafact_7a0e2412",
-          "datafact_5d1db384",
-          "datafact_ece470a5",
-          "datafact_ae90fcd3",
-          "datafact_9e6858db",
-          "datafact_34e36e0e",
-          "datafact_c9a95a41",
-          "datafact_03114785",
-          "datafact_b4974ee2",
-          "datafact_d3c7a621",
-          "datafact_a9939d9d",
-          "datafact_64ba3dac",
-          "datafact_a918efa9"
-        ],
-        "experience": [
-          "datafact_746c388a",
-          "datafact_f8f01fd8",
-          "datafact_befcf36f",
-          "datafact_2a00d8df",
-          "datafact_cedaccbb",
-          "datafact_887cb869",
-          "datafact_d712adee",
-          "datafact_2fce3f77",
-          "datafact_9b59515b",
-          "datafact_5ff21212",
-          "datafact_d5275311",
-          "datafact_c7bb6b02",
-          "datafact_cd24c6c7",
-          "datafact_f958ac88",
-          "datafact_95e5bc75",
-          "datafact_451e2942",
-          "datafact_15f0f405",
-          "datafact_968df6f9",
-          "datafact_992d70fb",
-          "datafact_9f068dae",
-          "datafact_d17d7055",
-          "datafact_db9f5057",
-          "datafact_f38c50da",
-          "datafact_7f97c6e8",
-          "datafact_03d59711",
-          "datafact_07a5c0c7"
-        ],
-        "other": [
-          "datafact_1c430b89"
-        ]
-      }
+      "tailor": "failed",
+      "error": "cv-tailor: draft failed pre-write validation — experience item datafact_f65adb5d does not belong to job coinhero (false attribution)"
     },
     {
       "ad": "second",
       "run": 2,
-      "tailor": "ready",
-      "p1": true,
-      "p1_errors": [],
-      "p2": true,
-      "p2_errors": [],
-      "sections": 8,
-      "selection": {
-        "summary": [
-          "datafact_5fc4baa1"
-        ],
-        "highlights": [
-          "datafact_e8ec7b32",
-          "datafact_89063946",
-          "datafact_4d58d195",
-          "datafact_7f8a77bd",
-          "datafact_d982a863",
-          "datafact_07286d24"
-        ],
-        "competencies": [
-          "datafact_9c434fa1",
-          "datafact_2ef9c1f5",
-          "datafact_7a0e2412",
-          "datafact_5d1db384",
-          "datafact_ece470a5",
-          "datafact_ae90fcd3",
-          "datafact_9e6858db",
-          "datafact_34e36e0e",
-          "datafact_c9a95a41",
-          "datafact_03114785",
-          "datafact_b4974ee2",
-          "datafact_d3c7a621",
-          "datafact_a9939d9d",
-          "datafact_64ba3dac",
-          "datafact_a918efa9"
-        ],
-        "experience": [
-          "datafact_746c388a",
-          "datafact_f8f01fd8",
-          "datafact_befcf36f",
-          "datafact_2a00d8df",
-          "datafact_887cb869",
-          "datafact_cedaccbb",
-          "datafact_d712adee",
-          "datafact_2fce3f77",
-          "datafact_9b59515b",
-          "datafact_5ff21212",
-          "datafact_d5275311",
-          "datafact_c7bb6b02",
-          "datafact_cd24c6c7",
-          "datafact_f958ac88",
-          "datafact_95e5bc75",
-          "datafact_451e2942",
-          "datafact_15f0f405",
-          "datafact_968df6f9",
-          "datafact_992d70fb",
-          "datafact_9f068dae",
-          "datafact_d17d7055",
-          "datafact_db9f5057",
-          "datafact_f38c50da",
-          "datafact_07a5c0c7",
-          "datafact_7f97c6e8",
-          "datafact_03d59711"
-        ],
-        "other": [
-          "datafact_1c430b89"
-        ]
-      }
+      "tailor": "failed",
+      "error": "cv-tailor: draft failed pre-write validation — experience item datafact_f65adb5d does not belong to job coinhero (false attribution)"
     },
     {
       "ad": "second",
       "run": 3,
-      "tailor": "ready",
-      "p1": true,
-      "p1_errors": [],
-      "p2": true,
-      "p2_errors": [],
-      "sections": 8,
-      "selection": {
-        "summary": [
-          "datafact_5fc4baa1"
-        ],
-        "highlights": [
-          "datafact_e8ec7b32",
-          "datafact_89063946",
-          "datafact_4d58d195",
-          "datafact_bde8595e",
-          "datafact_d982a863",
-          "datafact_7f8a77bd"
-        ],
-        "competencies": [
-          "datafact_9c434fa1",
-          "datafact_2ef9c1f5",
-          "datafact_7a0e2412",
-          "datafact_5d1db384",
-          "datafact_ece470a5",
-          "datafact_ae90fcd3",
-          "datafact_9e6858db",
-          "datafact_34e36e0e",
-          "datafact_c9a95a41",
-          "datafact_03114785",
-          "datafact_b4974ee2",
-          "datafact_d3c7a621",
-          "datafact_a9939d9d",
-          "datafact_64ba3dac",
-          "datafact_a918efa9"
-        ],
-        "experience": [
-          "datafact_746c388a",
-          "datafact_f8f01fd8",
-          "datafact_befcf36f",
-          "datafact_cedaccbb",
-          "datafact_2a00d8df",
-          "datafact_887cb869",
-          "datafact_d712adee",
-          "datafact_2fce3f77",
-          "datafact_9b59515b",
-          "datafact_5ff21212",
-          "datafact_d5275311",
-          "datafact_c7bb6b02",
-          "datafact_cd24c6c7",
-          "datafact_f958ac88",
-          "datafact_95e5bc75",
-          "datafact_451e2942",
-          "datafact_15f0f405",
-          "datafact_968df6f9",
-          "datafact_992d70fb",
-          "datafact_9f068dae",
-          "datafact_d17d7055",
-          "datafact_db9f5057",
-          "datafact_f38c50da",
-          "datafact_7f97c6e8",
-          "datafact_07a5c0c7",
-          "datafact_03d59711"
-        ],
-        "other": [
-          "datafact_1c430b89"
-        ]
-      }
+      "tailor": "failed",
+      "error": "cv-tailor: draft failed pre-write validation — experience item datafact_f65adb5d does not belong to job coinhero (false attribution)"
     }
   ],
   "p3": {
-    "pass": true,
-    "min_cross": 0.0855,
-    "max_within": 0.0663,
+    "pass": false,
+    "min_cross": 0,
+    "max_within": 0,
     "cross_count": 9,
     "cross": [
       {
         "primary": 0,
         "control": 0,
-        "distance": 0.1127
+        "distance": 0
       },
       {
         "primary": 0,
         "control": 1,
-        "distance": 0.1192
+        "distance": 0
       },
       {
         "primary": 0,
         "control": 2,
-        "distance": 0.1184
+        "distance": 0
       },
       {
         "primary": 1,
         "control": 0,
-        "distance": 0.115
+        "distance": 0
       },
       {
         "primary": 1,
         "control": 1,
-        "distance": 0.1214
+        "distance": 0
       },
       {
         "primary": 1,
         "control": 2,
-        "distance": 0.1201
+        "distance": 0
       },
       {
         "primary": 2,
         "control": 0,
-        "distance": 0.0855
+        "distance": 0
       },
       {
         "primary": 2,
         "control": 1,
-        "distance": 0.0922
+        "distance": 0
       },
       {
         "primary": 2,
         "control": 2,
-        "distance": 0.0906
+        "distance": 0
       }
     ],
     "within": {
@@ -724,55 +143,55 @@
         {
           "a": 0,
           "b": 1,
-          "distance": 0.0145
+          "distance": 0
         },
         {
           "a": 0,
           "b": 2,
-          "distance": 0.0663
+          "distance": 0
         },
         {
           "a": 1,
           "b": 2,
-          "distance": 0.0655
+          "distance": 0
         }
       ],
       "control": [
         {
           "a": 0,
           "b": 1,
-          "distance": 0.0088
+          "distance": 0
         },
         {
           "a": 0,
           "b": 2,
-          "distance": 0.0172
+          "distance": 0
         },
         {
           "a": 1,
           "b": 2,
-          "distance": 0.01
+          "distance": 0
         }
       ],
       "second": [
         {
           "a": 0,
           "b": 1,
-          "distance": 0.0295
+          "distance": 0
         },
         {
           "a": 0,
           "b": 2,
-          "distance": 0.0392
+          "distance": 0
         },
         {
           "a": 1,
           "b": 2,
-          "distance": 0.0395
+          "distance": 0
         }
       ]
     }
   },
-  "every_run_p1_p2": true,
-  "overall_pass": true
+  "every_run_p1_p2": false,
+  "overall_pass": false
 }

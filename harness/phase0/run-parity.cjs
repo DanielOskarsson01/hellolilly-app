@@ -73,7 +73,13 @@ async function main() {
 
     for (let run = 1; run <= RUNS_PER_AD; run++) {
       process.stderr.write(`[${ad.role}] tailor run ${run}/${RUNS_PER_AD}…`);
-      await host.invoke('cv-tailor', { caseId });
+      // the tailor THROWS on schema/pre-write failure (and marks the part failed). Record the run as
+      // failed and continue — one bad run must not abort the whole harness (it must still report).
+      try {
+        await host.invoke('cv-tailor', { caseId });
+      } catch (err) {
+        process.stderr.write(` threw: ${err.message}\n`);
+      }
       const part = store.getCase(caseId).cvDraft;
       if (!part || part.status !== 'ready') {
         perRun.push({ ad: ad.role, run, tailor: 'failed', error: part && part.error });

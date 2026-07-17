@@ -1,5 +1,33 @@
 # Wave 1 — Ledger (recorded, not repaired)
 
+## ⛔ B1 — OPEN BLOCKER: the datafact pool has no Coinhero result facts (surfaced by the fix round)
+The review-#2 fix round added the strict pre-write gate (findings 4/5): a job with zero result
+bullets, or a bullet mis-attributed to the wrong job, fails validation and is never written ready.
+Re-running the parity harness under the fixed code (2026-07-17) fails **all nine runs**, every one on
+**Coinhero**: the pool contains exactly one Coinhero fact — a `job_summary` (intro) — and **zero
+`job_result` facts**. Forced to give every job a bullet, the model either leaves Coinhero empty
+("job coinhero has no bullets"), reuses another fact ("duplicate id … in section experience"), or
+mis-attributes a non-Coinhero fact to Coinhero ("does not belong to job coinhero (false attribution)").
+All three are the validator working **correctly** — this is the "run-1 Coinhero zero-bullet" class the
+review flagged, now caught. The captured reference CV shows Coinhero *with* bullets, but those were
+**authored by the reference generator**; the selection-only tailor can only select existing evidence,
+and none exists for Coinhero.
+
+**This is a DATA gap, not a code defect.** The code is correct and will stay strict. Resolving it is
+Daniel's call and needs real candidate data — it must NOT be fabricated:
+- **Repair the pool**: add real Coinhero `job_result` datafacts (ingest from `cv_data.json` if they
+  exist there but were missed, or add real Coinhero achievements), re-ingest, rebuild the MANIFEST
+  pool + checksums. Then the harness can produce real P3 numbers and P4 can be regenerated.
+- **Or reconsider the template**: if Coinhero genuinely has no bullet-worthy evidence, decide whether
+  the machine block should permit an intro-only job, or whether Coinhero belongs in the fixed five.
+
+Until B1 is resolved, the **harness re-run stays FAIL** (`PARITY_REPORT.md`, all runs Coinhero-blocked)
+and the **P4 package cannot be regenerated** (no valid first-generation outputs exist).
+
+---
+
+
+
 Standing record of Wave 1 items that are **acknowledged and accepted as-is**, distinct from the
 review findings that were fixed. Fixed findings live in the commit history on
 `wave1-phase0-baseline`; this file holds what we chose to record rather than change.
