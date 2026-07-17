@@ -13,6 +13,8 @@ const { createAnthropicClient } = require('./skeleton/clients/anthropic.cjs');
 const { applyAnswer, setGapResolution } = require('./skeleton/fill-gap/bullet-judge.cjs');
 const { applyAlign } = require('./skeleton/fill-gap/keyword-judge.cjs');
 const { logActivity } = require('./activity-log.cjs');
+const { createVaultStore } = require('./vault/vault-store.cjs');
+const { parseConnections } = require('./vault/parse-connections.cjs');
 
 const PORT = Number(process.env.PORT || 5173);
 
@@ -38,6 +40,24 @@ function readJson(req) {
   });
 }
 
+// Raw-text body reader for the CSV upload (readJson would choke on it, and its 100 KB
+// cap is far too small for a real LinkedIn Connections export). Generous cap; the parser
+// is what actually validates the content.
+function readText(req, cap = 25_000_000) {
+  return new Promise((resolve, reject) => {
+    let body = '';
+    req.on('data', (chunk) => {
+      body += chunk;
+      if (body.length > cap) {
+        reject(new Error('Request body too large'));
+        req.destroy();
+      }
+    });
+    req.on('end', () => resolve(body));
+    req.on('error', reject);
+  });
+}
+
 function sendJson(res, status, payload) {
   res.writeHead(status, {
     'content-type': 'application/json; charset=utf-8',
@@ -50,7 +70,7 @@ function sendJson(res, status, payload) {
 // llm (host.cjs returns { store, registry, broker, loaded, invoke } — the llm is captured
 // inside the broker). The live server passes the SAME llm to createHost and here.
 // Returns an async handler: resolves true if it handled the request, false to fall through.
-function createApiHandler(host, { preferencesPath, llm } = {}) {
+function createApiHandler(host, { preferencesPath, llm, vault } = {}) {
   function readPreferences() {
     if (!preferencesPath) return undefined;
     try {
@@ -66,6 +86,30 @@ function createApiHandler(host, { preferencesPath, llm } = {}) {
   }
 
   return async function handle(req, res) {
+    // Coach Vault (Valvet, D21) — a PHYSICALLY SEPARATE local store (server/data/vault.db)
+    // behind its own adapter. These rows are the coach's personal equity: they NEVER enter
+    // the main store and NO main-store endpoint returns them (brief hard rule 1). Only this
+    // pair of routes can reach the vault, and slice 1 is ingest + view only.
+    if (vault && req.method === 'GET' && req.url === '/api/vault') {
+      sendJson(res, 200, { ok: true, count: vault.count(), rows: vault.list() });
+      return true;
+    }
+    if (vault && req.method === 'POST' && req.url === '/api/vault') {
+      let parsed;
+      try {
+        parsed = parseConnections(await readText(req));
+      } catch (err) {
+        // FAILED envelope: a failed parse writes NOTHING (all-or-nothing) — any existing
+        // vault is left untouched. 422 = the upload was received but is not a usable export.
+        sendJson(res, 422, { ok: false, error: `Filen kunde inte läsas: ${err.message}` });
+        return true;
+      }
+      // Re-upload REPLACES the vault wholesale — slice 1 has no merge logic.
+      vault.replaceAll(parsed.rows);
+      sendJson(res, 200, { ok: true, count: vault.count(), skipped: parsed.skipped, rows: vault.list() });
+      return true;
+    }
+
     if (req.method === 'GET' && req.url === '/api/jobs') {
       const jobs = host.store.listRecords('jobs');
       sendJson(res, 200, { ok: true, jobs });
@@ -476,6 +520,11 @@ async function start() {
   const boot = bootstrapStore();
   const store = boot.store;
   const host = createHost({ llm, store });
+  // Coach Vault (Valvet, D21): its OWN local SQLite file next to the main store, never
+  // inside it. Unencrypted at slice 1 — disk-encryption only, safe ONLY because coach #1
+  // is Daniel on his own machine; app-level encryption is a HARD GATE in RETROFIT_LEDGER.md
+  // before any other coach has a vault.
+  const vault = createVaultStore({ path: path.resolve(__dirname, 'data', 'vault.db') });
   if (boot.migrated) {
     console.log(`[store] migrated legacy JSON snapshot into ${boot.path}`);
   }
@@ -496,6 +545,7 @@ async function start() {
       try {
         if (typeof host.store.flush === 'function') host.store.flush();
         if (typeof host.store.close === 'function') host.store.close();
+        vault.close();
       } catch (err) {
         console.error(`[store] shutdown persist on ${sig} failed: ${err.message}`);
       }
@@ -503,7 +553,7 @@ async function start() {
     });
   }
   const preferencesPath = path.resolve(__dirname, '../docs/candidate_preferences.json');
-  const handleCaseApi = createApiHandler(host, { preferencesPath, llm });
+  const handleCaseApi = createApiHandler(host, { preferencesPath, llm, vault });
 
   const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && req.url === '/api/health') {

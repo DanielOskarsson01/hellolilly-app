@@ -1,0 +1,10 @@
+Notes:
+"When exporting your connection data, you may notice that some of your contacts do not have an email address listed. This is because of the privacy settings they have selected."
+
+First Name,Last Name,URL,Email Address,Company,Position,Connected On,Tags
+Anna,Bergström,https://www.linkedin.com/in/annabergstrom,anna@example.com,Spelbolaget AB,Head of Marketing,18 Jun 2023,vip
+Peter,Lind,https://www.linkedin.com/in/peterlind,,Norrsken Casino,"VP, Growth",02 Feb 2024,
+Sofia,Ek,https://www.linkedin.com/in/sofiaek,sofia@example.com,LioNet Gaming,Product Lead,11 Nov 2022,partner
+Johan,Krantz,https://www.linkedin.com/in/johankrantz,,Betsson Group,Affiliate Manager,05 Jan 2024,
+Malin,Rydberg,https://www.linkedin.com/in/malinrydberg,malin@example.com,Kindred,Data Analyst
+Erik,Sundqvist,https://www.linkedin.com/in/eriksundqvist,erik@example.com,Evolution,Live Ops Manager,30 Sep 2021,

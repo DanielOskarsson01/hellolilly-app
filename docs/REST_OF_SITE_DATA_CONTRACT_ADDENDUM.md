@@ -296,6 +296,18 @@ Two Help Layer pieces are recorded here **precisely so no one invents a collecti
 
 ---
 
+## 22. vaultContact — STORED-LOCAL (vault.db, NOT a store collection) — added by D21
+
+- **New ingestion point (D21, Valvet slice 1).** **Source:** the coach's own LinkedIn *Connections* CSV export (uploaded by the coach). **Transform:** defensive header-driven parse (`server/vault/parse-connections.cjs`) — the file's header wins over any assumed column list, a "Notes:" preamble is skipped, malformed rows are counted row-level skips, unknown columns are preserved raw. **Sink:** `server/data/vault.db` (`server/vault/vault-store.cjs`), a **separate local SQLite file** — never a main-store collection, never `putRecord`/`listRecords` (brief hard rule 1: physical separation is the point).
+- **Provenance (D12 Rule 2): `untrusted-derived`.** Every row is third-party-authored profile text; it is stamped `provenance: 'untrusted-derived'` and, in later slices, only ever enters a judge inside the injection envelope. It is never trusted as fact and never crosses into HelloLilly's own systems.
+- **Boundary (D21, binding).** The vault lives encrypted-at-rest-later on the coach's own machine ONLY; HelloLilly never receives, stores or queries vault rows. Only binary verdicts (JA/NEJ) + opaque row IDs ever transit — those are a **later slice**; slice 1 is ingest + view for the vault's owner only.
+- **Fields (per row):** `id` (local, vault-scoped — deliberately NOT minted from the shared `mintId`/§20 KINDS, so the vault stays decoupled from the main-store id space), `name`, `firstName`, `lastName`, `position`, `company`, `connectedOn`, `connectedAt` (sort key), `url`, `email`, `raw` (every parsed column verbatim, unknown columns included), `provenance`.
+- **Lifecycle:** re-upload **REPLACES the vault wholesale** (slice 1 has no merge). A failed parse writes nothing (all-or-nothing).
+- **Encryption:** unencrypted at slice 1 (disk-encryption only) — a HARD GATE in `RETROFIT_LEDGER.md` before any coach other than Daniel has a vault.
+- **Feeds Progress Support:** no (a vault upload is not a §T event; the uniform-sentence rule means matching leaks nothing to the feed). **Feeds learning layer:** no.
+
+---
+
 ## T. Activity event taxonomy (normative)
 
 Rules first:

@@ -92,6 +92,7 @@ const COACH_NAV_GROUPS = [
     { id:'c-second-opinion-g',      label:'Second opinion' },
   ]},
   { id:'c-natverk', label:'Coachnätverk', icon:'globe', items: [
+    { id:'valvet',              label:'Valvet — ditt nätverk' },
     { id:'c-hitta-coach',       label:'Hitta coach' },
     { id:'c-specialistkunskap', label:'Specialistkunskap' },
     { id:'c-branschkunskap',    label:'Branschkunskap' },
