@@ -11,6 +11,20 @@ test('writePart: authored prose is gated even when a fact contains the banned wo
   assert.throws(() => store.writePart(c.meta.id, 'decodedRole', { narrative: 'A dynamic team.', requirements: [] }), /Writing-rule/);
 });
 
+test('transitive taint (finding 3): once a part is untrusted-derived, a later write may not omit or downgrade provenance', () => {
+  const store = createStore();
+  const c = store.createCase({});
+  const id = c.meta.id;
+  // first write stamps the draft untrusted-derived
+  store.writePart(id, 'cvDraft', { provenance: 'untrusted-derived', sections: [] });
+  // a later write that DROPS provenance is rejected at the write boundary
+  assert.throws(() => store.writePart(id, 'cvDraft', { sections: [] }), /taint|untrusted-derived|provenance/i, 'omitting provenance is a downgrade');
+  // a later write that DOWNGRADES to trusted is rejected
+  assert.throws(() => store.writePart(id, 'cvDraft', { provenance: 'trusted', sections: [] }), /taint|untrusted-derived|provenance/i, 'downgrade to trusted rejected');
+  // re-writing at the SAME taint level is allowed (not a downgrade)
+  assert.doesNotThrow(() => store.writePart(id, 'cvDraft', { provenance: 'untrusted-derived', sections: [{ key: 'summary' }] }));
+});
+
 test('datafacts are detached at the boundary: post-ingest mutation does not persist', () => {
   const store = createStore();
   const df = { id: 'datafact_m', kind: 'datafact', type: 'cv', text: 'Original verbatim text.', tags: ['a'], language: 'en' };

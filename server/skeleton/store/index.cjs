@@ -28,6 +28,22 @@
 const { createCase, setPartData, setPartStatus, PARTS } = require('../contract/case.cjs');
 const { enforce } = require('../writing-rules/gate.cjs');
 
+// Transitive taint enforced at the WRITE BOUNDARY (finding 3), not a one-time stamp: once a part's
+// data is untrusted-derived, every later write to that part must stay untrusted-derived. A write
+// that omits provenance or downgrades it (to trusted/untrusted) would launder the taint — rejected.
+class TaintError extends Error {
+  constructor(message) { super(message); this.name = 'TaintError'; }
+}
+const provOf = (v) => (v && typeof v === 'object' && typeof v.provenance === 'string' ? v.provenance : null);
+function assertNoTaintDowngrade(existingPart, data, part) {
+  const prior = existingPart && provOf(existingPart.data);
+  if (prior !== 'untrusted-derived') return; // not yet tainted -> no constraint
+  const next = provOf(data);
+  if (next !== 'untrusted-derived') {
+    throw new TaintError(`refusing to write '${part}': it is already untrusted-derived; a later write must not omit or downgrade provenance (got ${next === null ? 'none' : next})`);
+  }
+}
+
 // Detach every value that crosses the store boundary, in BOTH directions, so the only way
 // to change persisted state is through the store's own methods (which run the gate). Reads
 // hand back a copy (callers can't mutate the live object); writes persist a copy (callers
@@ -98,6 +114,7 @@ function createStore() {
   // value is a detached copy, so the caller can't mutate it into the store after the fact.
   function writePart(caseId, part, data) {
     const c = requireCase(caseId);
+    assertNoTaintDowngrade(c[part], data, part); // transitive taint at the boundary (finding 3)
     // Ref-scoped verbatim-evidence exemption: only the texts of datafacts this value
     // cites are exempt, by EXACT equality (store/index.cjs header; gate.cjs check()).
     const exemptTexts = [...collectRefdFactTexts(data)];
@@ -116,6 +133,7 @@ function createStore() {
     const entries = Object.entries(parts);
     for (const [part, data] of entries) {
       if (!PARTS.includes(part)) throw new Error(`Unknown case part: ${part}`);
+      assertNoTaintDowngrade(c[part], data, part); // transitive taint at the boundary (finding 3)
       enforce(data, [...collectRefdFactTexts(data)]);
     }
     const out = {};
