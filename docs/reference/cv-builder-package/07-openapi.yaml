@@ -1,0 +1,2044 @@
+openapi: 3.1.0
+info:
+  title: Better CV Builder API
+  version: 1.0.0
+  license:
+    name: Internal reference — set the project license before publication
+    identifier: LicenseRef-Internal-Reference
+  description: >-
+    Reference contract for the core candidate workflow: source ingestion, career
+    facts, job analysis, evidence-grounded document generation, validation,
+    rendering, application tracking, entitlements, portable export, and deletion. Long-running
+    endpoints return 202 and an operation. This is intentionally a core subset;
+    account/profile, consent, support, checkout/portal, admin/content, webhook,
+    URL-import, and internal worker endpoints are specified in the architecture.
+servers:
+  - url: https://api.your-domain.invalid
+    description: Replace with the environment-specific BFF origin
+security:
+  - bearerAuth: []
+tags:
+  - name: Sources
+    description: Private uploads, extraction state, and reviewable source chunks.
+  - name: Facts
+    description: User-owned, source-linked career facts and conflict review.
+  - name: Jobs
+    description: Immutable job snapshots and reviewed requirements.
+  - name: Analyses
+    description: Sealed evidence matrices, deterministic scores, and clarifications.
+  - name: Documents
+    description: Structured versions, validation, rendering, and downloads.
+  - name: Operations
+    description: Pollable durable background work.
+  - name: Applications
+    description: Saved applications and optional self-reported outcomes.
+  - name: Billing
+    description: Canonical plan entitlements and usage.
+  - name: Privacy
+    description: Portable exports and deletion lifecycle.
+
+paths:
+  /v1/sources:
+    get:
+      tags: [Sources]
+      operationId: listSources
+      summary: List cursor-paginated source documents for reload/resume
+      parameters:
+        - name: kind
+          in: query
+          schema: { enum: [cv, linkedin_export, certificate, portfolio, job_ad, other] }
+        - name: state
+          in: query
+          schema: { $ref: '#/components/schemas/ProcessingState' }
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Sources
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Source' }
+                  next_cursor: { type: [string, 'null'] }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /v1/sources/upload-intent:
+    post:
+      tags: [Sources]
+      operationId: createUploadIntent
+      summary: Validate source metadata and create a private upload intent
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUploadIntent'
+      responses:
+        '201':
+          description: Upload intent created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadIntent'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /v1/sources/{sourceId}/extract:
+    post:
+      tags: [Sources]
+      operationId: enqueueSourceExtraction
+      summary: Verify the upload and enqueue scan/extraction/OCR
+      parameters:
+        - $ref: '#/components/parameters/SourceId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '202': { $ref: '#/components/responses/Accepted' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '402': { $ref: '#/components/responses/EntitlementRequired' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '413': { $ref: '#/components/responses/TooLarge' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /v1/sources/{sourceId}:
+    get:
+      tags: [Sources]
+      operationId: getSource
+      summary: Read source status, quality, warnings, and metadata
+      parameters:
+        - $ref: '#/components/parameters/SourceId'
+      responses:
+        '200':
+          description: Source
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Source'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Sources]
+      operationId: deleteSource
+      summary: Enqueue safe deletion of an unreferenced source and extracted data
+      description: >-
+        Returns 409 while a job snapshot or another retained record references the
+        source. Account erasure removes the complete dependency graph through its
+        separate deletion state machine.
+      parameters:
+        - $ref: '#/components/parameters/SourceId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '202': { $ref: '#/components/responses/Accepted' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /v1/sources/{sourceId}/chunks:
+    get:
+      tags: [Sources]
+      operationId: listSourceChunks
+      summary: Read paginated source chunks for an authorized review view
+      parameters:
+        - $ref: '#/components/parameters/SourceId'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Chunks
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/SourceChunk' }
+                  next_cursor: { type: [string, 'null'] }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /v1/facts:
+    get:
+      tags: [Facts]
+      operationId: listFacts
+      summary: List the user's career fact ledger
+      parameters:
+        - name: state
+          in: query
+          schema: { $ref: '#/components/schemas/FactState' }
+        - name: fact_type
+          in: query
+          schema: { type: string }
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Facts
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/CareerFact' }
+                  next_cursor: { type: [string, 'null'] }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [Facts]
+      operationId: createFact
+      summary: Create a user-entered career fact
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateFact'
+      responses:
+        '201':
+          description: Created fact
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CareerFact' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /v1/facts/{factId}:
+    patch:
+      tags: [Facts]
+      operationId: reviewFact
+      summary: Confirm, correct, reject, or archive a fact
+      parameters:
+        - $ref: '#/components/parameters/FactId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewFact'
+      responses:
+        '200':
+          description: Current fact revision; correction creates a new immutable revision
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CareerFact' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /v1/fact-conflicts:
+    get:
+      tags: [Facts]
+      operationId: listFactConflicts
+      summary: List open or resolved conflicts in the career fact ledger
+      parameters:
+        - name: state
+          in: query
+          schema: { enum: [open, resolved, ignored] }
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Fact conflicts
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/FactConflict' }
+                  next_cursor: { type: [string, 'null'] }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /v1/fact-conflicts/{conflictId}/resolve:
+    post:
+      tags: [Facts]
+      operationId: resolveFactConflict
+      summary: Resolve or explicitly ignore a fact conflict
+      parameters:
+        - $ref: '#/components/parameters/ConflictId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - type: object
+                  required: [action, selected_fact_id]
+                  properties:
+                    action: { const: resolve }
+                    selected_fact_id: { type: string, format: uuid }
+                  additionalProperties: false
+                - type: object
+                  required: [action, reason]
+                  properties:
+                    action: { const: ignore }
+                    reason: { type: string, minLength: 1, maxLength: 1000 }
+                  additionalProperties: false
+      responses:
+        '200':
+          description: Resolved conflict
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FactConflict' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /v1/jobs:
+    get:
+      tags: [Jobs]
+      operationId: listJobs
+      summary: List cursor-paginated immutable job snapshots
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Jobs
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/JobSummary' }
+                  next_cursor: { type: [string, 'null'] }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [Jobs]
+      operationId: createJob
+      summary: Create an immutable job source snapshot from pasted text
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateJob'
+      responses:
+        '201':
+          description: Job created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Job' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /v1/jobs/{jobId}:
+    get:
+      tags: [Jobs]
+      operationId: getJob
+      summary: Read one immutable job source snapshot
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+      responses:
+        '200':
+          description: Job
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Job' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /v1/jobs/{jobId}/parse:
+    post:
+      tags: [Jobs]
+      operationId: enqueueRequirementExtraction
+      summary: Enqueue source-linked requirement extraction
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '202': { $ref: '#/components/responses/Accepted' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /v1/jobs/{jobId}/requirements:
+    get:
+      tags: [Jobs]
+      operationId: listRequirements
+      summary: List extracted/reviewed requirements
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+      responses:
+        '200':
+          description: Requirements
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Requirement' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /v1/requirements/{requirementId}:
+    patch:
+      tags: [Jobs]
+      operationId: reviewRequirement
+      summary: Confirm, correct, or exclude a requirement
+      parameters:
+        - $ref: '#/components/parameters/RequirementId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewRequirement'
+      responses:
+        '200':
+          description: Updated requirement
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Requirement' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /v1/jobs/{jobId}/analyses:
+    post:
+      tags: [Analyses]
+      operationId: createAnalysis
+      summary: Create an immutable evidence-analysis snapshot
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reviewed_requirement_ids]
+              properties:
+                reviewed_requirement_ids:
+                  type: array
+                  minItems: 1
+                  uniqueItems: true
+                  items: { type: string, format: uuid }
+                fact_snapshot_at:
+                  type: [string, 'null']
+                  format: date-time
+              additionalProperties: false
+      responses:
+        '202': { $ref: '#/components/responses/Accepted' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '402': { $ref: '#/components/responses/EntitlementRequired' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /v1/analyses/{analysisId}:
+    get:
+      tags: [Analyses]
+      operationId: getAnalysis
+      summary: Read the requirement matrix and canonical score object
+      parameters:
+        - $ref: '#/components/parameters/AnalysisId'
+      responses:
+        '200':
+          description: Analysis
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Analysis' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /v1/analyses/{analysisId}/clarifications:
+    get:
+      tags: [Analyses]
+      operationId: listClarifications
+      summary: Read the generated clarification batch and current answer states
+      parameters:
+        - $ref: '#/components/parameters/AnalysisId'
+      responses:
+        '200':
+          description: Clarifications
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    maxItems: 5
+                    items: { $ref: '#/components/schemas/Clarification' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    post:
+      tags: [Analyses]
+      operationId: createClarifications
+      summary: Generate up to five focused truth questions
+      parameters:
+        - $ref: '#/components/parameters/AnalysisId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '202': { $ref: '#/components/responses/Accepted' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /v1/clarifications/{clarificationId}/answer:
+    post:
+      tags: [Analyses]
+      operationId: answerClarification
+      summary: Confirm an answer as a fact or skip the question
+      parameters:
+        - $ref: '#/components/parameters/ClarificationId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - type: object
+                  required: [action]
+                  properties:
+                    action: { const: skip }
+                  additionalProperties: false
+                - type: object
+                  required: [action, answer, confirm_as_fact]
+                  properties:
+                    action: { const: answer }
+                    answer: { type: object, additionalProperties: true }
+                    confirm_as_fact: { const: true }
+                  additionalProperties: false
+      responses:
+        '200':
+          description: Answer recorded
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Clarification' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /v1/documents:
+    get:
+      tags: [Documents]
+      operationId: listDocuments
+      summary: List document workspaces for reload/resume
+      parameters:
+        - name: job_id
+          in: query
+          schema: { type: string, format: uuid }
+        - name: kind
+          in: query
+          schema: { enum: [cv, cover_letter, outreach_message] }
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Documents
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Document' }
+                  next_cursor: { type: [string, 'null'] }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [Documents]
+      operationId: createDocument
+      summary: Create a document workspace from an analysis
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDocument'
+      responses:
+        '201':
+          description: Document workspace
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Document' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /v1/documents/{documentId}:
+    get:
+      tags: [Documents]
+      operationId: getDocument
+      summary: Read one document workspace and its current-version pointer
+      parameters:
+        - $ref: '#/components/parameters/DocumentId'
+      responses:
+        '200':
+          description: Document
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Document' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /v1/documents/{documentId}/versions:
+    get:
+      tags: [Documents]
+      operationId: listDocumentVersions
+      summary: List immutable document-version history newest first
+      parameters:
+        - $ref: '#/components/parameters/DocumentId'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Document versions
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/DocumentVersion' }
+                  next_cursor: { type: [string, 'null'] }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    post:
+      tags: [Documents]
+      operationId: createDocumentVersion
+      summary: Enqueue a generated or user-edited immutable version
+      parameters:
+        - $ref: '#/components/parameters/DocumentId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDocumentVersion'
+      responses:
+        '202': { $ref: '#/components/responses/Accepted' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '402': { $ref: '#/components/responses/EntitlementRequired' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /v1/documents/{documentId}/versions/{versionId}/restore:
+    post:
+      tags: [Documents]
+      operationId: restoreDocumentVersion
+      summary: Copy an old immutable version into a new draft version
+      parameters:
+        - $ref: '#/components/parameters/DocumentId'
+        - $ref: '#/components/parameters/VersionId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '201':
+          description: New draft copied from the selected historical version
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DocumentVersion' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /v1/document-versions/{versionId}:
+    get:
+      tags: [Documents]
+      operationId: getDocumentVersion
+      summary: Read canonical blocks, claims, provenance, and validation state
+      parameters:
+        - $ref: '#/components/parameters/VersionId'
+      responses:
+        '200':
+          description: Document version
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DocumentVersion' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /v1/document-versions/{versionId}/blocks/{blockKey}/regenerate:
+    post:
+      tags: [Documents]
+      operationId: regenerateDocumentBlock
+      summary: Enqueue a new version with one unpinned block regenerated
+      description: >-
+        The source version remains immutable. The operation creates a child version,
+        preserves every other block byte-for-byte, and fails if the target is pinned.
+      parameters:
+        - $ref: '#/components/parameters/VersionId'
+        - $ref: '#/components/parameters/BlockKey'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user_direction: { type: string, maxLength: 1000 }
+              additionalProperties: false
+      responses:
+        '202': { $ref: '#/components/responses/Accepted' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '402': { $ref: '#/components/responses/EntitlementRequired' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /v1/document-versions/{versionId}/validate:
+    post:
+      tags: [Documents]
+      operationId: validateDocumentVersion
+      summary: Run deterministic and semantic claim checks and communication coverage
+      parameters:
+        - $ref: '#/components/parameters/VersionId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '202': { $ref: '#/components/responses/Accepted' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /v1/document-versions/{versionId}/approve:
+    post:
+      tags: [Documents]
+      operationId: approveDocumentVersion
+      summary: Approve the exact validated content before final render/export
+      description: >-
+        Succeeds only when validation is current, all claims are supported, every
+        factual/job-context claim satisfies its provenance rule, and the submitted
+        digest equals the immutable content digest. Approval atomically makes the
+        version valid; an override alone is never exportable.
+      parameters:
+        - $ref: '#/components/parameters/VersionId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content_sha256_hex]
+              properties:
+                content_sha256_hex: { type: string, pattern: '^[a-f0-9]{64}$' }
+              additionalProperties: false
+      responses:
+        '200':
+          description: Exact version approved by the authenticated user
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DocumentVersion' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /v1/document-versions/{versionId}/renders:
+    post:
+      tags: [Documents]
+      operationId: createRender
+      summary: Enqueue DOCX/PDF rendering and post-render parseability verification
+      parameters:
+        - $ref: '#/components/parameters/VersionId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [format, template_version]
+              properties:
+                format: { enum: [docx, pdf] }
+                template_version: { type: string }
+              additionalProperties: false
+      responses:
+        '202': { $ref: '#/components/responses/Accepted' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '402': { $ref: '#/components/responses/EntitlementRequired' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /v1/renders/{renderId}:
+    get:
+      tags: [Documents]
+      operationId: getRender
+      summary: Read render and parseability-verification status
+      parameters:
+        - $ref: '#/components/parameters/RenderId'
+      responses:
+        '200':
+          description: Render
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Render' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /v1/renders/{renderId}/download-intent:
+    post:
+      tags: [Documents]
+      operationId: createDownloadIntent
+      summary: Issue a short-lived authorized download URL
+      parameters:
+        - $ref: '#/components/parameters/RenderId'
+      responses:
+        '200':
+          description: Download intent
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [download_url, expires_at]
+                properties:
+                  download_url: { type: string, format: uri }
+                  expires_at: { type: string, format: date-time }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /v1/operations/{operationId}:
+    get:
+      tags: [Operations]
+      operationId: getOperation
+      summary: Poll a long-running operation
+      parameters:
+        - $ref: '#/components/parameters/OperationId'
+      responses:
+        '200':
+          description: Operation
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Operation' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /v1/applications:
+    get:
+      tags: [Applications]
+      operationId: listApplications
+      summary: List cursor-paginated applications without full document bodies
+      parameters:
+        - name: state
+          in: query
+          schema: { $ref: '#/components/schemas/ApplicationState' }
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Applications
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Application' }
+                  next_cursor: { type: [string, 'null'] }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [Applications]
+      operationId: createApplication
+      summary: Save a draft application
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateApplication'
+      responses:
+        '201':
+          description: Application
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Application' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /v1/applications/{applicationId}:
+    get:
+      tags: [Applications]
+      operationId: getApplication
+      summary: Read one application with its immutable job summary
+      parameters:
+        - $ref: '#/components/parameters/ApplicationId'
+      responses:
+        '200':
+          description: Application
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Application' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [Applications]
+      operationId: updateApplication
+      summary: Update state, dates, contact, or notes
+      parameters:
+        - $ref: '#/components/parameters/ApplicationId'
+      requestBody:
+        required: true
+        content:
+          application/merge-patch+json:
+            schema:
+              type: object
+              properties:
+                state: { $ref: '#/components/schemas/ApplicationState' }
+                applied_at: { type: [string, 'null'], format: date-time }
+                next_action_at: { type: [string, 'null'], format: date-time }
+                contact_name: { type: [string, 'null'], maxLength: 200 }
+                notes: { type: [string, 'null'], maxLength: 10000 }
+              additionalProperties: false
+      responses:
+        '200':
+          description: Application
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Application' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /v1/applications/{applicationId}/outcomes:
+    get:
+      tags: [Applications]
+      operationId: listApplicationOutcomes
+      summary: List optional self-reported outcomes for one application
+      parameters:
+        - $ref: '#/components/parameters/ApplicationId'
+      responses:
+        '200':
+          description: Outcomes
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/ApplicationOutcome' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    post:
+      tags: [Applications]
+      operationId: createApplicationOutcome
+      summary: Record an optional self-reported outcome
+      parameters:
+        - $ref: '#/components/parameters/ApplicationId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [outcome_type]
+              properties:
+                outcome_type: { enum: [screen, interview, assessment, offer, rejection, withdrawal, other] }
+                occurred_at: { type: [string, 'null'], format: date-time }
+                details: { type: object, additionalProperties: true }
+              additionalProperties: false
+      responses:
+        '201':
+          description: Outcome
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApplicationOutcome' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /v1/entitlements:
+    get:
+      tags: [Billing]
+      operationId: getEntitlements
+      summary: Get canonical plan, period, limits, and usage
+      responses:
+        '200':
+          description: Entitlements
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Entitlements' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /v1/privacy/exports:
+    post:
+      tags: [Privacy]
+      operationId: createPrivacyExport
+      summary: Enqueue a portable account-data export after recent reauthentication
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reauthentication_token, format, scope]
+              properties:
+                reauthentication_token: { type: string, writeOnly: true }
+                format: { enum: [zip, json] }
+                scope: { enum: [all_account_data] }
+              additionalProperties: false
+      responses:
+        '202': { $ref: '#/components/responses/Accepted' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /v1/privacy/exports/{exportId}:
+    get:
+      tags: [Privacy]
+      operationId: getPrivacyExport
+      summary: Read portable export progress, integrity metadata, and expiry
+      parameters:
+        - $ref: '#/components/parameters/ExportId'
+      responses:
+        '200':
+          description: Data export
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DataExport' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /v1/privacy/exports/{exportId}/download-intent:
+    post:
+      tags: [Privacy]
+      operationId: createPrivacyExportDownloadIntent
+      summary: Reauthorize and issue one narrow short-lived export URL
+      parameters:
+        - $ref: '#/components/parameters/ExportId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reauthentication_token]
+              properties:
+                reauthentication_token: { type: string, writeOnly: true }
+              additionalProperties: false
+      responses:
+        '200':
+          description: Export download intent
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [download_url, expires_at]
+                properties:
+                  download_url: { type: string, format: uri }
+                  expires_at: { type: string, format: date-time }
+                additionalProperties: false
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /v1/privacy/deletion:
+    post:
+      tags: [Privacy]
+      operationId: requestAccountDeletion
+      summary: Create a reverified durable account-deletion request
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reauthentication_token]
+              properties:
+                reauthentication_token:
+                  type: string
+                  writeOnly: true
+              additionalProperties: false
+      responses:
+        '202':
+          description: Deletion request accepted
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DeletionAccepted' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /v1/privacy/deletion/{deletionId}:
+    get:
+      tags: [Privacy]
+      operationId: getDeletionStatusBeforeRevocation
+      summary: Read deletion progress before access revocation
+      parameters:
+        - $ref: '#/components/parameters/DeletionId'
+      responses:
+        '200':
+          description: Deletion state
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DeletionRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /v1/privacy/deletion-status:
+    get:
+      tags: [Privacy]
+      operationId: getDeletionStatusByToken
+      summary: Read minimal deletion progress after account access is revoked
+      description: >-
+        Uses the status token returned once when deletion was requested.
+        The server stores only its hash, rate-limits attempts, and returns no
+        profile or deleted-domain content. When completed, the response includes
+        a separate content-free operational receipt.
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/DeletionStatusToken'
+      responses:
+        '200':
+          description: Minimal deletion state
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DeletionRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema:
+        type: string
+        minLength: 16
+        maxLength: 200
+    Cursor:
+      name: cursor
+      in: query
+      required: false
+      schema: { type: string }
+    Limit:
+      name: limit
+      in: query
+      required: false
+      schema: { type: integer, minimum: 1, maximum: 100, default: 25 }
+    SourceId: { name: sourceId, in: path, required: true, schema: { type: string, format: uuid } }
+    FactId: { name: factId, in: path, required: true, schema: { type: string, format: uuid } }
+    ConflictId: { name: conflictId, in: path, required: true, schema: { type: string, format: uuid } }
+    JobId: { name: jobId, in: path, required: true, schema: { type: string, format: uuid } }
+    RequirementId: { name: requirementId, in: path, required: true, schema: { type: string, format: uuid } }
+    AnalysisId: { name: analysisId, in: path, required: true, schema: { type: string, format: uuid } }
+    ClarificationId: { name: clarificationId, in: path, required: true, schema: { type: string, format: uuid } }
+    DocumentId: { name: documentId, in: path, required: true, schema: { type: string, format: uuid } }
+    VersionId: { name: versionId, in: path, required: true, schema: { type: string, format: uuid } }
+    BlockKey: { name: blockKey, in: path, required: true, schema: { type: string, minLength: 1, maxLength: 200 } }
+    RenderId: { name: renderId, in: path, required: true, schema: { type: string, format: uuid } }
+    OperationId: { name: operationId, in: path, required: true, schema: { type: string, format: uuid } }
+    ApplicationId: { name: applicationId, in: path, required: true, schema: { type: string, format: uuid } }
+    ExportId: { name: exportId, in: path, required: true, schema: { type: string, format: uuid } }
+    DeletionId: { name: deletionId, in: path, required: true, schema: { type: string, format: uuid } }
+    DeletionStatusToken:
+      name: Deletion-Status-Token
+      in: header
+      required: true
+      description: Opaque polling secret returned once; never place it in a URL or log.
+      schema: { type: string, minLength: 32, maxLength: 512 }
+
+  responses:
+    Accepted:
+      description: Long-running operation accepted
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/AsyncAccepted' }
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    Unauthorized:
+      description: Missing, expired, or invalid authenticated session
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    NotFound:
+      description: Resource not found within the authenticated user's scope
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    Conflict:
+      description: Resource state, idempotency, or unresolved-review conflict
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    TooLarge:
+      description: File exceeds the configured byte/page/pixel limits
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    EntitlementRequired:
+      description: The current plan or subscription does not permit this operation
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    RateLimited:
+      description: Atomic usage limit or defensive request-rate limit reached
+      headers:
+        Retry-After:
+          description: Seconds until the client should retry
+          schema: { type: integer, minimum: 1 }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+  schemas:
+    ErrorEnvelope:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message, request_id, retryable]
+          properties:
+            code: { type: string }
+            message: { type: string }
+            request_id: { type: string }
+            retryable: { type: boolean }
+            details: { type: object, additionalProperties: true }
+
+    ProcessingState:
+      enum: [pending_upload, uploaded, queued, running, needs_input, succeeded, failed_retryable, failed_terminal, cancelled]
+    Locale:
+      enum: [sv-SE, en-GB, en-US]
+    OperationState:
+      enum: [queued, running, needs_input, succeeded, failed_retryable, failed_terminal, cancelled]
+    FactState:
+      enum: [source_extracted, user_entered, user_confirmed, user_corrected, inferred_unconfirmed, rejected, archived]
+    RequirementKind:
+      enum: [eligibility_gate, essential, responsibility, preferred, submission_constraint, context, boilerplate]
+    EvidenceMatch:
+      enum: [direct, partial, adjacent, none, unknown]
+    ApplicationState:
+      enum: [draft, ready, applied, follow_up, interview, offer, rejected, withdrawn, archived]
+
+    AsyncAccepted:
+      type: object
+      required: [operation_id, resource_id, state, poll_after_ms, trace_id]
+      properties:
+        operation_id: { type: string, format: uuid }
+        resource_id: { type: string, format: uuid }
+        state: { const: queued }
+        poll_after_ms: { type: integer, minimum: 250 }
+        trace_id: { type: string }
+
+    Operation:
+      type: object
+      required: [id, operation_type, resource_type, resource_id, state, attempt_count, trace_id, created_at]
+      properties:
+        id: { type: string, format: uuid, readOnly: true }
+        operation_type: { type: string }
+        resource_type: { type: string }
+        resource_id: { type: string, format: uuid }
+        state: { $ref: '#/components/schemas/OperationState' }
+        attempt_count: { type: integer, minimum: 0 }
+        progress_percent: { type: integer, minimum: 0, maximum: 100 }
+        sanitized_error_code: { type: [string, 'null'] }
+        created_at: { type: string, format: date-time }
+        completed_at: { type: [string, 'null'], format: date-time }
+        trace_id: { type: string }
+
+    CreateUploadIntent:
+      type: object
+      required: [kind, original_filename, declared_mime, byte_size, sha256_hex]
+      properties:
+        kind: { enum: [cv, linkedin_export, certificate, portfolio, job_ad, other] }
+        original_filename: { type: string, minLength: 1, maxLength: 255 }
+        declared_mime: { type: string }
+        byte_size: { type: integer, minimum: 1, maximum: 10485760 }
+        sha256_hex: { type: string, pattern: '^[a-f0-9]{64}$' }
+      additionalProperties: false
+
+    UploadIntent:
+      type: object
+      required: [source_id, upload_url, upload_headers, expires_at]
+      properties:
+        source_id: { type: string, format: uuid }
+        upload_url: { type: string, format: uri }
+        upload_headers: { type: object, additionalProperties: { type: string } }
+        expires_at: { type: string, format: date-time }
+
+    Source:
+      type: object
+      required: [id, kind, state, original_filename, malware_scan_state, warnings, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        kind: { enum: [cv, linkedin_export, certificate, portfolio, job_ad, other] }
+        state: { $ref: '#/components/schemas/ProcessingState' }
+        original_filename: { type: string }
+        detected_mime: { type: [string, 'null'] }
+        byte_size: { type: [integer, 'null'] }
+        page_count: { type: [integer, 'null'] }
+        extraction_quality: { type: [number, 'null'], minimum: 0, maximum: 1 }
+        malware_scan_state: { enum: [pending, clean, rejected, error] }
+        warnings: { type: array, items: { type: object, additionalProperties: true } }
+        created_at: { type: string, format: date-time }
+
+    SourceChunk:
+      type: object
+      required: [id, source_document_id, block_index, reading_order, content]
+      properties:
+        id: { type: string, format: uuid }
+        source_document_id: { type: string, format: uuid }
+        page_number: { type: [integer, 'null'] }
+        block_index: { type: integer }
+        reading_order: { type: integer }
+        content: { type: string }
+        extraction_confidence: { type: [number, 'null'], minimum: 0, maximum: 1 }
+
+    SourceSpan:
+      type: object
+      required: [source_document_id, source_chunk_id, start_offset, end_offset]
+      properties:
+        source_document_id: { type: string, format: uuid }
+        source_chunk_id: { type: string, format: uuid }
+        page_number: { type: [integer, 'null'] }
+        start_offset: { type: integer, minimum: 0 }
+        end_offset: { type: integer, minimum: 1 }
+
+    CareerFact:
+      type: object
+      required: [id, lineage_id, revision_number, fact_type, value_json, normalized_text, state, sensitivity, permitted_purposes, classification_version, source_spans, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        lineage_id: { type: string, format: uuid }
+        revision_number: { type: integer, minimum: 1 }
+        supersedes_fact_id: { type: [string, 'null'], format: uuid }
+        fact_type: { type: string }
+        value_json: { type: object, additionalProperties: true }
+        normalized_text: { type: string }
+        state: { $ref: '#/components/schemas/FactState' }
+        confidence: { type: [number, 'null'], minimum: 0, maximum: 1 }
+        sensitivity:
+          enum: [ordinary, contact, sensitive, special_category]
+          readOnly: true
+        permitted_purposes:
+          type: array
+          readOnly: true
+          uniqueItems: true
+          items: { enum: [matching, generation, render] }
+        classification_version: { type: string, readOnly: true }
+        starts_on: { type: [string, 'null'], format: date }
+        ends_on: { type: [string, 'null'], format: date }
+        source_spans:
+          type: array
+          items: { $ref: '#/components/schemas/SourceSpan' }
+        created_at: { type: string, format: date-time }
+
+    CreateFact:
+      type: object
+      required: [fact_type, value_json, normalized_text, confirm]
+      properties:
+        fact_type: { type: string }
+        value_json: { type: object, additionalProperties: true }
+        normalized_text: { type: string, minLength: 1 }
+        starts_on: { type: [string, 'null'], format: date }
+        ends_on: { type: [string, 'null'], format: date }
+        confirm: { const: true }
+      additionalProperties: false
+
+    ReviewFact:
+      oneOf:
+        - type: object
+          required: [action]
+          properties:
+            action: { const: confirm }
+          additionalProperties: false
+        - type: object
+          required: [action, value_json, normalized_text]
+          properties:
+            action: { const: correct }
+            value_json: { type: object, additionalProperties: true }
+            normalized_text: { type: string, minLength: 1 }
+            starts_on: { type: [string, 'null'], format: date }
+            ends_on: { type: [string, 'null'], format: date }
+            reason: { type: [string, 'null'], maxLength: 1000 }
+          additionalProperties: false
+        - type: object
+          required: [action, reason]
+          properties:
+            action: { const: reject }
+            reason: { type: string, minLength: 1, maxLength: 1000 }
+          additionalProperties: false
+        - type: object
+          required: [action]
+          properties:
+            action: { const: archive }
+            reason: { type: [string, 'null'], maxLength: 1000 }
+          additionalProperties: false
+
+    FactConflict:
+      type: object
+      required: [id, conflict_key, fact_ids, state, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        conflict_key: { type: string }
+        fact_ids:
+          type: array
+          minItems: 2
+          uniqueItems: true
+          items: { type: string, format: uuid }
+        state: { enum: [open, resolved, ignored] }
+        resolution: { type: [object, 'null'], additionalProperties: true }
+        resolved_at: { type: [string, 'null'], format: date-time }
+        created_at: { type: string, format: date-time }
+
+    CreateJob:
+      type: object
+      required: [title, source_text]
+      properties:
+        source_document_id:
+          type: [string, 'null']
+          format: uuid
+          description: Optional successfully extracted source of kind job_ad
+        title: { type: string, minLength: 1, maxLength: 300 }
+        company: { type: [string, 'null'], maxLength: 300 }
+        location: { type: [string, 'null'], maxLength: 300 }
+        source_url: { type: [string, 'null'], format: uri }
+        source_text: { type: string, minLength: 100, maxLength: 100000 }
+        language_code: { type: [string, 'null'] }
+      additionalProperties: false
+
+    Job:
+      type: object
+      required: [id, title, source_text, source_sha256_hex, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        source_document_id: { type: [string, 'null'], format: uuid }
+        title: { type: string }
+        company: { type: [string, 'null'] }
+        location: { type: [string, 'null'] }
+        source_url: { type: [string, 'null'], format: uri }
+        source_text: { type: string }
+        source_sha256_hex: { type: string }
+        language_code: { type: [string, 'null'] }
+        created_at: { type: string, format: date-time }
+
+    JobSummary:
+      type: object
+      required: [id, title, source_sha256_hex, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        company: { type: [string, 'null'] }
+        location: { type: [string, 'null'] }
+        source_sha256_hex: { type: string, pattern: '^[a-f0-9]{64}$' }
+        language_code: { type: [string, 'null'] }
+        created_at: { type: string, format: date-time }
+
+    Requirement:
+      type: object
+      required: [id, kind, review_state, canonical_text, source_text, source_start, source_end, explicit_weight]
+      properties:
+        id: { type: string, format: uuid }
+        kind: { $ref: '#/components/schemas/RequirementKind' }
+        review_state: { enum: [proposed, confirmed, corrected, excluded] }
+        canonical_text: { type: string }
+        source_text: { type: string }
+        source_start: { type: integer, minimum: 0 }
+        source_end: { type: integer, minimum: 1 }
+        explicit_weight: { type: number, exclusiveMinimum: 0 }
+        alternatives: { type: array, items: { type: string } }
+        constraints: { type: object, additionalProperties: true }
+        parser_confidence: { type: [number, 'null'], minimum: 0, maximum: 1 }
+
+    ReviewRequirement:
+      oneOf:
+        - type: object
+          required: [action]
+          properties:
+            action: { const: confirm }
+          additionalProperties: false
+        - type: object
+          required: [action, kind, canonical_text]
+          properties:
+            action: { const: correct }
+            kind: { $ref: '#/components/schemas/RequirementKind' }
+            canonical_text: { type: string, minLength: 1 }
+            explicit_weight: { type: number, exclusiveMinimum: 0 }
+            alternatives: { type: array, items: { type: string } }
+            constraints: { type: object, additionalProperties: true }
+          additionalProperties: false
+        - type: object
+          required: [action, reason]
+          properties:
+            action: { const: exclude }
+            reason: { type: string, minLength: 1, maxLength: 1000 }
+          additionalProperties: false
+
+    AtomEvidence:
+      type: object
+      required: [atom_id, state, fact_ids, demonstrated_parts, missing_parts, rationale]
+      properties:
+        atom_id: { type: string, format: uuid }
+        state: { enum: [direct, adjacent, none, unknown] }
+        fact_ids:
+          type: array
+          uniqueItems: true
+          items: { type: string, format: uuid }
+        demonstrated_parts: { type: array, items: { type: string } }
+        missing_parts: { type: array, items: { type: string } }
+        rationale: { type: string }
+      additionalProperties: false
+
+    RequirementEvidence:
+      type: object
+      required: [id, analysis_requirement_id, match, fact_ids, demonstrated_parts, missing_parts, rationale, atom_assessments, matcher_version]
+      properties:
+        id: { type: string, format: uuid }
+        analysis_requirement_id: { type: string, format: uuid }
+        match: { $ref: '#/components/schemas/EvidenceMatch' }
+        fact_ids: { type: array, items: { type: string, format: uuid } }
+        demonstrated_parts: { type: array, items: { type: string } }
+        missing_parts: { type: array, items: { type: string } }
+        rationale: { type: string }
+        atom_assessments:
+          type: array
+          items: { $ref: '#/components/schemas/AtomEvidence' }
+        matcher_version: { type: string }
+
+    AnalysisRequirement:
+      type: object
+      description: Immutable reviewed requirement snapshot used by this analysis.
+      required: [id, source_requirement_id, kind, canonical_text, source_text, source_start, source_end, explicit_weight, alternatives, constraints, atomic_subcriteria]
+      properties:
+        id: { type: string, format: uuid }
+        source_requirement_id: { type: string, format: uuid }
+        kind: { $ref: '#/components/schemas/RequirementKind' }
+        canonical_text: { type: string }
+        source_text: { type: string }
+        source_start: { type: integer, minimum: 0 }
+        source_end: { type: integer, minimum: 1 }
+        explicit_weight: { type: number, exclusiveMinimum: 0 }
+        alternatives: { type: array, items: { type: string } }
+        constraints: { type: object, additionalProperties: true }
+        atomic_subcriteria:
+          type: array
+          items:
+            type: object
+            required: [atom_id, text, explicit_weight]
+            properties:
+              atom_id: { type: string, format: uuid }
+              text: { type: string }
+              explicit_weight: { type: number, exclusiveMinimum: 0 }
+            additionalProperties: false
+
+    ScoreComponent:
+      type: object
+      required: [lower, upper, configured_weight, effective_weight]
+      properties:
+        lower: { type: number, minimum: 0, maximum: 1 }
+        upper: { type: number, minimum: 0, maximum: 1 }
+        configured_weight: { type: number, minimum: 0, maximum: 1 }
+        effective_weight: { type: number, minimum: 0, maximum: 1 }
+
+    Score:
+      type: object
+      required: [score_version, components, unrounded_lower, unrounded_upper, display_lower, display_upper, gates, requirement_snapshot_hash, fact_snapshot_hash]
+      properties:
+        score_version: { type: string }
+        components:
+          type: object
+          required: [essential, responsibility, preferred]
+          properties:
+            essential: { $ref: '#/components/schemas/ScoreComponent' }
+            responsibility: { $ref: '#/components/schemas/ScoreComponent' }
+            preferred: { $ref: '#/components/schemas/ScoreComponent' }
+        unrounded_lower: { type: number, minimum: 0, maximum: 100 }
+        unrounded_upper: { type: number, minimum: 0, maximum: 100 }
+        display_lower: { type: integer, minimum: 0, maximum: 100 }
+        display_upper: { type: integer, minimum: 0, maximum: 100 }
+        gates:
+          type: array
+          items:
+            type: object
+            required: [analysis_requirement_id, state]
+            properties:
+              analysis_requirement_id: { type: string, format: uuid }
+              state: { enum: [met, not_met, unknown] }
+        requirement_snapshot_hash: { type: string }
+        fact_snapshot_hash: { type: string }
+
+    Analysis:
+      type: object
+      required: [id, job_id, state, requirements, score, evidence, clarifications, normalized_children_sha256_hex, sealed_at, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        job_id: { type: string, format: uuid }
+        state: { const: sealed }
+        requirements:
+          type: array
+          items: { $ref: '#/components/schemas/AnalysisRequirement' }
+        score: { $ref: '#/components/schemas/Score' }
+        evidence:
+          type: array
+          items: { $ref: '#/components/schemas/RequirementEvidence' }
+        transferable:
+          type: array
+          items: { $ref: '#/components/schemas/RequirementEvidence' }
+        clarifications:
+          type: array
+          maxItems: 5
+          items: { $ref: '#/components/schemas/Clarification' }
+        normalized_children_sha256_hex: { type: string, pattern: '^[a-f0-9]{64}$' }
+        sealed_at: { type: string, format: date-time }
+        created_at: { type: string, format: date-time }
+
+    Clarification:
+      type: object
+      required: [id, analysis_id, question, reason, state]
+      properties:
+        id: { type: string, format: uuid }
+        analysis_id: { type: string, format: uuid }
+        analysis_requirement_id: { type: [string, 'null'], format: uuid }
+        question: { type: string }
+        reason: { type: string }
+        state: { enum: [open, answered, skipped] }
+        created_fact_id: { type: [string, 'null'], format: uuid }
+
+    CreateDocument:
+      type: object
+      required: [analysis_id, kind, locale, title]
+      properties:
+        analysis_id: { type: string, format: uuid }
+        kind: { enum: [cv, cover_letter, outreach_message] }
+        locale: { $ref: '#/components/schemas/Locale' }
+        title: { type: string, minLength: 1, maxLength: 300 }
+      additionalProperties: false
+
+    Document:
+      type: object
+      required: [id, job_id, analysis_id, kind, locale, title, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        job_id: { type: string, format: uuid }
+        analysis_id: { type: string, format: uuid }
+        kind: { enum: [cv, cover_letter, outreach_message] }
+        locale: { $ref: '#/components/schemas/Locale' }
+        title: { type: string }
+        current_version_id: { type: [string, 'null'], format: uuid }
+        created_at: { type: string, format: date-time }
+
+    CreateDocumentVersion:
+      oneOf:
+        - type: object
+          required: [mode, strategy]
+          properties:
+            mode: { const: generate }
+            parent_version_id: { type: [string, 'null'], format: uuid }
+            strategy: { $ref: '#/components/schemas/DocumentStrategy' }
+          additionalProperties: false
+        - type: object
+          required: [mode, parent_version_id, strategy, content_json]
+          properties:
+            mode: { const: edit }
+            parent_version_id: { type: string, format: uuid }
+            strategy: { $ref: '#/components/schemas/DocumentStrategy' }
+            content_json:
+              $ref: '#/components/schemas/EditableDocumentContent'
+          additionalProperties: false
+
+    DocumentStrategy:
+      type: object
+      required: [length, template_id, focus_analysis_requirement_ids, tone, density]
+      properties:
+        length: { enum: [one_page, two_pages, adaptive] }
+        template_id: { type: string }
+        focus_analysis_requirement_ids:
+          type: array
+          uniqueItems: true
+          items: { type: string, format: uuid }
+        tone: { enum: [direct, professional, warm_professional] }
+        density: { enum: [compact, balanced, detailed] }
+      additionalProperties: false
+
+    EditableJobSourceSpan:
+      type: object
+      description: >-
+        Coordinates in the immutable job snapshot. The server supplies the job ID,
+        rechecks the substring/ownership, and creates the persisted span ID.
+      required: [source_start, source_end]
+      properties:
+        source_start: { type: integer, minimum: 0 }
+        source_end: { type: integer, minimum: 1 }
+      additionalProperties: false
+
+    EditableDocumentClaim:
+      type: object
+      description: >-
+        User-edit input only. It cannot set persisted claim state, validator codes,
+        provenance-link IDs, or relationship labels; the server creates a pending
+        claim and re-resolves every owned fact, requirement, and job span.
+      required: [client_claim_key, grounding_kind, text, fact_ids, job_source_spans, analysis_requirement_ids]
+      properties:
+        client_claim_key: { type: string, minLength: 1, maxLength: 200 }
+        grounding_kind: { enum: [candidate_history, job_context, mixed, non_factual] }
+        text: { type: string, minLength: 1, maxLength: 5000 }
+        fact_ids:
+          type: array
+          uniqueItems: true
+          items: { type: string, format: uuid }
+        job_source_spans:
+          type: array
+          uniqueItems: true
+          items: { $ref: '#/components/schemas/EditableJobSourceSpan' }
+        analysis_requirement_ids:
+          type: array
+          uniqueItems: true
+          items: { type: string, format: uuid }
+      allOf:
+        - if:
+            properties: { grounding_kind: { const: candidate_history } }
+          then:
+            properties:
+              fact_ids: { minItems: 1 }
+              job_source_spans: { maxItems: 0 }
+        - if:
+            properties: { grounding_kind: { const: job_context } }
+          then:
+            properties:
+              fact_ids: { maxItems: 0 }
+              job_source_spans: { minItems: 1 }
+        - if:
+            properties: { grounding_kind: { const: mixed } }
+          then:
+            properties:
+              fact_ids: { minItems: 1 }
+              job_source_spans: { minItems: 1 }
+        - if:
+            properties: { grounding_kind: { const: non_factual } }
+          then:
+            properties:
+              fact_ids: { maxItems: 0 }
+              job_source_spans: { maxItems: 0 }
+      additionalProperties: false
+
+    EditableDocumentBlock:
+      type: object
+      required: [block_key, block_type, ordinal, pinned, claims]
+      properties:
+        block_key: { type: string, minLength: 1, maxLength: 200 }
+        block_type: { enum: [header, headline, summary, skills, experience, education, certification, project, languages, custom] }
+        ordinal: { type: integer, minimum: 0 }
+        pinned: { type: boolean }
+        heading: { type: [string, 'null'], maxLength: 300 }
+        claims:
+          type: array
+          items: { $ref: '#/components/schemas/EditableDocumentClaim' }
+      additionalProperties: false
+
+    EditableDocumentContent:
+      type: object
+      required: [schema_version, blocks]
+      properties:
+        schema_version: { const: canonical-document-edit-1.0 }
+        blocks:
+          type: array
+          minItems: 1
+          items: { $ref: '#/components/schemas/EditableDocumentBlock' }
+      additionalProperties: false
+
+    JobSourceSpan:
+      type: object
+      required: [id, job_id, source_start, source_end, relationship]
+      properties:
+        id: { type: string, format: uuid, readOnly: true }
+        job_id: { type: string, format: uuid, readOnly: true }
+        source_start: { type: integer, minimum: 0 }
+        source_end: { type: integer, minimum: 1 }
+        relationship: { enum: [entails, supports, context], readOnly: true }
+
+    DocumentClaim:
+      type: object
+      description: >-
+        Factual claims require at least one eligible confirmed fact. Job-context
+        claims require an exact job-source span. Overrides remain auditable but
+        are non-exportable until evidence is confirmed and validation succeeds.
+      required: [id, claim_kind, text, fact_ids, job_source_spans, analysis_requirement_ids, state]
+      properties:
+        id: { type: string, format: uuid, readOnly: true }
+        claim_kind: { enum: [factual, job_context, mixed, non_factual] }
+        text: { type: string }
+        fact_ids:
+          type: array
+          uniqueItems: true
+          items: { type: string, format: uuid }
+        job_source_spans:
+          type: array
+          uniqueItems: true
+          items: { $ref: '#/components/schemas/JobSourceSpan' }
+        analysis_requirement_ids:
+          type: array
+          uniqueItems: true
+          items: { type: string, format: uuid }
+        state: { enum: [pending, supported, needs_confirmation, unsupported, user_overridden], readOnly: true }
+        validation_codes: { type: array, items: { type: string }, readOnly: true }
+      allOf:
+        - if:
+            properties: { claim_kind: { const: factual } }
+          then:
+            properties: { fact_ids: { minItems: 1 } }
+        - if:
+            properties: { claim_kind: { const: job_context } }
+          then:
+            properties: { job_source_spans: { minItems: 1 } }
+        - if:
+            properties: { claim_kind: { const: mixed } }
+          then:
+            properties:
+              fact_ids: { minItems: 1 }
+              job_source_spans: { minItems: 1 }
+        - if:
+            properties: { claim_kind: { const: non_factual } }
+          then:
+            properties:
+              fact_ids: { maxItems: 0 }
+              job_source_spans: { maxItems: 0 }
+      additionalProperties: false
+
+    DocumentBlock:
+      type: object
+      required: [id, block_key, block_type, ordinal, pinned, claims]
+      properties:
+        id: { type: string, format: uuid }
+        block_key: { type: string }
+        block_type: { enum: [header, headline, summary, skills, experience, education, certification, project, languages, custom] }
+        ordinal: { type: integer }
+        pinned: { type: boolean }
+        heading: { type: [string, 'null'] }
+        claims: { type: array, items: { $ref: '#/components/schemas/DocumentClaim' } }
+        layout_metadata: { type: object, additionalProperties: true }
+
+    CanonicalDocumentContent:
+      type: object
+      required: [schema_version, blocks]
+      properties:
+        schema_version: { const: canonical-document-1.0 }
+        blocks:
+          type: array
+          minItems: 1
+          items: { $ref: '#/components/schemas/DocumentBlock' }
+      additionalProperties: false
+
+    DocumentVersion:
+      type: object
+      description: >-
+        State valid means every claim is supported, each factual/job-context claim
+        satisfies its provenance rule, and approved_content_sha256_hex exactly
+        equals content_sha256_hex. Rendering is accepted only from that state.
+      required: [id, document_id, version_number, state, strategy, content_sha256_hex, content, created_by, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        document_id: { type: string, format: uuid }
+        version_number: { type: integer, minimum: 1 }
+        state: { enum: [draft, validating, needs_review, valid, superseded] }
+        strategy: { $ref: '#/components/schemas/DocumentStrategy' }
+        content_sha256_hex: { type: string, pattern: '^[a-f0-9]{64}$' }
+        content: { $ref: '#/components/schemas/CanonicalDocumentContent' }
+        claim_integrity: { type: [object, 'null'], additionalProperties: true }
+        communication_score: { oneOf: [{ $ref: '#/components/schemas/Score' }, { type: 'null' }] }
+        generation_run_id: { type: [string, 'null'], format: uuid }
+        prompt_version: { type: [string, 'null'] }
+        model_version: { type: [string, 'null'] }
+        validator_version: { type: [string, 'null'] }
+        approved_by_user_at: { type: [string, 'null'], format: date-time }
+        approved_content_sha256_hex: { type: [string, 'null'], pattern: '^[a-f0-9]{64}$' }
+        created_by: { enum: [ai, user, system] }
+        created_at: { type: string, format: date-time }
+
+    Render:
+      type: object
+      required: [id, document_version_id, format, state, template_version, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        document_version_id: { type: string, format: uuid }
+        format: { enum: [docx, pdf, txt_preview] }
+        state: { $ref: '#/components/schemas/ProcessingState' }
+        template_version: { type: string }
+        byte_size: { type: [integer, 'null'] }
+        parser_check:
+          type: [object, 'null']
+          properties:
+            passed: { type: boolean }
+            page_count: { type: integer }
+            text_selectable: { type: boolean }
+            content_order_match: { type: boolean }
+            warnings: { type: array, items: { type: string } }
+        created_at: { type: string, format: date-time }
+
+    CreateApplication:
+      type: object
+      required: [job_id]
+      properties:
+        job_id: { type: string, format: uuid }
+        submitted_document_id: { type: [string, 'null'], format: uuid }
+        submitted_document_version_id: { type: [string, 'null'], format: uuid }
+        contact_name: { type: [string, 'null'], maxLength: 200 }
+        notes: { type: [string, 'null'], maxLength: 10000 }
+      dependentRequired:
+        submitted_document_id: [submitted_document_version_id]
+        submitted_document_version_id: [submitted_document_id]
+      additionalProperties: false
+
+    Application:
+      type: object
+      required: [id, job_id, job_summary, state, created_at, updated_at]
+      properties:
+        id: { type: string, format: uuid }
+        job_id: { type: string, format: uuid }
+        job_summary: { $ref: '#/components/schemas/JobSummary' }
+        submitted_document_id: { type: [string, 'null'], format: uuid }
+        submitted_document_version_id: { type: [string, 'null'], format: uuid }
+        state: { $ref: '#/components/schemas/ApplicationState' }
+        applied_at: { type: [string, 'null'], format: date-time }
+        next_action_at: { type: [string, 'null'], format: date-time }
+        contact_name: { type: [string, 'null'] }
+        notes: { type: [string, 'null'] }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    ApplicationOutcome:
+      type: object
+      required: [id, application_id, outcome_type, self_reported, details, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        application_id: { type: string, format: uuid }
+        outcome_type: { enum: [screen, interview, assessment, offer, rejection, withdrawal, other] }
+        occurred_at: { type: [string, 'null'], format: date-time }
+        self_reported: { const: true }
+        details: { type: object, additionalProperties: true }
+        created_at: { type: string, format: date-time }
+
+    DataExport:
+      type: object
+      required: [id, state, format, schema_version, scope, download_ready, created_at, updated_at]
+      properties:
+        id: { type: string, format: uuid }
+        state: { enum: [requested, queued, running, succeeded, expired, failed, cancelled] }
+        format: { enum: [zip, json] }
+        schema_version: { type: string }
+        scope: { enum: [all_account_data] }
+        manifest: { type: [object, 'null'], additionalProperties: true }
+        byte_size: { type: [integer, 'null'], minimum: 1 }
+        sha256_hex: { type: [string, 'null'], pattern: '^[a-f0-9]{64}$' }
+        expires_at: { type: [string, 'null'], format: date-time }
+        download_ready: { type: boolean }
+        sanitized_error_code: { type: [string, 'null'] }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    Entitlements:
+      type: object
+      required: [catalog_id, plan_code, state, limits, usage, server_time]
+      properties:
+        catalog_id: { type: string }
+        plan_code: { type: string }
+        state: { enum: [trialing, active, past_due, paused, cancelled, expired] }
+        current_period_end: { type: [string, 'null'], format: date-time }
+        limits: { type: object, additionalProperties: { type: integer } }
+        usage: { type: object, additionalProperties: { type: integer } }
+        server_time: { type: string, format: date-time }
+
+    DeletionRequest:
+      type: object
+      required: [id, state, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        state: { enum: [requested, identity_reverified, access_revoked, deleting, awaiting_backup_expiry, completed, failed] }
+        access_revoked_at: { type: [string, 'null'], format: date-time }
+        backup_expiry_at: { type: [string, 'null'], format: date-time }
+        completed_at: { type: [string, 'null'], format: date-time }
+        completion_receipt:
+          oneOf:
+            - $ref: '#/components/schemas/DeletionCompletionReceipt'
+            - type: 'null'
+        created_at: { type: string, format: date-time }
+
+    DeletionCompletionReceipt:
+      type: object
+      description: Content-free operational receipt; contains no deleted profile or CV data.
+      required: [policy_version, access_revoked_at, deletion_completed_at, backup_expiry_at, systems_covered, retained_categories]
+      properties:
+        policy_version: { type: string }
+        access_revoked_at: { type: string, format: date-time }
+        deletion_completed_at: { type: string, format: date-time }
+        backup_expiry_at: { type: string, format: date-time }
+        systems_covered:
+          type: array
+          uniqueItems: true
+          items: { type: string }
+        retained_categories:
+          type: array
+          items:
+            type: object
+            required: [category, reason, scheduled_deletion_at]
+            properties:
+              category: { type: string }
+              reason: { type: string }
+              scheduled_deletion_at: { type: [string, 'null'], format: date-time }
+            additionalProperties: false
+      additionalProperties: false
+
+    DeletionAccepted:
+      type: object
+      required: [request, status_token]
+      properties:
+        request: { $ref: '#/components/schemas/DeletionRequest' }
+        status_token:
+          type: string
+          readOnly: true
+          minLength: 32
+          description: Returned once over TLS for status polling; the server stores only its hash.
