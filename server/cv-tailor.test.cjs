@@ -24,18 +24,18 @@ const FACTS = [
   DF('d_edu', 'education', 'BSc Marketing'),
   DF('d_awd', 'award', 'Best Operator 2015'),
   // job facts (intro + >=1 result each), grouped by the fixed-job company tag
-  DF('d_oj_s', 'job_summary', 'Built OnlyiGaming.', ['OnlyiGaming / Enablers']),
+  DF('d_oj_s', 'job_summary', 'Built the flagship platform.', ['OnlyiGaming / Enablers']),
   DF('d_oj_r', 'job_result', 'Shipped the platform.', ['OnlyiGaming / Enablers']),
-  DF('d_ch_s', 'job_summary', 'Founded Coinhero.', ['Coinhero']),
+  DF('d_ch_s', 'job_summary', 'Founded a new venture.', ['Coinhero']),
   DF('d_ch_r', 'job_result', 'Built the product.', ['Coinhero']),
-  DF('d_bc_s', 'job_summary', 'Ran Betclic casino.', ['Betclic']),
+  DF('d_bc_s', 'job_summary', 'Ran a casino division.', ['Betclic']),
   DF('d_bc_r', 'job_result', 'Built casino division.', ['Betclic']),
-  DF('d_co_s', 'job_summary', 'Scaled ComeOn.', ['ComeOn']),
-  DF('d_co_r', 'job_result', 'NASDAQ listing.', ['ComeOn']),
-  DF('d_mg_s', 'job_summary', 'Founding MrGreen.', ['MrGreen']),
-  DF('d_mgj_r', 'job_result', 'Grew MrGreen from 7.', ['MrGreen']),
+  DF('d_co_s', 'job_summary', 'Scaled the organisation.', ['ComeOn']),
+  DF('d_co_r', 'job_result', 'Took the company public.', ['ComeOn']),
+  DF('d_mg_s', 'job_summary', 'Joined the founding team.', ['MrGreen']),
+  DF('d_mgj_r', 'job_result', 'Grew from seven people.', ['MrGreen']),
   // earlier-career (static section) + a non-CV fact that must be excluded
-  DF('d_ear', 'job_result', 'Telge Energi brand growth.', ['Telge Energi']),
+  DF('d_ear', 'job_result', 'Grew a utility brand.', ['Telge Energi']),
   DF('d_star', 'star_action', 'STAR: reallocated budget.', ['star-story']),
 ];
 const byId = new Map(FACTS.map((f) => [f.id, f]));

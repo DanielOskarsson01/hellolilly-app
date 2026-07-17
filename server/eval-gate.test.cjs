@@ -32,12 +32,12 @@ const FACTS = [
   DF('d_ow', 'other_work', 'Advisor at Synthco (2020-)'),
   DF('d_edu', 'education', 'BSc Marketing'),
   DF('d_awd', 'award', 'Best Operator 2015'),
-  DF('d_ear', 'job_result', 'Telge Energi brand growth.', ['Telge Energi']),
-  DF('d_oj', 'job_result', 'Shipped OnlyiGaming.', ['OnlyiGaming / Enablers']),
-  DF('d_ch', 'job_result', 'Founded Coinhero.', ['Coinhero']),
-  DF('d_bc', 'job_result', 'Built casino division.', ['Betclic']),
-  DF('d_co', 'job_result', 'NASDAQ listing.', ['ComeOn']),
-  DF('d_mgj', 'job_result', 'Grew MrGreen.', ['MrGreen']),
+  DF('d_ear', 'job_result', 'Grew a utility brand.', ['Telge Energi']),
+  DF('d_oj', 'job_result', 'Shipped the flagship platform.', ['OnlyiGaming / Enablers']),
+  DF('d_ch', 'job_result', 'Founded a new venture.', ['Coinhero']),
+  DF('d_bc', 'job_result', 'Built a new division.', ['Betclic']),
+  DF('d_co', 'job_result', 'Took the company public.', ['ComeOn']),
+  DF('d_mgj', 'job_result', 'Grew the company from scratch.', ['MrGreen']),
 ];
 const byId = new Map(FACTS.map((f) => [f.id, f]));
 const poolIds = new Set(FACTS.map((f) => f.id));

@@ -16,10 +16,11 @@ const os = require('node:os');
 const path = require('node:path');
 const { createHost } = require('../../server/skeleton/host.cjs');
 const { createAnthropicClient } = require('../../server/skeleton/clients/anthropic.cjs');
-const { bootstrapStore } = require('../../server/store-bootstrap.cjs');
+const { createStore } = require('../../server/skeleton/store/index.cjs');
 const M = require('./parity-metric.cjs');
 const { INJECTION_ADS } = require('./injection-corpus.cjs');
 const { ADOPTION_CASES } = require('./adoption-corpus.cjs');
+const { SYNTHETIC_FACTS } = require('./synthetic-pool.cjs');
 
 const HL = path.resolve(__dirname, '..', '..');
 const RUNS = 3;
@@ -33,15 +34,15 @@ function apiKey() {
 
 async function main() {
   const block = JSON.parse(fs.readFileSync(path.join(__dirname, 'TEMPLATE_DEFINITION.md'), 'utf8').match(/```json\s*([\s\S]*?)```/)[1]);
-  const manifest = JSON.parse(fs.readFileSync(path.join(__dirname, 'MANIFEST.json'), 'utf8'));
-  const poolIds = new Set(manifest.corpus.datafact_pool.items.map((i) => i.id));
 
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'eval-live-'));
-  fs.copyFileSync(path.join(HL, 'server', 'data', 'store.db'), path.join(tmpDir, 'store.db'));
-  const boot = bootstrapStore({ storePath: path.join(tmpDir, 'store.db') });
-  const store = boot.store;
-  const sourceText = new Map(store.listDatafacts().map((f) => [f.id, f.text]));
-  const structuralText = M.buildStructuralText(block, store.listDatafacts()); // category + role committed sources
+  // CLEAN-CHECKOUT (finding 6b): build the store from the COMMITTED synthetic pool — no dependency on
+  // the gitignored server/data/store.db. The adversarial eval needs a conformant pool the tailor can
+  // build a valid draft from; the fixture pool is exactly that, and travels with the repo.
+  const store = createStore();
+  for (const f of SYNTHETIC_FACTS) store.ingestDatafact(f);
+  const poolIds = new Set(SYNTHETIC_FACTS.map((f) => f.id));
+  const sourceText = new Map(SYNTHETIC_FACTS.map((f) => [f.id, f.text]));
+  const structuralText = M.buildStructuralText(block, SYNTHETIC_FACTS); // category + role committed sources
   const host = createHost({ llm: createAnthropicClient({ apiKey: apiKey() }), store });
 
   let failures = 0;
@@ -100,7 +101,6 @@ async function main() {
     }
   }
 
-  fs.rmSync(tmpDir, { recursive: true, force: true });
   store.close && store.close();
   const total = (INJECTION_ADS.length + ADOPTION_CASES.length) * RUNS;
   process.stderr.write(`\n=== D12 live zero-tolerance eval: ${total - failures}/${total} runs held the honesty floor ===\n`);

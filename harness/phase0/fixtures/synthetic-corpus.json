@@ -15,28 +15,28 @@
     {"id": "syn.hl.07", "variant": "startup", "text": "Founding marketer at two companies that reached profitability."},
     {"id": "syn.hl.08", "variant": "startup", "text": "Built the first repeatable growth loop from nothing."}
   ],
-  "_competency_note": "Each item flattens to a datafact { type:'competency', tags:['competency',group], category:{id,title,group,source} } — the SAME field shape the live pool carries after scripts/enrich-competency-categories.cjs. Titles are approved pool categories (COMPETENCY_MASTER_POOL.json).",
+  "_competency_note": "Each item flattens to a datafact { type:'competency', tags:['competency',group], category:{id,title,group,source} } — the SAME field shape the live pool carries after scripts/enrich-competency-categories.cjs. The category TITLES are the committed taxonomy (structural, ledger #4); the item TEXTS are fully FABRICATED (finding 10 — no byte-copies from the real competency pool).",
   "competency_categories": [
     {"id": "syn.comp.growth", "title": "Marketing & Growth", "group": "marketing_strategy", "source": "COMPETENCY_MASTER_POOL.json", "items": [
-      {"id": "syn.comp.growth.01", "text": "Brand development & positioning"},
-      {"id": "syn.comp.growth.02", "text": "Customer acquisition & retention"},
-      {"id": "syn.comp.growth.03", "text": "Performance marketing"},
-      {"id": "syn.comp.growth.04", "text": "CRM & lifecycle"},
-      {"id": "syn.comp.growth.05", "text": "Creative direction"},
-      {"id": "syn.comp.growth.06", "text": "Go-to-market"}
+      {"id": "syn.comp.growth.01", "text": "Brand storytelling for niche B2B buyers"},
+      {"id": "syn.comp.growth.02", "text": "Lifecycle journeys tuned to purchase intent"},
+      {"id": "syn.comp.growth.03", "text": "Channel mix planning under a fixed budget"},
+      {"id": "syn.comp.growth.04", "text": "Launch playbooks for new product lines"},
+      {"id": "syn.comp.growth.05", "text": "Message testing against real buyer objections"},
+      {"id": "syn.comp.growth.06", "text": "Partner and co-marketing motions"}
     ]},
     {"id": "syn.comp.data", "title": "Data & Analytics", "group": "technical_analytical", "source": "COMPETENCY_MASTER_POOL.json", "items": [
-      {"id": "syn.comp.data.01", "text": "Analytics & reporting"},
-      {"id": "syn.comp.data.02", "text": "Experimentation"},
-      {"id": "syn.comp.data.03", "text": "Budget optimization"},
-      {"id": "syn.comp.data.04", "text": "Attribution"}
+      {"id": "syn.comp.data.01", "text": "Reporting that ties spend to pipeline"},
+      {"id": "syn.comp.data.02", "text": "Hold-out experiment design"},
+      {"id": "syn.comp.data.03", "text": "Budget reallocation from live signals"},
+      {"id": "syn.comp.data.04", "text": "Multi-touch attribution modelling"}
     ]},
     {"id": "syn.comp.leadership", "title": "Leadership & Scaling", "group": "leadership_management", "source": "COMPETENCY_MASTER_POOL.json", "items": [
-      {"id": "syn.comp.leadership.01", "text": "Team building"},
-      {"id": "syn.comp.leadership.02", "text": "Organizational design"},
-      {"id": "syn.comp.leadership.03", "text": "P&L management"},
-      {"id": "syn.comp.leadership.04", "text": "Change management"},
-      {"id": "syn.comp.leadership.05", "text": "Cross-functional alignment"}
+      {"id": "syn.comp.leadership.01", "text": "Hiring a first marketing bench"},
+      {"id": "syn.comp.leadership.02", "text": "Shaping a team around the funnel"},
+      {"id": "syn.comp.leadership.03", "text": "Owning a marketing P&L line"},
+      {"id": "syn.comp.leadership.04", "text": "Steering a function through fast change"},
+      {"id": "syn.comp.leadership.05", "text": "Aligning marketing with sales and product"}
     ]}
   ],
   "jobs": {
