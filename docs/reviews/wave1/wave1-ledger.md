@@ -1,28 +1,22 @@
 # Wave 1 — Ledger (recorded, not repaired)
 
-## ⛔ B1 — OPEN BLOCKER: the datafact pool has no Coinhero result facts (surfaced by the fix round)
-The review-#2 fix round added the strict pre-write gate (findings 4/5): a job with zero result
-bullets, or a bullet mis-attributed to the wrong job, fails validation and is never written ready.
-Re-running the parity harness under the fixed code (2026-07-17) fails **all nine runs**, every one on
-**Coinhero**: the pool contains exactly one Coinhero fact — a `job_summary` (intro) — and **zero
-`job_result` facts**. Forced to give every job a bullet, the model either leaves Coinhero empty
-("job coinhero has no bullets"), reuses another fact ("duplicate id … in section experience"), or
-mis-attributes a non-Coinhero fact to Coinhero ("does not belong to job coinhero (false attribution)").
-All three are the validator working **correctly** — this is the "run-1 Coinhero zero-bullet" class the
-review flagged, now caught. The captured reference CV shows Coinhero *with* bullets, but those were
-**authored by the reference generator**; the selection-only tailor can only select existing evidence,
-and none exists for Coinhero.
+## ✅ B1 — RESOLVED: Coinhero ingest gap repaired (was a blocker, now fixed)
+The review-#2 strict pre-write gate (findings 4/5) surfaced that the datafact pool held exactly one
+Coinhero fact — a `job_summary` (intro) — and **zero `job_result` facts**, so no valid Coinhero job
+could be built and the first re-run failed all nine generations on Coinhero (empty / duplicate /
+false-attribution — the validator working correctly). Root cause: an **ingest gap** — Coinhero's
+result bullets live in the reference variants source (`JobSearch/CVs/generate_core_cvs.js`,
+`VARIANTS.*.jobs.coinhero.bullets`), which the original `cv_data.json` ingest never read.
 
-**This is a DATA gap, not a code defect.** The code is correct and will stay strict. Resolving it is
-Daniel's call and needs real candidate data — it must NOT be fabricated:
-- **Repair the pool**: add real Coinhero `job_result` datafacts (ingest from `cv_data.json` if they
-  exist there but were missed, or add real Coinhero achievements), re-ingest, rebuild the MANIFEST
-  pool + checksums. Then the harness can produce real P3 numbers and P4 can be regenerated.
-- **Or reconsider the template**: if Coinhero genuinely has no bullet-worthy evidence, decide whether
-  the machine block should permit an intro-only job, or whether Coinhero belongs in the fixed five.
-
-Until B1 is resolved, the **harness re-run stays FAIL** (`PARITY_REPORT.md`, all runs Coinhero-blocked)
-and the **P4 package cannot be regenerated** (no valid first-generation outputs exist).
+**Resolution (2026-07-17, approved by Daniel):** imported the **39 distinct** pre-approved Coinhero
+result bullets from that source — the SAME class as the Route B category import (curated, pre-approved
+text, not fabrication). `scripts/ingest-coinhero-results.cjs` added them as new `job_result`
+datafacts, **ADDITIVE ONLY**: new content-hash ids, the previous 144 facts byte-for-byte untouched,
+each tagged `['job-result','Coinhero']` with `source` recording the exact origin file.
+`harness/phase0/amend-pool-coinhero.py` recorded the manifest amendment (pool **144→183**, new
+`pool_sha256`; captures/ads/run_config/corpus_version untouched). Bucket membership verified: all 39
+route to `coinhero` and nothing else. Harness re-run: **OVERALL PASS** (P1+P2 all nine runs; P3
+minCross 0.1771 > maxWithin 0.1633). P4 package regenerated with Coinhero rendering real bullets.
 
 ---
 
