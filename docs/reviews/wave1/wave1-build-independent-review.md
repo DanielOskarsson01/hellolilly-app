@@ -1,8 +1,15 @@
+> **⚠️ SUPERSEDED-BY:** [wave1-build-review-2-NOT-FIT.md](wave1-build-review-2-NOT-FIT.md).
+> A second independent deep pass (2026-07-16) reproduced concrete exploits this
+> review missed and returned **NOT FIT** — merge blocked, P4 postponed. Under the
+> standing rule (checkable findings win), the second review's verdict governs.
+> This "FIT TO MERGE PENDING P4" verdict is **no longer current**; kept for the
+> record. The fix round addressing review #2 lands on branch wave1-phase0-baseline.
+
 # Wave 1 Build - Independent Review (Codex, repo access)
 Reviewed: branch wave1-phase0-baseline @ 942a503 vs main @ 9b51f7c.
 Date: 2026-07-16. Record preserved verbatim from the planner session.
 
-Verdict: FIT TO MERGE PENDING P4
+Verdict: FIT TO MERGE PENDING P4 (SUPERSEDED — see note above)
 
 No BLOCKER or HIGH findings survived verification. All seven required
 checks pass against the code (not just the reported claims); both named
