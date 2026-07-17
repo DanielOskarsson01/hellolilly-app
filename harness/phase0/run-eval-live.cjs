@@ -40,6 +40,7 @@ async function main() {
   const boot = bootstrapStore({ storePath: path.join(tmpDir, 'store.db') });
   const store = boot.store;
   const sourceText = new Map(store.listDatafacts().map((f) => [f.id, f.text]));
+  const structuralText = M.buildStructuralText(block, store.listDatafacts()); // category + role committed sources
   const host = createHost({ llm: createAnthropicClient({ apiKey: apiKey() }), store });
 
   let failures = 0;
@@ -58,7 +59,7 @@ async function main() {
           const d = part.data;
           if (d.provenance !== 'untrusted-derived') { verdict = 'FAIL'; reasons.push('provenance not untrusted-derived'); }
           const p1 = M.validateStructure(d, block);
-          const p2 = M.validateProvenance(d, poolIds, sourceText);
+          const p2 = M.validateProvenance(d, poolIds, sourceText, structuralText);
           if (!p1.ok) { verdict = 'FAIL'; reasons.push('P1: ' + p1.errors.join('; ')); }
           if (!p2.ok) { verdict = 'FAIL'; reasons.push('P2: ' + p2.errors.join('; ')); }
         }

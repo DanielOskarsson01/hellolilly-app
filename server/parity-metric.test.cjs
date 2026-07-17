@@ -59,25 +59,31 @@ test('p3PassRule: cross > within passes; unstable within fails', () => {
   assert.strictEqual(fail.pass, false); // minCross (P vs C incl the P-run that IS C -> 0) not > maxWithin
 });
 
-// ---------- P1 / P2 on a well-formed draft ----------
+// ---------- P1 / P2 on a well-formed draft (FULL definition: 10 sections, typed refs) ----------
 const ref = (id) => ({ datafactRef: { kind: 'datafact', id }, text: `text-${id}` });
+const cat = (id, title, items) => ({ ref: { kind: 'category', id }, id, title, items: items.map(ref) });
+const job = (key, bullet) => ({ key, company: 'X', period: 'p', role: { ref: { kind: 'role', id: `role:${key}` }, text: BLOCK.job_roles[key] }, intro: [], bullets: [ref(bullet)] });
+// committed structural source for category + role refs
+const STRUCT = M.buildStructuralText(BLOCK, [
+  { type: 'competency', category: { id: 'marketing-growth', title: 'Marketing & Growth' } },
+  { type: 'competency', category: { id: 'leadership-scaling', title: 'Leadership & Scaling' } },
+  { type: 'competency', category: { id: 'data-analytics', title: 'Data & Analytics' } },
+]);
 function validDraft() {
   return {
     language: 'en', provenance: 'untrusted-derived',
     sections: [
+      { key: 'header_image', heading: '', structural: true },
+      { key: 'name_contact', heading: '', structural: true, name: 'Daniel Oskarsson' },
       { key: 'summary', heading: '', items: [ref('sum1')] },
       { key: 'highlights', heading: 'Career Highlights', items: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].map(ref) },
       { key: 'competencies', heading: 'Core Competencies', categories: [
-        { id: 'marketing-growth', title: 'Marketing & Growth', items: ['m1', 'm2', 'm3', 'm4'].map(ref) },
-        { id: 'leadership-scaling', title: 'Leadership & Scaling', items: ['l1', 'l2', 'l3', 'l4'].map(ref) },
-        { id: 'data-analytics', title: 'Data & Analytics', items: ['d1', 'd2', 'd3', 'd4'].map(ref) },
+        cat('marketing-growth', 'Marketing & Growth', ['m1', 'm2', 'm3', 'm4']),
+        cat('leadership-scaling', 'Leadership & Scaling', ['l1', 'l2', 'l3', 'l4']),
+        cat('data-analytics', 'Data & Analytics', ['d1', 'd2', 'd3', 'd4']),
       ] },
       { key: 'experience', heading: 'Professional Experience', jobs: [
-        { key: 'onlyigaming', company: 'X', period: 'p', items: [ref('j1')] },
-        { key: 'coinhero', company: 'X', period: 'p', items: [ref('j2')] },
-        { key: 'betclic', company: 'X', period: 'p', items: [ref('j3')] },
-        { key: 'comeon', company: 'X', period: 'p', items: [ref('j4')] },
-        { key: 'mrgreen', company: 'X', period: 'p', items: [ref('j5')] },
+        job('onlyigaming', 'j1'), job('coinhero', 'j2'), job('betclic', 'j3'), job('comeon', 'j4'), job('mrgreen', 'j5'),
       ] },
       { key: 'earlier', heading: 'Earlier Career', items: [ref('e1')] },
       { key: 'other', heading: 'Other Experience', items: [ref('o1')] },
@@ -86,54 +92,69 @@ function validDraft() {
     ],
   };
 }
+// section indices: 0 header_image, 1 name_contact, 2 summary, 3 highlights, 4 competencies,
+// 5 experience, 6 earlier, 7 other, 8 education, 9 awards.
 
-test('P1: a well-formed draft conforms to the template machine block', () => {
+test('P1: a well-formed FULL draft conforms to the template machine block (10 sections)', () => {
   const r = M.validateStructure(validDraft(), BLOCK);
   assert.deepStrictEqual(r.errors, []);
   assert.strictEqual(r.ok, true);
 });
 
-test('P1 catches: wrong order, wrong heading, bad cardinality, empty section (JC2)', () => {
-  const d1 = validDraft(); [d1.sections[1], d1.sections[2]] = [d1.sections[2], d1.sections[1]];
+test('P1 catches: missing chrome, wrong order, wrong heading, bad cardinality, empty section (JC2)', () => {
+  const d0 = validDraft(); d0.sections = d0.sections.slice(1); // drop header_image
+  assert.match(M.validateStructure(d0, BLOCK).errors.join(';'), /header_image|section order/);
+
+  const d1 = validDraft(); [d1.sections[3], d1.sections[4]] = [d1.sections[4], d1.sections[3]];
   assert.match(M.validateStructure(d1, BLOCK).errors.join(';'), /section order/);
 
-  const d2 = validDraft(); d2.sections[1].heading = 'Wrong';
+  const d2 = validDraft(); d2.sections[3].heading = 'Wrong';
   assert.match(M.validateStructure(d2, BLOCK).errors.join(';'), /heading\[highlights\]/);
 
-  const d3 = validDraft(); d3.sections[2].categories = d3.sections[2].categories.slice(0, 1); // 1 category < min 2
+  const d3 = validDraft(); d3.sections[4].categories = d3.sections[4].categories.slice(0, 1); // 1 category < min 2
   assert.match(M.validateStructure(d3, BLOCK).errors.join(';'), /competency categories/);
 
-  const d4 = validDraft(); d4.sections[3].jobs = d4.sections[3].jobs.slice(0, 4); // 4 jobs != 5
+  const d4 = validDraft(); d4.sections[5].jobs = d4.sections[5].jobs.slice(0, 4); // 4 jobs != 5
   assert.match(M.validateStructure(d4, BLOCK).errors.join(';'), /jobs 4 != 5/);
 
-  const d5 = validDraft(); d5.sections[6].items = []; // education empty
+  const d5 = validDraft(); d5.sections[8].items = []; // education empty
   assert.match(M.validateStructure(d5, BLOCK).errors.join(';'), /education empty|JC2/);
 });
 
-test('P2: verbatim resolving ids pass; dangling/reworded/duplicate fail', () => {
+test('P1: a job with an intro but ZERO bullets fails (bullets distinct from intro — the Coinhero class)', () => {
+  const d = validDraft();
+  d.sections[5].jobs[1] = { key: 'coinhero', company: 'X', period: 'p', role: { ref: { kind: 'role', id: 'role:coinhero' }, text: BLOCK.job_roles.coinhero }, intro: [ref('ci')], bullets: [] };
+  assert.match(M.validateStructure(d, BLOCK).errors.join(';'), /coinhero has 0 bullets|no bullets|< 1/);
+});
+
+test('P2: verbatim datafact ids + typed category/role refs resolve; dangling/reworded/duplicate fail', () => {
   const d = validDraft();
   const ids = ['sum1', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'm1', 'm2', 'm3', 'm4', 'l1', 'l2', 'l3', 'l4', 'd1', 'd2', 'd3', 'd4', 'j1', 'j2', 'j3', 'j4', 'j5', 'e1', 'o1', 'edu1', 'a1'];
   const pool = new Set(ids);
-  const src = new Map(ids.map((id) => [id, `text-${id}`])); // matches ref() text
-  assert.deepStrictEqual(M.validateProvenance(d, pool, src).errors, []);
+  const src = new Map(ids.map((id) => [id, `text-${id}`]));
+  assert.deepStrictEqual(M.validateProvenance(d, pool, src, STRUCT).errors, []);
 
-  // dangling: drop an id from the pool
-  assert.match(M.validateProvenance(d, new Set(ids.filter((x) => x !== 'm1')), src).errors.join(';'), /m1 not in the Phase 0 pool/);
+  // a category/role ref that is NOT in the committed structural source fails
+  const dBad = validDraft(); dBad.sections[4].categories[0].id = 'made-up'; dBad.sections[4].categories[0].ref = { kind: 'category', id: 'made-up' };
+  assert.match(M.validateProvenance(dBad, pool, src, STRUCT).errors.join(';'), /made-up \(category\) not in the committed/);
 
-  // reworded: source text differs from node text
+  // dangling datafact id
+  assert.match(M.validateProvenance(d, new Set(ids.filter((x) => x !== 'm1')), src, STRUCT).errors.join(';'), /m1 not in the Phase 0 pool/);
+
+  // reworded datafact text
   const src2 = new Map(src); src2.set('h1', 'REWORDED');
-  assert.match(M.validateProvenance(d, pool, src2).errors.join(';'), /text for h1 != source/);
+  assert.match(M.validateProvenance(d, pool, src2, STRUCT).errors.join(';'), /text for h1 != source/);
 
-  // duplicate id within a section
-  const dup = validDraft(); dup.sections[1].items.push(ref('h1'));
-  assert.match(M.validateProvenance(dup, new Set([...ids]), src).errors.join(';'), /duplicate id h1/);
+  // duplicate id within a section (highlights = index 3)
+  const dup = validDraft(); dup.sections[3].items.push(ref('h1'));
+  assert.match(M.validateProvenance(dup, new Set([...ids]), src, STRUCT).errors.join(';'), /duplicate id h1/);
 });
 
-test('selectionOf collects only tailorable sections, in order, as id lists', () => {
+test('selectionOf collects the COMPLETE committed extraction: category ids + role ids + items', () => {
   const sel = M.selectionOf(validDraft());
   assert.deepStrictEqual(Object.keys(sel).sort(), ['competencies', 'experience', 'highlights', 'other', 'summary']);
   assert.deepStrictEqual(sel.highlights, ['h1', 'h2', 'h3', 'h4', 'h5', 'h6']);
-  assert.deepStrictEqual(sel.competencies, ['m1', 'm2', 'm3', 'm4', 'l1', 'l2', 'l3', 'l4', 'd1', 'd2', 'd3', 'd4']);
-  assert.deepStrictEqual(sel.experience, ['j1', 'j2', 'j3', 'j4', 'j5']);
+  assert.deepStrictEqual(sel.competencies, ['marketing-growth', 'm1', 'm2', 'm3', 'm4', 'leadership-scaling', 'l1', 'l2', 'l3', 'l4', 'data-analytics', 'd1', 'd2', 'd3', 'd4']);
+  assert.deepStrictEqual(sel.experience, ['role:onlyigaming', 'j1', 'role:coinhero', 'j2', 'role:betclic', 'j3', 'role:comeon', 'j4', 'role:mrgreen', 'j5']);
   assert.ok(!('earlier' in sel), 'static sections are not part of the selection');
 });

@@ -15,21 +15,52 @@ function normalise(s) {
 // vary and are not "selected"). Each maps to an ordered, duplicate-free list of datafact ids.
 const TAILORABLE = ['summary', 'highlights', 'competencies', 'experience', 'other'];
 
-// leaves of a section across the three shapes (flat items, competency categories, experience jobs)
+// DATAFACT-bearing leaves of a section (flat items, competency category items, experience job
+// intro+bullets). Category/role nodes carry typed STRUCTURAL refs, walked by provenanceNodes.
 function sectionItems(section) {
   return [
     ...(section.items || []),
     ...((section.categories || []).flatMap((c) => c.items || [])),
-    ...((section.jobs || []).flatMap((j) => j.items || [])),
+    ...((section.jobs || []).flatMap((j) => [...(j.intro || []), ...(j.bullets || [])])),
   ];
 }
 
-// selection = { sectionKey: [datafactId, ...] } over the tailorable sections, in document order.
+// Every ref-bearing node in document order, tagged by ref kind — the COMPLETE committed extraction
+// (finding 9): summary, highlights, category ids + items, per-job role + intro + bullets, otherExp.
+// datafact refs resolve against the pool; category/role are typed structural refs (kind:'category'|
+// 'role') resolved against the committed taxonomy / frozen role table (see extraction-and-
+// normalisation-rules.md). node.text is the datafact text, category title, or role title.
+function provenanceNodes(section) {
+  const out = [];
+  for (const it of section.items || []) if (it.datafactRef) out.push({ kind: 'datafact', id: it.datafactRef.id, text: it.text });
+  for (const c of section.categories || []) {
+    if (c.ref) out.push({ kind: c.ref.kind, id: c.ref.id, text: c.title });
+    for (const it of c.items || []) if (it.datafactRef) out.push({ kind: 'datafact', id: it.datafactRef.id, text: it.text });
+  }
+  for (const j of section.jobs || []) {
+    if (j.role && j.role.ref) out.push({ kind: j.role.ref.kind, id: j.role.ref.id, text: j.role.text });
+    for (const it of [...(j.intro || []), ...(j.bullets || [])]) if (it.datafactRef) out.push({ kind: 'datafact', id: it.datafactRef.id, text: it.text });
+  }
+  return out;
+}
+
+// The committed taxonomy/role resolver: role ids -> title (from block.job_roles) + competency
+// category ids -> title (from the enriched facts). Passed to validateProvenance so category/role
+// refs resolve against a committed source, exactly like datafact refs resolve against the pool.
+function buildStructuralText(block, facts) {
+  const m = new Map();
+  for (const [key, title] of Object.entries((block && block.job_roles) || {})) m.set(`role:${key}`, title);
+  for (const f of facts || []) if (f.type === 'competency' && f.category) m.set(f.category.id, f.category.title);
+  return m;
+}
+
+// selection = { sectionKey: [refId, ...] } over the tailorable sections, in document order —
+// including category ids + role ids (the complete committed extraction, finding 9).
 function selectionOf(cvDraft) {
   const out = {};
   for (const s of (cvDraft && cvDraft.sections) || []) {
     if (!TAILORABLE.includes(s.key)) continue;
-    out[s.key] = sectionItems(s).map((it) => it.datafactRef && it.datafactRef.id).filter(Boolean);
+    out[s.key] = provenanceNodes(s).map((n) => n.id);
   }
   return out;
 }
@@ -100,50 +131,60 @@ function p3PassRule({ primary, control, second }) {
 // block = TEMPLATE_DEFINITION.md's JSON block. cvDraft = a HelloLilly draft. The header image is
 // static (binding constraint: heights cannot fail parity) — not validated here.
 const KEY_TO_CANON = {
+  header_image: 'header_image', name_contact: 'name_contact',
   summary: 'summary', highlights: 'career_highlights', competencies: 'core_competencies',
   experience: 'professional_experience', earlier: 'earlier_career', other: 'other_experience',
   education: 'education', awards: 'awards_languages',
 };
+// P1 validates the FULL definition (finding 8): all ten sections incl. header_image + name_contact
+// as structural presence, distinct role/intro/bullets per job, and the cardinalities.
 function validateStructure(cvDraft, block) {
   const errors = [];
   const secs = (cvDraft && cvDraft.sections) || [];
   const canon = secs.map((s) => KEY_TO_CANON[s.key]).filter(Boolean);
-  // order: the draft's canonical sections appear in the template's declared order (minus the two
-  // chrome sections header_image/name_contact, which are not draft sections).
-  const expectedOrder = block.section_order.filter((k) => k !== 'header_image' && k !== 'name_contact');
-  if (JSON.stringify(canon) !== JSON.stringify(expectedOrder)) errors.push(`section order ${JSON.stringify(canon)} != ${JSON.stringify(expectedOrder)}`);
+  if (JSON.stringify(canon) !== JSON.stringify(block.section_order)) errors.push(`section order ${JSON.stringify(canon)} != ${JSON.stringify(block.section_order)}`);
   const byKey = Object.fromEntries(secs.map((s) => [s.key, s]));
+  // structural chrome presence
+  if (!byKey.header_image) errors.push('header_image section missing');
+  if (!byKey.name_contact || !byKey.name_contact.name) errors.push('name_contact section missing (no name)');
   // headings
   for (const [key, canonKey] of Object.entries(KEY_TO_CANON)) {
     const want = block.headings_en[canonKey];
-    if (!want) continue; // summary has no heading in the template
+    if (!want) continue; // summary + chrome have no heading in the template
     const s = byKey[key];
     if (s && s.heading !== want) errors.push(`heading[${key}] "${s && s.heading}" != "${want}"`);
   }
   const card = block.cardinality;
-  const count = (s) => (s ? sectionItems(s).length : 0);
-  // summary exact 1
-  if (count(byKey.summary) !== card.summary.exact) errors.push(`summary count ${count(byKey.summary)} != ${card.summary.exact}`);
-  // highlights exact
-  if (count(byKey.highlights) !== card.highlights.exact) errors.push(`highlights count ${count(byKey.highlights)} != ${card.highlights.exact}`);
-  // competency categories 2-4, each 4-6 items
+  const nItems = (s) => (s && s.items ? s.items.length : 0);
+  if (nItems(byKey.summary) !== card.summary.exact) errors.push(`summary count ${nItems(byKey.summary)} != ${card.summary.exact}`);
+  if (nItems(byKey.highlights) !== card.highlights.exact) errors.push(`highlights count ${nItems(byKey.highlights)} != ${card.highlights.exact}`);
+  // competency categories 2-4, each 4-6 items, each carrying a typed category ref
   const cats = (byKey.competencies && byKey.competencies.categories) || [];
   if (cats.length < card.competency_categories.min || cats.length > card.competency_categories.max) errors.push(`competency categories ${cats.length} outside ${card.competency_categories.min}-${card.competency_categories.max}`);
   for (const c of cats) {
     const n = (c.items || []).length;
     if (n < card.competency_items_per_category.min || n > card.competency_items_per_category.max) errors.push(`category ${c.id} has ${n} items outside ${card.competency_items_per_category.min}-${card.competency_items_per_category.max}`);
+    if (!c.ref || c.ref.kind !== 'category') errors.push(`category ${c.id} missing typed category ref`);
   }
-  // jobs exactly 5, each >= 1 bullet
+  // jobs exactly 5; each carries a distinct role node + >= 1 bullet (distinct from intro)
   const jobs = (byKey.experience && byKey.experience.jobs) || [];
   if (jobs.length !== card.jobs.exact) errors.push(`jobs ${jobs.length} != ${card.jobs.exact}`);
-  for (const j of jobs) if ((j.items || []).length < card.bullets_per_job.min) errors.push(`job ${j.key} has no bullets`);
-  // otherExp >= 1
-  if (count(byKey.other) < card.otherExp.min) errors.push('otherExp empty');
-  // JC2: all sections present and non-empty (static + tailorable)
+  for (const j of jobs) {
+    if (!j.role || !j.role.text || !j.role.ref) errors.push(`job ${j.key} missing role node`);
+    if ((j.intro || []).length > 1) errors.push(`job ${j.key} intro > 1`);
+    if ((j.bullets || []).length < card.bullets_per_job.min) errors.push(`job ${j.key} has ${(j.bullets || []).length} bullets (< ${card.bullets_per_job.min})`);
+  }
+  if (nItems(byKey.other) < card.otherExp.min) errors.push('otherExp empty');
+  // JC2: every content section present and non-empty (chrome is presence-checked above)
   if (block.all_sections_non_empty) {
     for (const key of Object.keys(KEY_TO_CANON)) {
-      if (!byKey[key]) { errors.push(`section ${key} missing`); continue; }
-      if (count(byKey[key]) === 0) errors.push(`section ${key} empty (JC2)`);
+      if (key === 'header_image' || key === 'name_contact') continue;
+      const s = byKey[key];
+      if (!s) { errors.push(`section ${key} missing`); continue; }
+      const cnt = key === 'competencies' ? cats.reduce((a, c) => a + (c.items || []).length, 0)
+        : key === 'experience' ? jobs.reduce((a, jj) => a + (jj.intro || []).length + (jj.bullets || []).length, 0)
+        : nItems(s);
+      if (cnt === 0) errors.push(`section ${key} empty (JC2)`);
     }
   }
   return { ok: errors.length === 0, errors };
@@ -152,24 +193,33 @@ function validateStructure(cvDraft, block) {
 // ---- P2 PROVENANCE: every node id resolves against the manifest pool; node text == source text
 // under normalisation; identifiers unique within a section (a duplicate is a P2 failure). ----
 // poolIds = Set of datafact ids from MANIFEST corpus.datafact_pool.items. sourceText = id -> text.
-function validateProvenance(cvDraft, poolIds, sourceText) {
+// P2 resolves the COMPLETE extraction (finding 9). datafact refs resolve against the pool (text ==
+// source); category/role refs resolve against structuralText (the committed taxonomy + frozen role
+// table). Every tailorable selection is thus identified, verified against a committed source, and
+// unique within its section. structuralText from buildStructuralText(block, facts).
+function validateProvenance(cvDraft, poolIds, sourceText, structuralText = new Map()) {
   const errors = [];
   for (const s of (cvDraft && cvDraft.sections) || []) {
     const seen = new Set();
-    for (const it of sectionItems(s)) {
-      const id = it.datafactRef && it.datafactRef.id;
-      if (!id) { errors.push(`node in ${s.key} has no datafactRef`); continue; }
+    for (const node of provenanceNodes(s)) {
+      const { kind, id, text } = node;
+      if (!id) { errors.push(`node in ${s.key} has no ref`); continue; }
       if (seen.has(id)) errors.push(`duplicate id ${id} in section ${s.key}`); // P2 invariant
       seen.add(id);
-      if (!poolIds.has(id)) errors.push(`id ${id} not in the Phase 0 pool snapshot`);
-      else if (sourceText && normalise(it.text) !== normalise(sourceText.get(id))) errors.push(`text for ${id} != source (fabrication check)`);
+      if (kind === 'datafact') {
+        if (!poolIds.has(id)) errors.push(`id ${id} not in the Phase 0 pool snapshot`);
+        else if (sourceText && normalise(text) !== normalise(sourceText.get(id))) errors.push(`text for ${id} != source (fabrication check)`);
+      } else { // category | role — typed structural ref resolved against the committed source
+        if (!structuralText.has(id)) errors.push(`structural ref ${id} (${kind}) not in the committed ${kind} source`);
+        else if (normalise(text) !== normalise(structuralText.get(id))) errors.push(`text for ${kind} ${id} != committed source`);
+      }
     }
   }
   return { ok: errors.length === 0, errors };
 }
 
 module.exports = {
-  normalise, TAILORABLE, sectionItems, selectionOf,
+  normalise, TAILORABLE, sectionItems, provenanceNodes, buildStructuralText, selectionOf,
   jaccardDistance, kendallTauDistance, sectionDistance, runDistance, p3PassRule,
   validateStructure, validateProvenance, KEY_TO_CANON,
 };

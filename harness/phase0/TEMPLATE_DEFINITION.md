@@ -74,9 +74,11 @@ The reference renders every section unconditionally (`buildCV` pushes all sectio
   "section_order": ["header_image","name_contact","summary","career_highlights","core_competencies","professional_experience","earlier_career","other_experience","education","awards_languages"],
   "headings_en": {"career_highlights":"Career Highlights","core_competencies":"Core Competencies","professional_experience":"Professional Experience","earlier_career":"Earlier Career","other_experience":"Other Experience","education":"Education","awards_languages":"Awards, Recognition & Languages"},
   "fixed_jobs": ["onlyigaming","coinhero","betclic","comeon","mrgreen"],
+  "job_roles": {"onlyigaming":"Entrepreneur & Consultant - Product / Start-up / iGaming","coinhero":"CEO / Founder - iGaming Operator Development","betclic":"Head of Casino Business / Intrapreneur","comeon":"CMO / CPO / COO","mrgreen":"Head of Marketing, Brand & Communication (Founding Team)"},
   "static_sections": ["earlier_career","education","awards_languages"],
-  "static_within_jobs": ["company","period"],
-  "tailorable_nodes": ["contact","summary","highlights","competencies","job.role","job.intro","job.bullets","otherExp"],
+  "static_within_jobs": ["company","period","role"],
+  "tailorable_nodes": ["contact","summary","highlights","competencies","job.intro","job.bullets","otherExp"],
+  "structural_ref_kinds": {"datafact": "resolves against the datafact pool (evidence)", "category": "resolves against the committed COMPETENCY_MASTER_POOL taxonomy (id + title)", "role": "resolves against job_roles above (frozen per-job role table)"},
   "cardinality": {
     "summary": {"exact": 1},
     "highlights": {"exact": 6},

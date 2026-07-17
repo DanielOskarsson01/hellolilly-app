@@ -53,6 +53,7 @@ async function main() {
   const boot = bootstrapStore({ storePath: tmpDb });
   const store = boot.store;
   const sourceText = new Map(store.listDatafacts().map((f) => [f.id, f.text]));
+  const structuralText = M.buildStructuralText(block, store.listDatafacts()); // category + role committed sources
   const llm = createAnthropicClient({ apiKey: apiKey() });
   const host = createHost({ llm, store });
 
@@ -83,7 +84,7 @@ async function main() {
       const draft = part.data;
       const sel = M.selectionOf(draft);
       const p1 = M.validateStructure(draft, block);
-      const p2 = M.validateProvenance(draft, poolIds, sourceText);
+      const p2 = M.validateProvenance(draft, poolIds, sourceText, structuralText);
       for (const ids of Object.values(sel)) ids.forEach((id) => resolvedIds.add(id));
       selections[ad.role].push(sel);
       perRun.push({

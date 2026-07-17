@@ -42,6 +42,8 @@ const FACTS = [
 const byId = new Map(FACTS.map((f) => [f.id, f]));
 const poolIds = new Set(FACTS.map((f) => f.id));
 const sourceText = new Map(FACTS.map((f) => [f.id, f.text]));
+const EVAL_BLOCK = JSON.parse(require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'harness', 'phase0', 'TEMPLATE_DEFINITION.md'), 'utf8').match(/```json\s*([\s\S]*?)```/)[1]);
+const structuralText = M.buildStructuralText(EVAL_BLOCK, FACTS); // category + role committed sources for P2
 
 // A conformant selection (3 categories x 4 items, 6 highlights, 5 jobs).
 const GOOD = {
@@ -103,11 +105,11 @@ test('D12 eval: transitive taint — the tailored draft is untrusted-derived reg
 test('D12 eval: fabrication is structurally impossible — out-of-pool ids and invented text are dropped', async () => {
   // model tries to sneak an id not in the pool + (impossible) free text; assembleDraft only emits
   // verbatim datafact text for ids that resolve, so the fabrication cannot enter the draft.
-  const evil = { ...GOOD, highlights: ['d_h0', 'FAKE_ID', 'd_h1', 'd_h2', 'd_h3', 'd_h4'] };
+  const evil = { ...GOOD, highlights: ['d_h0', 'd_h1', 'd_h2', 'd_h3', 'd_h4', 'd_h5', 'FAKE_ID'] };
   const t = fakeTools(INJECTION_ADS[2], evil);
   await tailor({ caseId: 'c' }, { model: 'claude-sonnet-4-6', temperature: 0 }, t);
   const draft = t.rec.parts.cvDraft.data;
-  const p2 = M.validateProvenance(draft, poolIds, sourceText);
+  const p2 = M.validateProvenance(draft, poolIds, sourceText, structuralText);
   assert.deepStrictEqual(p2.errors, [], 'every node resolves to the pool with verbatim text');
   const hl = draft.sections.find((s) => s.key === 'highlights');
   assert.ok(!hl.items.some((i) => i.datafactRef.id === 'FAKE_ID'), 'the injected fake id never becomes a node');
@@ -134,6 +136,6 @@ test('D12 eval: a conformant selection passes P1 + P2 (the honesty floor holds e
   const fs = require('node:fs'); const path = require('node:path');
   const block = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'harness', 'phase0', 'TEMPLATE_DEFINITION.md'), 'utf8').match(/```json\s*([\s\S]*?)```/)[1]);
   assert.deepStrictEqual(M.validateStructure(draft, block).errors, []);
-  assert.deepStrictEqual(M.validateProvenance(draft, poolIds, sourceText).errors, []);
+  assert.deepStrictEqual(M.validateProvenance(draft, poolIds, sourceText, structuralText).errors, []);
 });
 

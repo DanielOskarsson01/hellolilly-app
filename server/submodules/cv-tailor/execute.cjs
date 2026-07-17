@@ -19,14 +19,20 @@
 // scripts/enrich-competency-categories.cjs), never authored here. Professional Experience is a
 // single section (super-heading over the five fixed jobs), mirroring the template's section order.
 
-// ---- frozen template: five fixed jobs (order + company + period are structural constants) ----
+// ---- frozen template: five fixed jobs (order + company + period + role are structural constants) ----
+// role is a STRUCTURAL constant per job (the reference role titles are fixed, identical across ads),
+// emitted as a distinct node so the draft carries role + intro + bullets distinctly (finding 8).
 const FIXED_JOBS = [
-  { key: 'onlyigaming', company: 'OnlyiGaming.com, enable.rs, Antler, PlayPalz.com | Stockholm', period: '2020 - Present', matchTags: ['OnlyiGaming / Enablers', 'OnlyiGaming'] },
-  { key: 'coinhero',    company: 'Coinhero.io | Remote',                                          period: '2023 - 2024',    matchTags: ['Coinhero'] },
-  { key: 'betclic',     company: 'Betclic Mangas Group | Bordeaux',                               period: '2018 - 2019',    matchTags: ['Betclic'] },
-  { key: 'comeon',      company: 'ComeOn/Cherry (NASDAQ listed) | Malta / Stockholm',            period: '2012 - 2017',    matchTags: ['ComeOn'] },
-  { key: 'mrgreen',     company: 'MrGreen (now 888) (NASDAQ listed) | Malta',                    period: '2009 - 2013',    matchTags: ['MrGreen'] },
+  { key: 'onlyigaming', company: 'OnlyiGaming.com, enable.rs, Antler, PlayPalz.com | Stockholm', period: '2020 - Present', role: 'Entrepreneur & Consultant - Product / Start-up / iGaming', matchTags: ['OnlyiGaming / Enablers', 'OnlyiGaming'] },
+  { key: 'coinhero',    company: 'Coinhero.io | Remote',                                          period: '2023 - 2024',    role: 'CEO / Founder - iGaming Operator Development', matchTags: ['Coinhero'] },
+  { key: 'betclic',     company: 'Betclic Mangas Group | Bordeaux',                               period: '2018 - 2019',    role: 'Head of Casino Business / Intrapreneur', matchTags: ['Betclic'] },
+  { key: 'comeon',      company: 'ComeOn/Cherry (NASDAQ listed) | Malta / Stockholm',            period: '2012 - 2017',    role: 'CMO / CPO / COO', matchTags: ['ComeOn'] },
+  { key: 'mrgreen',     company: 'MrGreen (now 888) (NASDAQ listed) | Malta',                    period: '2009 - 2013',    role: 'Head of Marketing, Brand & Communication (Founding Team)', matchTags: ['MrGreen'] },
 ];
+const roleRefId = (key) => `role:${key}`;
+// Structural chrome the draft must carry as PRESENCE (finding 8): the header image + the
+// name/contact block. Variant-driven image + the static name are structural constants.
+const NAME = 'Daniel Oskarsson';
 const EARLIER_TAGS = ['Getupdated', 'Telge Energi', 'Nofrontiere', 'McCann'];
 const NON_CV_TYPES = new Set(['star_story', 'star_action', 'leadership']);
 const HEADINGS = {
@@ -37,6 +43,10 @@ const HEADINGS = {
 };
 // JC1 competency cardinality (TEMPLATE_DEFINITION.md machine block).
 const COMP = { categories: { target: 3, min: 2, max: 4 }, itemsPerCategory: { min: 4, max: 6 } };
+// Remaining JC1 cardinality, mirrored from the machine block (drift-guarded in cv-tailor.test).
+const CARD = { summaryExact: 1, highlightsExact: 6, otherExpMin: 1, bulletsPerJobMin: 1, introMax: 1 };
+// The full committed section sequence incl. the two structural-chrome sections (finding 8).
+const SECTION_ORDER = ['header_image', 'name_contact', 'summary', 'highlights', 'competencies', 'experience', 'earlier', 'other', 'education', 'awards'];
 
 // Committed normalisation (identical rule to harness/phase0/fixtures/normalise.cjs): whitespace +
 // punctuation-spacing ONLY. Used for parity comparison; stored text stays verbatim (the store gate
@@ -97,13 +107,14 @@ function categoryInfo(facts) {
   return m;
 }
 
-// Every renderable leaf of a section, across the three shapes (flat items, competency
-// categories, experience jobs). Shared by the leaf-count and the store-gate walk.
+// Every DATAFACT-bearing leaf of a section, across the shapes (flat items, competency category
+// items, experience job intro+bullets). Category/role nodes carry typed STRUCTURAL refs
+// (kind:'category'|'role'), not datafact refs — walked separately (structuralRefs).
 function sectionItems(section) {
   return [
     ...(section.items || []),
     ...((section.categories || []).flatMap((c) => c.items || [])),
-    ...((section.jobs || []).flatMap((j) => j.items || [])),
+    ...((section.jobs || []).flatMap((j) => [...(j.intro || []), ...(j.bullets || [])])),
   ];
 }
 
@@ -158,21 +169,30 @@ function assembleDraft(sel, byId, facts, language) {
   const staticItems = (list) => list.map((f) => ({ datafactRef: { kind: 'datafact', id: f.id }, text: f.text }));
   const catInfo = categoryInfo(facts);
 
-  // Core Competencies: each picked category -> its pre-approved title + selected items (verbatim).
-  // Unknown category ids and empty categories are dropped (no hallucinated categories).
+  // Core Competencies: each picked category -> a typed category ref + pre-approved title + selected
+  // items (verbatim). Unknown category ids and empty categories are dropped (no hallucinated categories).
   const categories = (sel.competencies || []).map((c) => {
     const info = catInfo.get(c && c.category);
     if (!info) return null;
-    return { id: info.id, title: info.title, source: info.source, items: pick(c.items) };
+    return { ref: { kind: 'category', id: info.id }, id: info.id, title: info.title, source: info.source, items: pick(c.items) };
   }).filter((c) => c && c.items.length);
 
-  // Professional Experience: one section, super-heading over the five fixed jobs (company+period static).
+  // Professional Experience: one section over the five fixed jobs. role + intro + bullets are DISTINCT
+  // nodes (finding 8); role is a structural constant carrying a typed role ref; company+period static.
   const jobs = FIXED_JOBS.map((j) => {
     const s = (sel.jobs && sel.jobs[j.key]) || {};
-    return { key: j.key, company: j.company, period: j.period, items: [...pick(s.intro).slice(0, 1), ...pick(s.bullets)] };
+    return {
+      key: j.key, company: j.company, period: j.period,
+      role: { ref: { kind: 'role', id: roleRefId(j.key) }, text: j.role },
+      intro: pick(s.intro).slice(0, 1),
+      bullets: pick(s.bullets),
+    };
   });
 
+  // Full committed sequence incl. the two structural-chrome sections (present as structure, finding 8).
   const sections = [
+    { key: 'header_image', heading: '', structural: true, image: 'variant-driven (rendered natural height; 0e)' },
+    { key: 'name_contact', heading: '', structural: true, name: NAME },
     { key: 'summary', heading: '', items: pick(sel.summary).slice(0, 1) },
     { key: 'highlights', heading: HEADINGS.highlights, items: pick(sel.highlights) },
     { key: 'competencies', heading: HEADINGS.competencies, categories },
@@ -183,6 +203,74 @@ function assembleDraft(sel, byId, facts, language) {
     { key: 'awards', heading: HEADINGS.awards, items: staticItems(factsOfType(facts, ['award'])) },
   ];
   return { language, provenance: 'untrusted-derived', sections };
+}
+
+// STRICT PRE-WRITE VALIDATION (findings 4 + 5). Enforces the full machine block + bucket membership
+// + id uniqueness BEFORE the draft is ever written ready. An invalid draft (empty, under-filled job,
+// wrong cardinality, mis-attributed fact, duplicate id) fails here -> the part fails, never 'ready'.
+// Self-contained (require-guard): mirrors the machine block via the drift-guarded constants above; the
+// harness's parity-metric validateStructure independently re-checks the same definition.
+function validateDraftPreWrite(draft, byId) {
+  const errors = [];
+  const secs = (draft && draft.sections) || [];
+  const byKey = Object.fromEntries(secs.map((s) => [s.key, s]));
+  if (JSON.stringify(secs.map((s) => s.key)) !== JSON.stringify(SECTION_ORDER)) errors.push(`section sequence ${JSON.stringify(secs.map((s) => s.key))} != ${JSON.stringify(SECTION_ORDER)}`);
+  // structural chrome present
+  if (!byKey.header_image) errors.push('header_image section missing');
+  if (!byKey.name_contact || !byKey.name_contact.name) errors.push('name_contact section missing name');
+  // flat-item cardinalities
+  const n = (s) => ((s && s.items) || []).length;
+  if (n(byKey.summary) !== CARD.summaryExact) errors.push(`summary count ${n(byKey.summary)} != ${CARD.summaryExact}`);
+  if (n(byKey.highlights) !== CARD.highlightsExact) errors.push(`highlights count ${n(byKey.highlights)} != ${CARD.highlightsExact}`);
+  if (n(byKey.other) < CARD.otherExpMin) errors.push('otherExp empty');
+  // competency categories 2-4, each 4-6 items, every item in its category (membership)
+  const cats = (byKey.competencies && byKey.competencies.categories) || [];
+  if (cats.length < COMP.categories.min || cats.length > COMP.categories.max) errors.push(`competency categories ${cats.length} outside ${COMP.categories.min}-${COMP.categories.max}`);
+  for (const c of cats) {
+    const items = c.items || [];
+    if (items.length < COMP.itemsPerCategory.min || items.length > COMP.itemsPerCategory.max) errors.push(`category ${c.id} items ${items.length} outside ${COMP.itemsPerCategory.min}-${COMP.itemsPerCategory.max}`);
+    for (const it of items) {
+      const f = byId.get(it.datafactRef && it.datafactRef.id);
+      if (!f || !f.category || f.category.id !== c.id) errors.push(`competency item ${it.datafactRef && it.datafactRef.id} does not belong to category ${c.id} (false attribution)`);
+    }
+  }
+  // 5 jobs; role present; intro 0-1; >= 1 bullet DISTINCT from intro; every job item in that job
+  const jobs = (byKey.experience && byKey.experience.jobs) || [];
+  if (jobs.length !== FIXED_JOBS.length) errors.push(`jobs ${jobs.length} != ${FIXED_JOBS.length}`);
+  for (const j of jobs) {
+    if (!j.role || !j.role.text) errors.push(`job ${j.key} missing role`);
+    if ((j.intro || []).length > CARD.introMax) errors.push(`job ${j.key} intro > ${CARD.introMax}`);
+    if ((j.bullets || []).length < CARD.bulletsPerJobMin) errors.push(`job ${j.key} has no bullets`);
+    for (const it of [...(j.intro || []), ...(j.bullets || [])]) {
+      const f = byId.get(it.datafactRef && it.datafactRef.id);
+      if (!f || jobOfFact(f) !== j.key) errors.push(`experience item ${it.datafactRef && it.datafactRef.id} does not belong to job ${j.key} (false attribution)`);
+    }
+  }
+  // every tailorable + static section non-empty (JC2)
+  for (const key of ['summary', 'highlights', 'competencies', 'experience', 'earlier', 'other', 'education', 'awards']) {
+    const s = byKey[key];
+    if (!s) { errors.push(`section ${key} missing`); continue; }
+    const count = key === 'competencies' ? (s.categories || []).reduce((a, c) => a + (c.items || []).length, 0)
+      : key === 'experience' ? (s.jobs || []).reduce((a, jj) => a + (jj.intro || []).length + (jj.bullets || []).length, 0)
+      : (s.items || []).length;
+    if (count === 0) errors.push(`section ${key} empty (JC2)`);
+  }
+  // id uniqueness per section, across ALL ref ids (datafact + category + role)
+  for (const s of secs) {
+    const ids = allRefIds(s);
+    const seen = new Set();
+    for (const id of ids) { if (seen.has(id)) errors.push(`duplicate id ${id} in section ${s.key}`); seen.add(id); }
+  }
+  return { ok: errors.length === 0, errors };
+}
+
+// All ref ids in a section in document order: datafact leaves + category refs + role refs.
+function allRefIds(section) {
+  const out = [];
+  for (const it of section.items || []) if (it.datafactRef) out.push(it.datafactRef.id);
+  for (const c of section.categories || []) { if (c.ref) out.push(c.ref.id); for (const it of c.items || []) if (it.datafactRef) out.push(it.datafactRef.id); }
+  for (const j of section.jobs || []) { if (j.role && j.role.ref) out.push(j.role.ref.id); for (const it of [...(j.intro || []), ...(j.bullets || [])]) if (it.datafactRef) out.push(it.datafactRef.id); }
+  return out;
 }
 
 function poolText(pool) {
@@ -245,6 +333,9 @@ async function execute(input, options, tools) {
     if (!v.ok) throw new Error(`cv-tailor: model output failed schema validation — ${v.errors.slice(0, 3).join('; ')}`);
 
     const cvDraft = assembleDraft(raw, byId, facts, language);
+    // STRICT PRE-WRITE GATE (findings 4 + 5): an invalid draft is NEVER written ready.
+    const pre = validateDraftPreWrite(cvDraft, byId);
+    if (!pre.ok) throw new Error(`cv-tailor: draft failed pre-write validation — ${pre.errors.slice(0, 4).join('; ')}`);
     tools.store.writePart(caseId, 'cvDraft', cvDraft);
     const items = cvDraft.sections.reduce((n, s) => n + sectionItems(s).length, 0);
     return { ok: true, sections: cvDraft.sections.length, items, provenance: cvDraft.provenance };
@@ -264,4 +355,9 @@ module.exports.SELECTION_SCHEMA = SELECTION_SCHEMA;
 module.exports.FIXED_JOBS = FIXED_JOBS;
 module.exports.HEADINGS = HEADINGS;
 module.exports.COMP = COMP;
+module.exports.CARD = CARD;
+module.exports.SECTION_ORDER = SECTION_ORDER;
 module.exports.sectionItems = sectionItems;
+module.exports.allRefIds = allRefIds;
+module.exports.validateDraftPreWrite = validateDraftPreWrite;
+module.exports.roleRefId = roleRefId;
