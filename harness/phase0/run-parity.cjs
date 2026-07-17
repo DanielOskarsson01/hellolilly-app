@@ -106,8 +106,8 @@ async function main() {
     run_date: RUN_DATE,
     run_integrity: {
       tailor_model: 'claude-sonnet-4-6',
-      decoder_model: 'claude-opus-4-8 (upstream input step; recorded, not the parity-graded model)',
-      sampling: 'tailor temperature=0 (stable selection; sonnet-4-6 honours it); decoder temperature not sent (deprecated on opus-4-8). maxTokens tailor=2000, decoder=3000',
+      decoder_model: 'claude-sonnet-4-6 (single-model chain; decode + tailor same model — finding 7)',
+      sampling: 'HelloLilly: decoder temperature not sent, maxTokens 3000; tailor temperature=0 (stable selection), maxTokens 2000 — single model claude-sonnet-4-6. Reference oracle samples at temperature 0.2 / maxTokens 8000 (recorded divergence, same model; backstopped by P4).',
       corpus_version: manifest.run_config && manifest.run_config.corpus_version,
       pool_sha256: poolSha,
       pool_size: poolIds.size,

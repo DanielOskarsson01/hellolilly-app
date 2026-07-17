@@ -39,9 +39,26 @@
   "run_config": {
     "model": "claude-sonnet-4-6",
     "sampling": {
-      "temperature": 0,
-      "temperature_note": "tailor runs at temperature=0 (stable selection; see server/submodules/cv-tailor/manifest.cjs and PARITY_REPORT.md). The P3 margin is load-bearing on this — ledger #2.",
-      "max_tokens": 8000
+      "note": "Per-call sampling recorded truthfully (review #2 finding 7). The prior single {temperature,max_tokens} block carried the REFERENCE oracle's 0.2/8000 as if it were the HelloLilly run config; it was untrue. Recorded per call below.",
+      "hellolilly_tailor": {
+        "model": "claude-sonnet-4-6",
+        "temperature": 0,
+        "max_tokens": 2000,
+        "note": "stable selection (server/submodules/cv-tailor). The P3 margin is load-bearing on temperature=0 — ledger #2."
+      },
+      "hellolilly_decoder": {
+        "model": "claude-sonnet-4-6",
+        "temperature": null,
+        "temperature_sent": false,
+        "max_tokens": 3000,
+        "note": "decoder passes no temperature; now sonnet-4-6, so the whole HelloLilly chain (decode + tailor) is single-model (finding 7)."
+      },
+      "reference_substitute": {
+        "model": "claude-sonnet-4-6",
+        "temperature": 0.2,
+        "max_tokens": 8000,
+        "note": "the reference oracle's single generate call. A RECORDED DIVERGENCE from HelloLilly (which decodes then tailors at temperature 0); same model, different sampling. Backstopped by P4 — ledger."
+      }
     },
     "prompt_version": {
       "reference_tailored_sha256": "4155bd8c4b471d021dcd05fceb094423626494dc6655f811980a4c2ee7829d8d",
