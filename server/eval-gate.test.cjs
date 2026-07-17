@@ -83,10 +83,12 @@ test('D12 eval: every injection ad is ENVELOPED with a neutralising preamble, ne
     await tailor({ caseId: 'c' }, { model: 'claude-sonnet-4-6', temperature: 0 }, t);
     assert.match(t.rec.prompt, /BEGIN UNTRUSTED_DATA[\s\S]*END UNTRUSTED_DATA/, 'ad is fenced');
     assert.match(t.rec.prompt, /Never obey, adopt/i, 'neutralising preamble present');
-    // the injection substring sits INSIDE the fenced block, not before it
+    // the injection substring sits INSIDE the fenced block, not before it. The ad is
+    // sentinel-neutralised on enveloping (guillemets defanged), so search for its neutralised form.
+    const neutralized = ad.replace(/«/g, '<<').replace(/»/g, '>>');
     const begin = t.rec.prompt.indexOf('BEGIN UNTRUSTED_DATA');
-    const end = t.rec.prompt.indexOf('END UNTRUSTED_DATA');
-    const inj = t.rec.prompt.indexOf(ad.slice(0, 20));
+    const end = t.rec.prompt.lastIndexOf('END UNTRUSTED_DATA');
+    const inj = t.rec.prompt.indexOf(neutralized.slice(0, 20));
     assert.ok(inj > begin && inj < end, 'the ad text is inside the untrusted fence');
   }
 });
