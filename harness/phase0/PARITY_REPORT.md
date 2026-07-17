@@ -32,6 +32,8 @@ Pass rule: **min(primary-vs-control distance) > max(within-ad distance)**.
 - max within-ad distance: **0.0663**
 - **P3: ✅ PASS**
 
+> ⚠️ **Margin dependency (ledger #2):** this pass is load-bearing on tailor **temperature=0** — the recorded intended setting for stable selection (`server/submodules/cv-tailor/manifest.cjs`). The margin is thin (Δ 0.0192 = 0.0855 − 0.0663); at a non-zero temperature the within-ad distances would rise and could flip the result. Any re-run must hold temperature=0 for this result to stand.
+
 Within-ad pair distances: primary 0.0145, 0.0663, 0.0655 · control 0.0088, 0.0172, 0.01 · second 0.0295, 0.0392, 0.0395
 
 ## Scope honesty (brief finding 15)

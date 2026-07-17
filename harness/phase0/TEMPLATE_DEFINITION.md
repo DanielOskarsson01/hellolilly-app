@@ -1,8 +1,18 @@
 # Wave 1 - Template Definition (Phase 0d)
 
-Structural only, committed (synthetic tier). Extracted PRIMARILY from the reference
+Structural only, committed. Extracted PRIMARILY from the reference
 CODE (`JobSearch/CVs/generate_core_cvs.js` `buildCV`, headings from `i18n.js`),
-cross-checked against the three captured reference outputs. No personal content.
+cross-checked against the three captured reference outputs.
+
+**Committed-by-design personal content.** This file carries the real name
+(`Daniel Oskarsson`) and the real company/period names as **structural
+constants** — the fixed CV scaffold the tailor may never add to, rename, or
+reorder (see the section table and the five fixed jobs below). Per D20(b),
+the career biography (name, employers, roles, periods) is committed-by-design
+under the standing persona decision; only contact PII, the evidence/datafact
+pool, and captured CV artefacts are withheld from the repo. None of that
+withheld class appears here — no contact details, no pool bullets, no ad or
+CV bodies — only the structural skeleton.
 
 This is the structure factory for the wave: the per-case structured CV is
 instantiated FROM this definition, and the tailor fills content nodes within it.

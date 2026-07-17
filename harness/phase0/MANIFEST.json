@@ -39,7 +39,8 @@
   "run_config": {
     "model": "claude-sonnet-4-6",
     "sampling": {
-      "temperature": 0.2,
+      "temperature": 0,
+      "temperature_note": "tailor runs at temperature=0 (stable selection; see server/submodules/cv-tailor/manifest.cjs and PARITY_REPORT.md). The P3 margin is load-bearing on this — ledger #2.",
       "max_tokens": 8000
     },
     "prompt_version": {

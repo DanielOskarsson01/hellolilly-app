@@ -173,6 +173,8 @@ Pass rule: **min(primary-vs-control distance) > max(within-ad distance)**.
 - max within-ad distance: **${r.p3.max_within}**
 - **P3: ${r.p3.pass ? '✅ PASS' : '❌ FAIL'}**
 
+> ⚠️ **Margin dependency (ledger #2):** this pass is load-bearing on tailor **temperature=0** — the recorded intended setting for stable selection (\`server/submodules/cv-tailor/manifest.cjs\`). The margin is thin (Δ ${round(r.p3.min_cross - r.p3.max_within)} = ${r.p3.min_cross} − ${r.p3.max_within}); at a non-zero temperature the within-ad distances would rise and could flip the result. Any re-run must hold temperature=0 for this result to stand.
+
 Within-ad pair distances: primary ${r.p3.within.primary.map((p) => p.distance).join(', ') || '—'} · control ${r.p3.within.control.map((p) => p.distance).join(', ') || '—'} · second ${r.p3.within.second.map((p) => p.distance).join(', ') || '—'}
 
 ## Scope honesty (brief finding 15)
