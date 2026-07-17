@@ -202,6 +202,12 @@ Daniel decided the architecture for coach network reach — **Network Match (E3)
 - **Design** — the E3/F3 screens keep demo tier; the uniform-sentence rule is a copy commitment.
 - **Planner** — the §2 review scope gains the controller/tool-provider hypothesis and the enrichment-route question; E3/F3 briefs inherit this architecture.
 
+## D22 - CV engine adopts provenance-first architecture
+
+**Date:** 2026-07-17. **Status:** DRAFT - pending Daniel's sign-off (becomes canonical when `docs/CV_ENGINE_PLAN.md` merges to main). (D22 is the next decision number after D21, clear of this addendum's D1-D5 line and the Omställning area's D4-D8 range.)
+
+The CV path is upgraded per `docs/CV_ENGINE_PLAN.md`: fact ledger gains verified state and source spans, requirements gain user review, the score is computed server-side, all generated claims cite fact ids, an independent validator gates export. Reference contracts: `docs/reference/cv-builder-package/04-ai-contracts-and-prompts.md`. The pending gap-drafting + doc-to-datafacts wave is absorbed into CV-E2.
+
 ## Persona note (already in the seed, restated because it interacts with D3)
 New/rebuilt screens use the real persona (Daniel Oskarsson, iGaming/marketing) with real data. The Amir Hassan fixture persona survives ONLY inside labelled demo screens. No new Amir content.
 
