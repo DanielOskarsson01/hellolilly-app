@@ -168,12 +168,12 @@ const GEN_FACTS = [
   { id: 'd_ow', type: 'other_work', text: 'Advisor at Synthco (2020-).', tags: ['other-work'] },
   { id: 'd_edu', type: 'education', text: 'BSc Marketing.', tags: ['education'] },
   { id: 'd_awd', type: 'award', text: 'Best Operator 2015.', tags: ['award'] },
-  { id: 'd_ear', type: 'job_result', text: 'Telge Energi brand growth.', tags: ['Telge Energi'] },
+  { id: 'd_ear', type: 'job_result', text: 'Grew a utility brand.', tags: ['Telge Energi'] },
   { id: 'datafact_x', type: 'job_result', text: 'Grew revenue 3x.', tags: ['ComeOn'] },
-  { id: 'd_oj', type: 'job_result', text: 'Shipped OnlyiGaming.', tags: ['OnlyiGaming / Enablers'] },
-  { id: 'd_ch', type: 'job_result', text: 'Founded Coinhero.', tags: ['Coinhero'] },
+  { id: 'd_oj', type: 'job_result', text: 'Shipped the flagship platform.', tags: ['OnlyiGaming / Enablers'] },
+  { id: 'd_ch', type: 'job_result', text: 'Founded a new venture.', tags: ['Coinhero'] },
   { id: 'd_bc', type: 'job_result', text: 'Built casino division.', tags: ['Betclic'] },
-  { id: 'd_mg', type: 'job_result', text: 'Grew MrGreen from 7.', tags: ['MrGreen'] },
+  { id: 'd_mg', type: 'job_result', text: 'Grew the company from scratch.', tags: ['MrGreen'] },
 ].map((f) => ({ kind: 'datafact', language: 'en', ...f }))
   .concat(['1', '2', '3', '4'].map((i) => CATF(`d_l${i}`, 'leadership-scaling', 'Leadership & Scaling', 'leadership_management')))
   .concat(['1', '2', '3', '4'].map((i) => CATF(`d_m${i}`, 'marketing-growth', 'Marketing & Growth', 'marketing_strategy')))

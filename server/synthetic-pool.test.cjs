@@ -24,9 +24,40 @@ test('synthetic pool + good selection -> a valid full draft (pre-write gate + P1
 
 // Finding 10: fixture hygiene — no real employer history or CV-derived claim TEXT. The only real
 // strings permitted are the structural constants: taxonomy titles + the frozen job-routing tags.
+const REAL_IN_TEXT = /OnlyiGaming|Coinhero|Betclic|ComeOn|MrGreen|Cherry|Antler|PlayPalz|Getupdated|Telge Energi|Nofrontiere|McCann|NASDAQ|Daniel|Oskarsson/;
 test('synthetic pool is fully fabricated: no real employer names or CV claims in any node TEXT', () => {
-  const REAL_IN_TEXT = /OnlyiGaming|Coinhero|Betclic|ComeOn|MrGreen|Cherry|Antler|PlayPalz|Getupdated|Telge Energi|Nofrontiere|McCann|NASDAQ|Daniel|Oskarsson/;
   for (const f of SYNTHETIC_FACTS) {
     assert.ok(!REAL_IN_TEXT.test(f.text), `fabricated text only, got: "${f.text}"`);
   }
+});
+
+// Finding 10 / D13 — extend the hygiene guard from ONE pool to EVERY eval/test datafact pool, so a
+// real-employer string in fact TEXT cannot regress silently anywhere. Scans the fact-TEXT positions
+// of each pool-bearing source: object `text:` fields and DF(id, type, TEXT, ...) positional args.
+// Structural constants stay allowed — the frozen job-routing TAGS (e.g. tags: ['ComeOn']) and the
+// committed persona name (name_contact.name) are NOT fact text, so they are not scanned here.
+const POOL_FILES = [
+  'harness/phase0/synthetic-pool.cjs',
+  'server/api.test.cjs',
+  'server/eval-gate.test.cjs',
+  'server/cv-tailor.test.cjs',
+  'server/skeleton/fill-gap/keyword-judge.test.cjs',
+  'server/skeleton/datafacts/ingest-cv.test.cjs',
+];
+test('finding 10 (D13): no real employer history in any eval/test datafact-pool TEXT', () => {
+  const HL = path.join(__dirname, '..');
+  const offenders = [];
+  const textField = /\btext\s*:\s*(?:'((?:[^'\\]|\\.)*)'|"((?:[^"\\]|\\.)*)")/g;
+  const dfArg = /\bDF\(\s*'(?:[^'\\]|\\.)*'\s*,\s*'(?:[^'\\]|\\.)*'\s*,\s*'((?:[^'\\]|\\.)*)'/g;
+  for (const rel of POOL_FILES) {
+    const src = fs.readFileSync(path.join(HL, rel), 'utf8');
+    for (const m of src.matchAll(textField)) {
+      const t = m[1] != null ? m[1] : m[2];
+      if (REAL_IN_TEXT.test(t)) offenders.push(`${rel}: text "${t}"`);
+    }
+    for (const m of src.matchAll(dfArg)) {
+      if (REAL_IN_TEXT.test(m[1])) offenders.push(`${rel}: DF text "${m[1]}"`);
+    }
+  }
+  assert.deepStrictEqual(offenders, [], `eval/test pool TEXT must be fully synthetic (tags + persona name are the only allowed real strings):\n  ${offenders.join('\n  ')}`);
 });
