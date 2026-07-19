@@ -658,10 +658,12 @@ function CvReviewContent({ item }) {
                       </div>
                     ))
                   : s.jobs
-                  ? s.jobs.filter(jb => (jb.items || []).length).map(job => (
+                  ? s.jobs.filter(jb => (jb.intro || []).length || (jb.bullets || []).length).map(job => (
                       <div key={job.key} className="cvpaper__job">
                         <div className="cvpaper__job-h">{job.company} · {job.period}</div>
-                        <ul className="cvpaper__ul">{job.items.map((it, j) => <li key={j}>{it.text}</li>)}</ul>
+                        {job.role && job.role.text ? <div className="cvpaper__job-role">{job.role.text}</div> : null}
+                        {(job.intro || []).map((it, j) => <p key={`i${j}`} className="cvpaper__p">{it.text}</p>)}
+                        {(job.bullets || []).length ? <ul className="cvpaper__ul">{job.bullets.map((it, j) => <li key={`b${j}`}>{it.text}</li>)}</ul> : null}
                       </div>
                     ))
                   : <ul className="cvpaper__ul">{(s.items || []).map((it, j) => <li key={j}>{it.text}</li>)}</ul>}

@@ -100,7 +100,7 @@ function ImproveStrip({ section }) {
 
 /* ---------- The living CV preview (renders cvDraft.sections[]) ---------- */
 // Section body renders one of three shapes: Core Competencies -> categories[] (title + items),
-// Professional Experience -> jobs[] (company·period + items), everything else -> flat items.
+// Professional Experience -> jobs[] (company·period + role + intro + bullets), everything else -> flat items.
 function SectionBody({ sec, resolve }) {
   if (sec.categories) {
     return sec.categories.filter(c => (c.items || []).length).map(cat => (
@@ -111,10 +111,14 @@ function SectionBody({ sec, resolve }) {
     ));
   }
   if (sec.jobs) {
-    return sec.jobs.filter(j => (j.items || []).length).map(job => (
+    // Professional Experience: role/intro/bullets are DISTINCT nodes (server finding 8). Render the
+    // fixed role title, then the intro paragraph(s), then the result bullets — all five jobs show.
+    return sec.jobs.filter(j => (j.intro || []).length || (j.bullets || []).length).map(job => (
       <div className="cvlive__job" key={job.key}>
         <div className="paper__job-h">{job.company} · {job.period}</div>
-        <ul>{job.items.map((it, i) => <CvItem key={i} item={it} resolve={resolve} asBullet />)}</ul>
+        {job.role && job.role.text ? <div className="paper__job-role">{job.role.text}</div> : null}
+        {(job.intro || []).map((it, i) => <CvItem key={`i${i}`} item={it} resolve={resolve} />)}
+        {(job.bullets || []).length ? <ul>{job.bullets.map((it, i) => <CvItem key={`b${i}`} item={it} resolve={resolve} asBullet />)}</ul> : null}
       </div>
     ));
   }
