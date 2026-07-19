@@ -1,7 +1,7 @@
 {
   "wave": "Wave 1 — The Honest Tailor",
   "harness": "P1 (structure) + P2 (provenance) + P3 (job sensitivity)",
-  "run_date": "2026-07-17",
+  "run_date": "2026-07-19",
   "run_integrity": {
     "tailor_model": "claude-sonnet-4-6",
     "decoder_model": "claude-sonnet-4-6 (single-model chain; decode + tailor same model — finding 7)",
@@ -27,7 +27,7 @@
         "local_file": "ads/second-aloi.txt"
       }
     ],
-    "resolved_source_ids": 87,
+    "resolved_source_ids": 78,
     "note": "Selections are datafact ids (opaque refs, no content) — fixture-law safe to commit."
   },
   "per_run": [
@@ -45,32 +45,32 @@
           "datafact_5fc4baa1"
         ],
         "highlights": [
-          "datafact_bde8595e",
-          "datafact_d982a863",
           "datafact_e8ec7b32",
-          "datafact_93c76de8",
+          "datafact_d982a863",
+          "datafact_bde8595e",
           "datafact_d5eb142d",
-          "datafact_42c2860d"
+          "datafact_93c76de8",
+          "datafact_f65adb5d"
         ],
         "competencies": [
-          "leadership-scaling",
-          "datafact_b4974ee2",
-          "datafact_a9939d9d",
-          "datafact_d3c7a621",
-          "datafact_64ba3dac",
-          "datafact_a918efa9",
           "marketing-growth",
           "datafact_7a0e2412",
           "datafact_9c434fa1",
           "datafact_2ef9c1f5",
           "datafact_5d1db384",
           "datafact_ece470a5",
+          "leadership-scaling",
+          "datafact_b4974ee2",
+          "datafact_a9939d9d",
+          "datafact_d3c7a621",
+          "datafact_64ba3dac",
+          "datafact_a918efa9",
           "data-analytics",
           "datafact_9e6858db",
           "datafact_ae90fcd3",
           "datafact_c9a95a41",
-          "datafact_34e36e0e",
-          "datafact_03114785"
+          "datafact_03114785",
+          "datafact_34e36e0e"
         ],
         "experience": [
           "role:onlyigaming",
@@ -79,14 +79,14 @@
           "datafact_cedaccbb",
           "datafact_2a00d8df",
           "datafact_887cb869",
+          "datafact_b250dd91",
           "role:coinhero",
           "datafact_d712adee",
+          "datafact_6c887eda",
           "datafact_c3e940bb",
           "datafact_17ab7966",
           "datafact_556a4160",
           "datafact_40854c51",
-          "datafact_8b2b5e60",
-          "datafact_ce9f3c13",
           "role:betclic",
           "datafact_2fce3f77",
           "datafact_9b59515b",
@@ -108,6 +108,7 @@
           "datafact_f38c50da",
           "datafact_7f97c6e8",
           "datafact_07a5c0c7",
+          "datafact_7a72d9c7",
           "datafact_03d59711"
         ],
         "other": [
@@ -129,71 +130,71 @@
           "datafact_5fc4baa1"
         ],
         "highlights": [
-          "datafact_bde8595e",
-          "datafact_d982a863",
           "datafact_e8ec7b32",
+          "datafact_d982a863",
+          "datafact_bde8595e",
           "datafact_d5eb142d",
           "datafact_93c76de8",
           "datafact_f65adb5d"
         ],
         "competencies": [
+          "marketing-growth",
+          "datafact_9c434fa1",
+          "datafact_7a0e2412",
+          "datafact_2ef9c1f5",
+          "datafact_5d1db384",
+          "datafact_ece470a5",
           "leadership-scaling",
           "datafact_b4974ee2",
           "datafact_a9939d9d",
           "datafact_d3c7a621",
           "datafact_64ba3dac",
           "datafact_a918efa9",
-          "marketing-growth",
-          "datafact_7a0e2412",
-          "datafact_9c434fa1",
-          "datafact_2ef9c1f5",
-          "datafact_5d1db384",
-          "datafact_ece470a5",
           "data-analytics",
-          "datafact_9e6858db",
           "datafact_ae90fcd3",
+          "datafact_9e6858db",
           "datafact_c9a95a41",
-          "datafact_34e36e0e",
-          "datafact_03114785"
+          "datafact_03114785",
+          "datafact_34e36e0e"
         ],
         "experience": [
           "role:onlyigaming",
           "datafact_746c388a",
-          "datafact_befcf36f",
           "datafact_f8f01fd8",
-          "datafact_cedaccbb",
-          "datafact_2a00d8df",
+          "datafact_befcf36f",
           "datafact_887cb869",
+          "datafact_2a00d8df",
+          "datafact_cedaccbb",
           "role:coinhero",
           "datafact_d712adee",
-          "datafact_6c887eda",
           "datafact_c3e940bb",
           "datafact_17ab7966",
           "datafact_556a4160",
           "datafact_40854c51",
-          "datafact_ce9f3c13",
+          "datafact_8b2b5e60",
           "role:betclic",
           "datafact_2fce3f77",
           "datafact_9b59515b",
           "datafact_5ff21212",
-          "datafact_cd24c6c7",
-          "datafact_c7bb6b02",
           "datafact_d5275311",
+          "datafact_c7bb6b02",
+          "datafact_cd24c6c7",
           "role:comeon",
           "datafact_f958ac88",
           "datafact_95e5bc75",
           "datafact_451e2942",
           "datafact_15f0f405",
           "datafact_968df6f9",
-          "datafact_9f068dae",
           "datafact_992d70fb",
+          "datafact_9f068dae",
           "role:mrgreen",
           "datafact_d17d7055",
           "datafact_db9f5057",
           "datafact_f38c50da",
           "datafact_7f97c6e8",
           "datafact_03d59711",
-          "datafact_07a5c0c7"
+          "datafact_07a5c0c7",
+          "datafact_7a72d9c7"
         ],
         "other": [
           "datafact_7a3c2a60"
@@ -214,17 +215,17 @@
           "datafact_5fc4baa1"
         ],
         "highlights": [
-          "datafact_bde8595e",
-          "datafact_d982a863",
           "datafact_e8ec7b32",
+          "datafact_d982a863",
+          "datafact_bde8595e",
           "datafact_d5eb142d",
           "datafact_93c76de8",
           "datafact_f65adb5d"
         ],
         "competencies": [
           "marketing-growth",
-          "datafact_7a0e2412",
           "datafact_9c434fa1",
+          "datafact_7a0e2412",
           "datafact_2ef9c1f5",
           "datafact_5d1db384",
           "datafact_ece470a5",
@@ -235,42 +236,41 @@
           "datafact_64ba3dac",
           "datafact_a918efa9",
           "data-analytics",
-          "datafact_9e6858db",
           "datafact_ae90fcd3",
+          "datafact_9e6858db",
           "datafact_c9a95a41",
-          "datafact_34e36e0e",
-          "datafact_03114785"
+          "datafact_03114785",
+          "datafact_34e36e0e"
         ],
         "experience": [
           "role:onlyigaming",
           "datafact_746c388a",
+          "datafact_f8f01fd8",
           "datafact_befcf36f",
           "datafact_cedaccbb",
-          "datafact_2a00d8df",
           "datafact_887cb869",
-          "datafact_f8f01fd8",
+          "datafact_2a00d8df",
           "role:coinhero",
           "datafact_d712adee",
           "datafact_c3e940bb",
           "datafact_17ab7966",
           "datafact_556a4160",
           "datafact_40854c51",
-          "datafact_a3978a00",
-          "datafact_1c6c76be",
+          "datafact_6c887eda",
           "role:betclic",
           "datafact_2fce3f77",
           "datafact_9b59515b",
           "datafact_5ff21212",
           "datafact_cd24c6c7",
-          "datafact_d5275311",
           "datafact_c7bb6b02",
+          "datafact_d5275311",
           "role:comeon",
           "datafact_f958ac88",
           "datafact_95e5bc75",
-          "datafact_451e2942",
           "datafact_15f0f405",
           "datafact_968df6f9",
           "datafact_992d70fb",
+          "datafact_451e2942",
           "datafact_9f068dae",
           "role:mrgreen",
           "datafact_d17d7055",
@@ -282,13 +282,7 @@
           "datafact_7a72d9c7"
         ],
         "other": [
-          "datafact_7a3c2a60",
-          "datafact_1c430b89",
-          "datafact_f6c19682",
-          "datafact_37828af6",
-          "datafact_632f24f8",
-          "datafact_5192405f",
-          "datafact_ec299ddf"
+          "datafact_7a3c2a60"
         ]
       }
     },
@@ -324,8 +318,8 @@
           "datafact_ae90fcd3",
           "datafact_9e6858db",
           "datafact_34e36e0e",
-          "datafact_03114785",
           "datafact_c9a95a41",
+          "datafact_03114785",
           "product-technology",
           "datafact_6987e86a",
           "datafact_3b736026",
@@ -340,14 +334,14 @@
           "datafact_befcf36f",
           "datafact_cedaccbb",
           "datafact_2a00d8df",
+          "datafact_887cb869",
           "role:coinhero",
           "datafact_d712adee",
+          "datafact_6c887eda",
           "datafact_c3e940bb",
-          "datafact_17ab7966",
           "datafact_556a4160",
           "datafact_0e64db49",
           "datafact_072c5c37",
-          "datafact_1c6c76be",
           "role:betclic",
           "datafact_2fce3f77",
           "datafact_9b59515b",
@@ -357,8 +351,8 @@
           "datafact_cd24c6c7",
           "role:comeon",
           "datafact_f958ac88",
-          "datafact_451e2942",
           "datafact_15f0f405",
+          "datafact_451e2942",
           "datafact_95e5bc75",
           "datafact_992d70fb",
           "datafact_968df6f9",
@@ -366,19 +360,14 @@
           "role:mrgreen",
           "datafact_d17d7055",
           "datafact_db9f5057",
-          "datafact_07a5c0c7",
           "datafact_f38c50da",
           "datafact_03d59711",
-          "datafact_7f97c6e8"
+          "datafact_7f97c6e8",
+          "datafact_07a5c0c7",
+          "datafact_7a72d9c7"
         ],
         "other": [
-          "datafact_7a3c2a60",
-          "datafact_1c430b89",
-          "datafact_f6c19682",
-          "datafact_37828af6",
-          "datafact_632f24f8",
-          "datafact_5192405f",
-          "datafact_ec299ddf"
+          "datafact_1c430b89"
         ]
       }
     },
@@ -397,31 +386,31 @@
         ],
         "highlights": [
           "datafact_e8ec7b32",
-          "datafact_93c76de8",
           "datafact_42c2860d",
           "datafact_d982a863",
           "datafact_bde8595e",
+          "datafact_4d58d195",
           "datafact_89063946"
         ],
         "competencies": [
           "marketing-growth",
-          "datafact_9c434fa1",
           "datafact_7a0e2412",
           "datafact_2ef9c1f5",
+          "datafact_9c434fa1",
           "datafact_5d1db384",
           "datafact_ece470a5",
+          "product-technology",
+          "datafact_3b736026",
+          "datafact_6987e86a",
+          "datafact_5a744672",
+          "datafact_de11931d",
+          "datafact_cf617ac6",
           "data-analytics",
-          "datafact_ae90fcd3",
           "datafact_9e6858db",
+          "datafact_ae90fcd3",
           "datafact_34e36e0e",
-          "datafact_03114785",
           "datafact_c9a95a41",
-          "leadership-scaling",
-          "datafact_b4974ee2",
-          "datafact_d3c7a621",
-          "datafact_a9939d9d",
-          "datafact_64ba3dac",
-          "datafact_a918efa9"
+          "datafact_03114785"
         ],
         "experience": [
           "role:onlyigaming",
@@ -429,15 +418,15 @@
           "datafact_f8f01fd8",
           "datafact_befcf36f",
           "datafact_cedaccbb",
+          "datafact_887cb869",
           "datafact_2a00d8df",
           "role:coinhero",
           "datafact_d712adee",
           "datafact_c3e940bb",
           "datafact_17ab7966",
           "datafact_556a4160",
-          "datafact_0e64db49",
-          "datafact_072c5c37",
-          "datafact_1c6c76be",
+          "datafact_40854c51",
+          "datafact_6c887eda",
           "role:betclic",
           "datafact_2fce3f77",
           "datafact_9b59515b",
@@ -447,8 +436,8 @@
           "datafact_cd24c6c7",
           "role:comeon",
           "datafact_f958ac88",
-          "datafact_451e2942",
           "datafact_15f0f405",
+          "datafact_451e2942",
           "datafact_95e5bc75",
           "datafact_992d70fb",
           "datafact_968df6f9",
@@ -457,18 +446,13 @@
           "datafact_d17d7055",
           "datafact_db9f5057",
           "datafact_f38c50da",
-          "datafact_07a5c0c7",
           "datafact_03d59711",
-          "datafact_7f97c6e8"
+          "datafact_7f97c6e8",
+          "datafact_07a5c0c7",
+          "datafact_7a72d9c7"
         ],
         "other": [
-          "datafact_7a3c2a60",
-          "datafact_1c430b89",
-          "datafact_f6c19682",
-          "datafact_37828af6",
-          "datafact_632f24f8",
-          "datafact_5192405f",
-          "datafact_ec299ddf"
+          "datafact_1c430b89"
         ]
       }
     },
@@ -491,7 +475,7 @@
           "datafact_42c2860d",
           "datafact_d982a863",
           "datafact_bde8595e",
-          "datafact_4d58d195"
+          "datafact_89063946"
         ],
         "competencies": [
           "marketing-growth",
@@ -504,96 +488,7 @@
           "datafact_ae90fcd3",
           "datafact_9e6858db",
           "datafact_34e36e0e",
-          "datafact_03114785",
           "datafact_c9a95a41",
-          "product-technology",
-          "datafact_6987e86a",
-          "datafact_3b736026",
-          "datafact_5a744672",
-          "datafact_de11931d",
-          "datafact_cf617ac6"
-        ],
-        "experience": [
-          "role:onlyigaming",
-          "datafact_746c388a",
-          "datafact_f8f01fd8",
-          "datafact_befcf36f",
-          "datafact_cedaccbb",
-          "datafact_2a00d8df",
-          "role:coinhero",
-          "datafact_d712adee",
-          "datafact_c3e940bb",
-          "datafact_17ab7966",
-          "datafact_556a4160",
-          "datafact_0e64db49",
-          "datafact_072c5c37",
-          "datafact_1c6c76be",
-          "role:betclic",
-          "datafact_2fce3f77",
-          "datafact_9b59515b",
-          "datafact_5ff21212",
-          "datafact_d5275311",
-          "datafact_c7bb6b02",
-          "datafact_cd24c6c7",
-          "role:comeon",
-          "datafact_f958ac88",
-          "datafact_451e2942",
-          "datafact_15f0f405",
-          "datafact_95e5bc75",
-          "datafact_992d70fb",
-          "datafact_968df6f9",
-          "role:mrgreen",
-          "datafact_d17d7055",
-          "datafact_db9f5057",
-          "datafact_f38c50da",
-          "datafact_07a5c0c7",
-          "datafact_03d59711",
-          "datafact_7f97c6e8"
-        ],
-        "other": [
-          "datafact_7a3c2a60",
-          "datafact_1c430b89",
-          "datafact_f6c19682",
-          "datafact_37828af6",
-          "datafact_632f24f8",
-          "datafact_5192405f",
-          "datafact_ec299ddf"
-        ]
-      }
-    },
-    {
-      "ad": "second",
-      "run": 1,
-      "tailor": "ready",
-      "p1": true,
-      "p1_errors": [],
-      "p2": true,
-      "p2_errors": [],
-      "sections": 10,
-      "selection": {
-        "summary": [
-          "datafact_5fc4baa1"
-        ],
-        "highlights": [
-          "datafact_e8ec7b32",
-          "datafact_bde8595e",
-          "datafact_89063946",
-          "datafact_4d58d195",
-          "datafact_07286d24",
-          "datafact_d982a863"
-        ],
-        "competencies": [
-          "marketing-growth",
-          "datafact_9c434fa1",
-          "datafact_7a0e2412",
-          "datafact_2ef9c1f5",
-          "datafact_5d1db384",
-          "datafact_ece470a5",
-          "data-analytics",
-          "datafact_ae90fcd3",
-          "datafact_9e6858db",
-          "datafact_c9a95a41",
-          "datafact_34e36e0e",
           "datafact_03114785",
           "leadership-scaling",
           "datafact_b4974ee2",
@@ -612,49 +507,43 @@
           "datafact_887cb869",
           "role:coinhero",
           "datafact_d712adee",
+          "datafact_6c887eda",
           "datafact_c3e940bb",
-          "datafact_17ab7966",
           "datafact_556a4160",
-          "datafact_0e64db49",
-          "datafact_072c5c37",
-          "datafact_1c6c76be",
+          "datafact_40854c51",
+          "datafact_8b2b5e60",
           "role:betclic",
           "datafact_2fce3f77",
           "datafact_9b59515b",
           "datafact_5ff21212",
-          "datafact_d5275311",
           "datafact_c7bb6b02",
+          "datafact_d5275311",
           "datafact_cd24c6c7",
           "role:comeon",
           "datafact_f958ac88",
           "datafact_451e2942",
           "datafact_15f0f405",
           "datafact_95e5bc75",
-          "datafact_968df6f9",
           "datafact_992d70fb",
+          "datafact_968df6f9",
           "datafact_9f068dae",
           "role:mrgreen",
           "datafact_d17d7055",
           "datafact_db9f5057",
           "datafact_f38c50da",
-          "datafact_7f97c6e8",
+          "datafact_07a5c0c7",
           "datafact_03d59711",
-          "datafact_07a5c0c7"
+          "datafact_7f97c6e8",
+          "datafact_7a72d9c7"
         ],
         "other": [
-          "datafact_7a3c2a60",
-          "datafact_1c430b89",
-          "datafact_f6c19682",
-          "datafact_37828af6",
-          "datafact_632f24f8",
-          "datafact_5192405f",
-          "datafact_ec299ddf"
+          "datafact_1c430b89"
         ]
       }
     },
     {
       "ad": "second",
-      "run": 2,
+      "run": 1,
       "tailor": "ready",
       "p1": true,
       "p1_errors": [],
@@ -669,8 +558,8 @@
           "datafact_e8ec7b32",
           "datafact_89063946",
           "datafact_4d58d195",
+          "datafact_d982a863",
           "datafact_bde8595e",
-          "datafact_07286d24",
           "datafact_eb085c7e"
         ],
         "competencies": [
@@ -698,6 +587,7 @@
           "datafact_746c388a",
           "datafact_f8f01fd8",
           "datafact_befcf36f",
+          "datafact_cedaccbb",
           "datafact_2a00d8df",
           "datafact_887cb869",
           "role:coinhero",
@@ -707,7 +597,6 @@
           "datafact_556a4160",
           "datafact_40854c51",
           "datafact_8b2b5e60",
-          "datafact_95fab245",
           "role:betclic",
           "datafact_2fce3f77",
           "datafact_9b59515b",
@@ -726,25 +615,20 @@
           "role:mrgreen",
           "datafact_d17d7055",
           "datafact_db9f5057",
-          "datafact_f38c50da",
           "datafact_07a5c0c7",
+          "datafact_f38c50da",
+          "datafact_7f97c6e8",
           "datafact_03d59711",
-          "datafact_7f97c6e8"
+          "datafact_7a72d9c7"
         ],
         "other": [
-          "datafact_7a3c2a60",
-          "datafact_1c430b89",
-          "datafact_f6c19682",
-          "datafact_37828af6",
-          "datafact_632f24f8",
-          "datafact_5192405f",
-          "datafact_ec299ddf"
+          "datafact_1c430b89"
         ]
       }
     },
     {
       "ad": "second",
-      "run": 3,
+      "run": 2,
       "tailor": "ready",
       "p1": true,
       "p1_errors": [],
@@ -758,24 +642,24 @@
         "highlights": [
           "datafact_e8ec7b32",
           "datafact_bde8595e",
+          "datafact_d982a863",
           "datafact_89063946",
           "datafact_4d58d195",
-          "datafact_d982a863",
-          "datafact_07286d24"
+          "datafact_eb085c7e"
         ],
         "competencies": [
           "marketing-growth",
           "datafact_9c434fa1",
-          "datafact_7a0e2412",
           "datafact_2ef9c1f5",
+          "datafact_7a0e2412",
           "datafact_5d1db384",
           "datafact_ece470a5",
           "data-analytics",
           "datafact_ae90fcd3",
           "datafact_9e6858db",
           "datafact_c9a95a41",
-          "datafact_34e36e0e",
           "datafact_03114785",
+          "datafact_34e36e0e",
           "leadership-scaling",
           "datafact_b4974ee2",
           "datafact_d3c7a621",
@@ -796,9 +680,8 @@
           "datafact_c3e940bb",
           "datafact_17ab7966",
           "datafact_556a4160",
-          "datafact_0e64db49",
-          "datafact_072c5c37",
-          "datafact_1c6c76be",
+          "datafact_40854c51",
+          "datafact_8b2b5e60",
           "role:betclic",
           "datafact_2fce3f77",
           "datafact_9b59515b",
@@ -817,73 +700,153 @@
           "role:mrgreen",
           "datafact_d17d7055",
           "datafact_db9f5057",
+          "datafact_07a5c0c7",
           "datafact_f38c50da",
           "datafact_7f97c6e8",
-          "datafact_07a5c0c7",
-          "datafact_03d59711"
+          "datafact_03d59711",
+          "datafact_7a72d9c7"
         ],
         "other": [
-          "datafact_7a3c2a60",
-          "datafact_1c430b89",
-          "datafact_f6c19682",
-          "datafact_37828af6",
-          "datafact_632f24f8",
-          "datafact_5192405f",
-          "datafact_ec299ddf"
+          "datafact_7a3c2a60"
+        ]
+      }
+    },
+    {
+      "ad": "second",
+      "run": 3,
+      "tailor": "ready",
+      "p1": true,
+      "p1_errors": [],
+      "p2": true,
+      "p2_errors": [],
+      "sections": 10,
+      "selection": {
+        "summary": [
+          "datafact_5fc4baa1"
+        ],
+        "highlights": [
+          "datafact_e8ec7b32",
+          "datafact_89063946",
+          "datafact_4d58d195",
+          "datafact_eb085c7e",
+          "datafact_d982a863",
+          "datafact_bde8595e"
+        ],
+        "competencies": [
+          "marketing-growth",
+          "datafact_9c434fa1",
+          "datafact_2ef9c1f5",
+          "datafact_7a0e2412",
+          "datafact_5d1db384",
+          "datafact_ece470a5",
+          "data-analytics",
+          "datafact_ae90fcd3",
+          "datafact_9e6858db",
+          "datafact_c9a95a41",
+          "datafact_03114785",
+          "datafact_34e36e0e",
+          "leadership-scaling",
+          "datafact_b4974ee2",
+          "datafact_d3c7a621",
+          "datafact_a9939d9d",
+          "datafact_64ba3dac",
+          "datafact_a918efa9"
+        ],
+        "experience": [
+          "role:onlyigaming",
+          "datafact_746c388a",
+          "datafact_f8f01fd8",
+          "datafact_befcf36f",
+          "datafact_cedaccbb",
+          "datafact_2a00d8df",
+          "datafact_887cb869",
+          "role:coinhero",
+          "datafact_d712adee",
+          "datafact_c3e940bb",
+          "datafact_17ab7966",
+          "datafact_556a4160",
+          "datafact_40854c51",
+          "datafact_8b2b5e60",
+          "role:betclic",
+          "datafact_2fce3f77",
+          "datafact_9b59515b",
+          "datafact_5ff21212",
+          "datafact_d5275311",
+          "datafact_c7bb6b02",
+          "datafact_cd24c6c7",
+          "role:comeon",
+          "datafact_f958ac88",
+          "datafact_451e2942",
+          "datafact_15f0f405",
+          "datafact_95e5bc75",
+          "datafact_968df6f9",
+          "datafact_992d70fb",
+          "datafact_9f068dae",
+          "role:mrgreen",
+          "datafact_d17d7055",
+          "datafact_db9f5057",
+          "datafact_07a5c0c7",
+          "datafact_f38c50da",
+          "datafact_7f97c6e8",
+          "datafact_03d59711",
+          "datafact_7a72d9c7"
+        ],
+        "other": [
+          "datafact_1c430b89"
         ]
       }
     }
   ],
   "p3": {
     "pass": true,
-    "min_cross": 0.1771,
-    "max_within": 0.1633,
+    "min_cross": 0.2157,
+    "max_within": 0.1467,
     "cross_count": 9,
     "cross": [
       {
         "primary": 0,
         "control": 0,
-        "distance": 0.2616
-      },
-      {
-        "primary": 0,
-        "control": 1,
         "distance": 0.2556
       },
       {
         "primary": 0,
+        "control": 1,
+        "distance": 0.2284
+      },
+      {
+        "primary": 0,
         "control": 2,
-        "distance": 0.2639
+        "distance": 0.2216
       },
       {
         "primary": 1,
         "control": 0,
-        "distance": 0.2949
+        "distance": 0.2528
       },
       {
         "primary": 1,
         "control": 1,
-        "distance": 0.289
+        "distance": 0.2306
       },
       {
         "primary": 1,
         "control": 2,
-        "distance": 0.2971
+        "distance": 0.2157
       },
       {
         "primary": 2,
         "control": 0,
-        "distance": 0.2065
+        "distance": 0.2486
       },
       {
         "primary": 2,
         "control": 1,
-        "distance": 0.1771
+        "distance": 0.2256
       },
       {
         "primary": 2,
         "control": 2,
-        "distance": 0.209
+        "distance": 0.2165
       }
     ],
     "within": {
@@ -891,51 +854,51 @@
         {
           "a": 0,
           "b": 1,
-          "distance": 0.0473
+          "distance": 0.0124
         },
         {
           "a": 0,
           "b": 2,
-          "distance": 0.1633
+          "distance": 0.0086
         },
         {
           "a": 1,
           "b": 2,
-          "distance": 0.1226
+          "distance": 0.0065
         }
       ],
       "control": [
         {
           "a": 0,
           "b": 1,
-          "distance": 0.0502
+          "distance": 0.0655
         },
         {
           "a": 0,
           "b": 2,
-          "distance": 0.0315
+          "distance": 0.0609
         },
         {
           "a": 1,
           "b": 2,
-          "distance": 0.0813
+          "distance": 0.0896
         }
       ],
       "second": [
         {
           "a": 0,
           "b": 1,
-          "distance": 0.0673
+          "distance": 0.134
         },
         {
           "a": 0,
           "b": 2,
-          "distance": 0.0068
+          "distance": 0.014
         },
         {
           "a": 1,
           "b": 2,
-          "distance": 0.0671
+          "distance": 0.1467
         }
       ]
     }
