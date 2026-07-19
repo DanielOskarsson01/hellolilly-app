@@ -61,8 +61,28 @@ Source: `COMPETENCY_MASTER_POOL.json._rules` ("pick 3 categories per CV, occasio
 | competency categories | 3 (allow 2-4) | 3 / 3 / 3 |
 | items per category | 4-6 | [6,5,5] / [6,4,4] / [6,4,4] - all within 4-6 |
 | professional-experience jobs | exactly 5, fixed keys/order | 5 / 5 / 5 |
-| bullets per job | >= 1 non-empty; exact count is variant-fixed, not freely chosen | identical across captures (cmo): onlyigaming 5, coinhero 5, betclic 5, comeon 6, mrgreen 8 |
+| bullets per job | 1..ceiling, where the ceiling is the variant-fixed reference count (a SELECTION CEILING, see below) | identical across captures (cmo): onlyigaming 5, coinhero 5, betclic 5, comeon 6, mrgreen 8 |
 | otherExp | >= 1 non-empty | present / present / present |
+
+**Bullets-per-job is a selection CEILING, not a forced exact count** (review #2 reconciliation).
+The cmo reference renders a variant-fixed number of bullets per job — onlyigaming 5, coinhero 5,
+betclic 5, comeon 6, mrgreen 8. That count is the number of bullet *slots* the reference structure
+has, so the tailor must never render MORE than it (over-selection is a P1 failure). It is enforced
+as an **upper bound**: the tailor selects the N most-relevant results per job, capped at the ceiling;
+`1` is the hard floor. Two consequences, both by design:
+- **Coinhero (the review's catch):** the committed runs selected SIX Coinhero bullets while the
+  reference fixes FIVE. Five is correct (per the three cmo captures); the 39-bullet ingest repair
+  (blocker B1) fixed an *ingest gap* but does not raise the reference's fixed count. The tailor was
+  over-selecting because nothing capped it — every over-supplied job (onlyigaming pool 6, betclic 6,
+  comeon 7, coinhero 39) could exceed its reference count. The ceiling caps all of them to 5/5/5/6/8.
+- **MrGreen pool-supply reality:** the pool holds only 6 MrGreen result datafacts (from `cv_data.json`),
+  and they are text-disjoint from the reference cmo's 8 MrGreen bullets (a *different CV rendering*),
+  so MrGreen can render at most 6 — below its ceiling of 8. This is a pool-supply shortfall, not a
+  structural violation: `1 <= bullets <= ceiling` holds. P4 notes the fidelity delta (same class as
+  the header-image "taller-correct is better" note). We did NOT force MrGreen to 8 by importing the
+  reference's disjoint bullets, because that would (a) mix a second CV rendering into Daniel's curated
+  pool, (b) make every run brittle (the model would have to hit an exact count), for no parity gain
+  the ceiling doesn't already deliver.
 
 ### JC2 - section emptiness
 The reference renders every section unconditionally (`buildCV` pushes all sections; the only conditional, Education, still renders a fallback). Therefore the definition requires **all sections present and non-empty**. Validated: every tailorable section is non-empty in all three captures.
@@ -75,6 +95,7 @@ The reference renders every section unconditionally (`buildCV` pushes all sectio
   "headings_en": {"career_highlights":"Career Highlights","core_competencies":"Core Competencies","professional_experience":"Professional Experience","earlier_career":"Earlier Career","other_experience":"Other Experience","education":"Education","awards_languages":"Awards, Recognition & Languages"},
   "fixed_jobs": ["onlyigaming","coinhero","betclic","comeon","mrgreen"],
   "job_roles": {"onlyigaming":"Entrepreneur & Consultant - Product / Start-up / iGaming","coinhero":"CEO / Founder - iGaming Operator Development","betclic":"Head of Casino Business / Intrapreneur","comeon":"CMO / CPO / COO","mrgreen":"Head of Marketing, Brand & Communication (Founding Team)"},
+  "job_headers": {"onlyigaming":{"company":"OnlyiGaming.com, enable.rs, Antler, PlayPalz.com | Stockholm","period":"2020 - Present"},"coinhero":{"company":"Coinhero.io | Remote","period":"2023 - 2024"},"betclic":{"company":"Betclic Mangas Group | Bordeaux","period":"2018 - 2019"},"comeon":{"company":"ComeOn/Cherry (NASDAQ listed) | Malta / Stockholm","period":"2012 - 2017"},"mrgreen":{"company":"MrGreen (now 888) (NASDAQ listed) | Malta","period":"2009 - 2013"}},
   "static_sections": ["earlier_career","education","awards_languages"],
   "static_within_jobs": ["company","period","role"],
   "tailorable_nodes": ["contact","summary","highlights","competencies","job.intro","job.bullets","otherExp"],
@@ -85,7 +106,7 @@ The reference renders every section unconditionally (`buildCV` pushes all sectio
     "competency_categories": {"target": 3, "min": 2, "max": 4},
     "competency_items_per_category": {"min": 4, "max": 6},
     "jobs": {"exact": 5},
-    "bullets_per_job": {"min": 1, "note": "exact count variant-fixed"},
+    "bullets_per_job": {"min": 1, "ceiling_variant": "cmo", "ceiling_by_job": {"onlyigaming": 5, "coinhero": 5, "betclic": 5, "comeon": 6, "mrgreen": 8}, "semantics": "1 <= bullets <= ceiling_by_job[key]; the ceiling is the variant-fixed reference count (cmo) as an UPPER bound (over-selection fails P1); pool shortfalls (mrgreen) render below the ceiling and are a P4 note, not a violation"},
     "otherExp": {"min": 1}
   },
   "all_sections_non_empty": true,

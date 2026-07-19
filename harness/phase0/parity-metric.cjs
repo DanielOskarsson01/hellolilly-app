@@ -141,7 +141,11 @@ const KEY_TO_CANON = {
 function validateStructure(cvDraft, block) {
   const errors = [];
   const secs = (cvDraft && cvDraft.sections) || [];
-  const canon = secs.map((s) => KEY_TO_CANON[s.key]).filter(Boolean);
+  // Unknown sections must be REJECTED, never silently dropped (finding 8): map every key, using a
+  // sentinel for any key outside the committed set so the order comparison also catches an extra one.
+  const unknown = secs.filter((s) => !KEY_TO_CANON[s.key]).map((s) => s.key);
+  if (unknown.length) errors.push(`unknown section(s) ${JSON.stringify(unknown)} not in the committed template`);
+  const canon = secs.map((s) => KEY_TO_CANON[s.key] || `?${s.key}`);
   if (JSON.stringify(canon) !== JSON.stringify(block.section_order)) errors.push(`section order ${JSON.stringify(canon)} != ${JSON.stringify(block.section_order)}`);
   const byKey = Object.fromEntries(secs.map((s) => [s.key, s]));
   // structural chrome presence
@@ -166,14 +170,30 @@ function validateStructure(cvDraft, block) {
     if (n < card.competency_items_per_category.min || n > card.competency_items_per_category.max) errors.push(`category ${c.id} has ${n} items outside ${card.competency_items_per_category.min}-${card.competency_items_per_category.max}`);
     if (!c.ref || c.ref.kind !== 'category') errors.push(`category ${c.id} missing typed category ref`);
   }
-  // jobs exactly 5; each carries a distinct role node + >= 1 bullet (distinct from intro)
+  // jobs exactly 5, in the FIXED order + keys; each carries the STATIC company/period/role and a
+  // bullet count within [1, ceiling] (finding 8). company/period/role are committed constants — the
+  // tailor may never rename or reorder them; the bullet ceiling is the variant-fixed reference count
+  // as an upper bound (over-selection fails; a pool shortfall renders fewer and is a P4 note).
   const jobs = (byKey.experience && byKey.experience.jobs) || [];
   if (jobs.length !== card.jobs.exact) errors.push(`jobs ${jobs.length} != ${card.jobs.exact}`);
-  for (const j of jobs) {
+  const ceilBy = (card.bullets_per_job && card.bullets_per_job.ceiling_by_job) || {};
+  jobs.forEach((j, i) => {
+    if (block.fixed_jobs[i] !== j.key) errors.push(`job at position ${i} is '${j.key}' but the fixed order requires '${block.fixed_jobs[i]}'`);
+    const hdr = (block.job_headers || {})[j.key];
+    if (!hdr) errors.push(`unknown job key '${j.key}'`);
+    else {
+      if (j.company !== hdr.company) errors.push(`job ${j.key} company changed (static): ${JSON.stringify(j.company)}`);
+      if (j.period !== hdr.period) errors.push(`job ${j.key} period changed (static): ${JSON.stringify(j.period)}`);
+    }
+    const roleWant = (block.job_roles || {})[j.key];
     if (!j.role || !j.role.text || !j.role.ref) errors.push(`job ${j.key} missing role node`);
+    else if (roleWant != null && j.role.text !== roleWant) errors.push(`job ${j.key} role text changed (static)`);
     if ((j.intro || []).length > 1) errors.push(`job ${j.key} intro > 1`);
-    if ((j.bullets || []).length < card.bullets_per_job.min) errors.push(`job ${j.key} has ${(j.bullets || []).length} bullets (< ${card.bullets_per_job.min})`);
-  }
+    const bn = (j.bullets || []).length;
+    if (bn < card.bullets_per_job.min) errors.push(`job ${j.key} has ${bn} bullets (< ${card.bullets_per_job.min})`);
+    const ceil = ceilBy[j.key];
+    if (ceil != null && bn > ceil) errors.push(`job ${j.key} has ${bn} bullets (> ceiling ${ceil})`);
+  });
   if (nItems(byKey.other) < card.otherExp.min) errors.push('otherExp empty');
   // JC2: every content section present and non-empty (chrome is presence-checked above)
   if (block.all_sections_non_empty) {

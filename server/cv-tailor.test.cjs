@@ -106,6 +106,18 @@ test('assembleDraft instantiates the FULL frozen template: 10 sections incl chro
   assert.deepStrictEqual(exp.jobs[0].bullets.map((i) => i.datafactRef.id), ['d_oj_r']);
 });
 
+test('finding 8: assembleDraft caps a job\'s bullets at the variant-fixed ceiling (coinhero over-selection -> 5)', () => {
+  const extra = ['1', '2', '3', '4', '5', '6'].map((i) => DF(`d_ch_r${i}`, 'job_result', `Coinhero result ${i}.`, ['Coinhero']));
+  const facts = FACTS.concat(extra);
+  const bid = new Map(facts.map((f) => [f.id, f]));
+  const sel = VALID_SELECTION();
+  sel.jobs.coinhero = { intro: ['d_ch_s'], bullets: extra.map((e) => e.id) }; // model over-selected 6
+  const d = tailor.assembleDraft(sel, bid, facts, 'en');
+  const coin = d.sections.find((s) => s.key === 'experience').jobs.find((j) => j.key === 'coinhero');
+  assert.strictEqual(coin.bullets.length, 5, 'capped at the cmo coinhero ceiling (5), most-relevant-first kept');
+  assert.deepStrictEqual(coin.bullets.map((b) => b.datafactRef.id), ['d_ch_r1', 'd_ch_r2', 'd_ch_r3', 'd_ch_r4', 'd_ch_r5']);
+});
+
 test('selection-only: every datafact node text is the verbatim datafact text with a typed source ref', () => {
   const d = tailor.assembleDraft(VALID_SELECTION(), byId, FACTS, 'en');
   let leaves = 0;
@@ -183,6 +195,12 @@ test('drift guard: inlined template constants match TEMPLATE_DEFINITION.md machi
   assert.strictEqual(tailor.CARD.summaryExact, block.cardinality.summary.exact);
   assert.strictEqual(tailor.CARD.highlightsExact, block.cardinality.highlights.exact);
   assert.strictEqual(tailor.CARD.bulletsPerJobMin, block.cardinality.bullets_per_job.min);
-  // the frozen role table matches
-  for (const j of tailor.FIXED_JOBS) assert.strictEqual(j.role, block.job_roles[j.key], `role for ${j.key}`);
+  // the frozen role table + static job headers (company/period) match the machine block
+  for (const j of tailor.FIXED_JOBS) {
+    assert.strictEqual(j.role, block.job_roles[j.key], `role for ${j.key}`);
+    assert.strictEqual(j.company, block.job_headers[j.key].company, `company for ${j.key}`);
+    assert.strictEqual(j.period, block.job_headers[j.key].period, `period for ${j.key}`);
+  }
+  // the per-job bullet ceilings match the machine block cardinality
+  assert.deepStrictEqual(tailor.BULLETS_PER_JOB, block.cardinality.bullets_per_job.ceiling_by_job);
 });

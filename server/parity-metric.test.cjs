@@ -62,7 +62,7 @@ test('p3PassRule: cross > within passes; unstable within fails', () => {
 // ---------- P1 / P2 on a well-formed draft (FULL definition: 10 sections, typed refs) ----------
 const ref = (id) => ({ datafactRef: { kind: 'datafact', id }, text: `text-${id}` });
 const cat = (id, title, items) => ({ ref: { kind: 'category', id }, id, title, items: items.map(ref) });
-const job = (key, bullet) => ({ key, company: 'X', period: 'p', role: { ref: { kind: 'role', id: `role:${key}` }, text: BLOCK.job_roles[key] }, intro: [], bullets: [ref(bullet)] });
+const job = (key, bullet) => ({ key, company: BLOCK.job_headers[key].company, period: BLOCK.job_headers[key].period, role: { ref: { kind: 'role', id: `role:${key}` }, text: BLOCK.job_roles[key] }, intro: [], bullets: [ref(bullet)] });
 // committed structural source for category + role refs
 const STRUCT = M.buildStructuralText(BLOCK, [
   { type: 'competency', category: { id: 'marketing-growth', title: 'Marketing & Growth' } },
@@ -123,8 +123,48 @@ test('P1 catches: missing chrome, wrong order, wrong heading, bad cardinality, e
 
 test('P1: a job with an intro but ZERO bullets fails (bullets distinct from intro — the Coinhero class)', () => {
   const d = validDraft();
-  d.sections[5].jobs[1] = { key: 'coinhero', company: 'X', period: 'p', role: { ref: { kind: 'role', id: 'role:coinhero' }, text: BLOCK.job_roles.coinhero }, intro: [ref('ci')], bullets: [] };
+  d.sections[5].jobs[1] = { key: 'coinhero', company: BLOCK.job_headers.coinhero.company, period: BLOCK.job_headers.coinhero.period, role: { ref: { kind: 'role', id: 'role:coinhero' }, text: BLOCK.job_roles.coinhero }, intro: [ref('ci')], bullets: [] };
   assert.match(M.validateStructure(d, BLOCK).errors.join(';'), /coinhero has 0 bullets|no bullets|< 1/);
+});
+
+// review #2 finding 8 — P1 must enforce the FULL machine block, not just "5 jobs, >=1 bullet".
+// Each mutation below passed the OLD validator (jobs reordered, static company/period/role changed,
+// an unknown section added, a job over its variant-fixed bullet ceiling) and must now fail P1.
+test('P1 (finding 8) enforces job order/keys, static company+period+role, no unknown sections, bullet ceiling', () => {
+  // jobs reordered (swap coinhero <-> betclic) -> fixed-order violation
+  const dOrder = validDraft();
+  [dOrder.sections[5].jobs[1], dOrder.sections[5].jobs[2]] = [dOrder.sections[5].jobs[2], dOrder.sections[5].jobs[1]];
+  assert.match(M.validateStructure(dOrder, BLOCK).errors.join(';'), /position 1|fixed order/i);
+
+  // static company changed -> violation
+  const dCompany = validDraft();
+  dCompany.sections[5].jobs[0].company = 'Totally Different Co | Nowhere';
+  assert.match(M.validateStructure(dCompany, BLOCK).errors.join(';'), /company/i);
+
+  // static period changed -> violation
+  const dPeriod = validDraft();
+  dPeriod.sections[5].jobs[0].period = '1999 - 2000';
+  assert.match(M.validateStructure(dPeriod, BLOCK).errors.join(';'), /period/i);
+
+  // static role text changed -> violation
+  const dRole = validDraft();
+  dRole.sections[5].jobs[0].role.text = 'Chief Something Officer';
+  assert.match(M.validateStructure(dRole, BLOCK).errors.join(';'), /role/i);
+
+  // an unknown section added -> violation (must NOT be silently dropped)
+  const dUnknown = validDraft();
+  dUnknown.sections.splice(3, 0, { key: 'made_up_section', heading: 'X', items: [ref('u1')] });
+  assert.match(M.validateStructure(dUnknown, BLOCK).errors.join(';'), /unknown section|made_up_section/i);
+
+  // over-ceiling bullets (coinhero ceiling 5, give 6) -> violation
+  const dCeil = validDraft();
+  dCeil.sections[5].jobs[1].bullets = ['c1', 'c2', 'c3', 'c4', 'c5', 'c6'].map(ref);
+  assert.match(M.validateStructure(dCeil, BLOCK).errors.join(';'), /ceiling|> 5|coinhero has 6/i);
+
+  // at-ceiling bullets (comeon ceiling 6, give exactly 6) -> OK (within bound)
+  const dAt = validDraft();
+  dAt.sections[5].jobs[3].bullets = ['x1', 'x2', 'x3', 'x4', 'x5', 'x6'].map(ref);
+  assert.deepStrictEqual(M.validateStructure(dAt, BLOCK).errors, []);
 });
 
 test('P2: verbatim datafact ids + typed category/role refs resolve; dangling/reworded/duplicate fail', () => {
