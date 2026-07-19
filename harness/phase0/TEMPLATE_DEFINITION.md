@@ -23,7 +23,7 @@ The tailor can never add, remove, rename, or reorder sections.
 | # | Section | Heading (i18n `en`) | Content | Tailorable? |
 |---|---------|--------------------|---------|-------------|
 | 1 | Header image | (none) | variant-themed image | structural (variant-driven, no text node) |
-| 2 | Name + contact | (none) | name "Daniel Oskarsson" (static); contact block | contact = tailorable node |
+| 2 | Name + contact | (none) | name "Daniel Oskarsson" (static); contact block (static) | STATIC (structural chrome; see note below) |
 | 3 | Executive summary | (none - runs straight in) | one summary paragraph | tailorable: 1 summary variant |
 | 4 | Career Highlights | "Career Highlights" | highlight bullets | tailorable: from highlight pool |
 | 5 | Core Competencies | "Core Competencies" | competency table | tailorable: categories + items from COMPETENCY_MASTER_POOL |
@@ -32,6 +32,18 @@ The tailor can never add, remove, rename, or reorder sections.
 | 8 | Other Experience | "Other Experience" | otherExp list | tailorable |
 | 9 | Education | "Education" | 3 institutions | STATIC |
 | 10 | Awards, Recognition & Languages | "Awards, Recognition & Languages" | awards + languages line | STATIC |
+
+**Contact is STATIC this wave, not a tailorable node** (review #2 finding 9). An earlier draft of
+this table listed "contact = tailorable node", but the code never emitted a sourced contact node and
+extraction never visited `name_contact`. That is correct behaviour, not a bug to patch: contact PII
+is one of the withheld classes (see the committed-by-design note above — no contact details live in
+the repo), so there is no datafact to source a contact selection against. Rather than emit an
+unsourced "tailorable" node that would pass P1/P2 yet never reach P3 (breaking the invariant "every
+tailorable selection is identified, source-verified, extracted"), contact is declared STATIC: the
+`name_contact` section is structural chrome, validated for presence (name) only, exactly like the
+header image. The tailorable list below now omits `contact`, so the committed law and the code agree.
+If a future wave ingests contact PII as datafacts, contact can be re-added as a sourced typed-ref
+node that enters extraction like every other tailorable node.
 
 ## The five fixed jobs (order + company/period static, from `JOB_HEADERS`)
 
@@ -98,7 +110,7 @@ The reference renders every section unconditionally (`buildCV` pushes all sectio
   "job_headers": {"onlyigaming":{"company":"OnlyiGaming.com, enable.rs, Antler, PlayPalz.com | Stockholm","period":"2020 - Present"},"coinhero":{"company":"Coinhero.io | Remote","period":"2023 - 2024"},"betclic":{"company":"Betclic Mangas Group | Bordeaux","period":"2018 - 2019"},"comeon":{"company":"ComeOn/Cherry (NASDAQ listed) | Malta / Stockholm","period":"2012 - 2017"},"mrgreen":{"company":"MrGreen (now 888) (NASDAQ listed) | Malta","period":"2009 - 2013"}},
   "static_sections": ["earlier_career","education","awards_languages"],
   "static_within_jobs": ["company","period","role"],
-  "tailorable_nodes": ["contact","summary","highlights","competencies","job.intro","job.bullets","otherExp"],
+  "tailorable_nodes": ["summary","highlights","competencies","job.intro","job.bullets","otherExp"],
   "structural_ref_kinds": {"datafact": "resolves against the datafact pool (evidence)", "category": "resolves against the committed COMPETENCY_MASTER_POOL taxonomy (id + title)", "role": "resolves against job_roles above (frozen per-job role table)"},
   "cardinality": {
     "summary": {"exact": 1},

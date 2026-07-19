@@ -190,6 +190,21 @@ test('P2: verbatim datafact ids + typed category/role refs resolve; dangling/rew
   assert.match(M.validateProvenance(dup, new Set([...ids]), src, STRUCT).errors.join(';'), /duplicate id h1/);
 });
 
+// review #2 finding 9 — the tailorable-selection invariant: "every tailorable selection is
+// identified, source-verified, extracted". The draft emits name_contact as structural presence only
+// (a static name, no sourced contact node) and extraction never visits it, so the committed
+// tailorable list must NOT claim 'contact' is tailorable — else an unsourced node would pass P1/P2
+// yet never reach P3. Contact PII is withheld from the repo this wave; contact is static.
+test('finding 9: contact is NOT a tailorable node (static this wave); every listed tailorable node is extracted', () => {
+  assert.ok(!BLOCK.tailorable_nodes.includes('contact'), 'contact must not be listed as tailorable (it is static/withheld)');
+  const sel = M.selectionOf(validDraft());
+  assert.ok(sel.summary && sel.summary.length, 'summary extracted');
+  assert.ok(sel.highlights && sel.highlights.length, 'highlights extracted');
+  assert.ok(sel.competencies && sel.competencies.length, 'competencies extracted');
+  assert.ok(sel.experience && sel.experience.length, 'job.intro/job.bullets extracted (experience)');
+  assert.ok(sel.other && sel.other.length, 'otherExp extracted');
+});
+
 test('selectionOf collects the COMPLETE committed extraction: category ids + role ids + items', () => {
   const sel = M.selectionOf(validDraft());
   assert.deepStrictEqual(Object.keys(sel).sort(), ['competencies', 'experience', 'highlights', 'other', 'summary']);
