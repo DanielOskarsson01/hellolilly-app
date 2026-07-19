@@ -18,6 +18,33 @@ each tagged `['job-result','Coinhero']` with `source` recording the exact origin
 route to `coinhero` and nothing else. Harness re-run: **OVERALL PASS** (P1+P2 all nine runs; P3
 minCross 0.1771 > maxWithin 0.1633). P4 package regenerated with Coinhero rendering real bullets.
 
+## ✅ B2 — RESOLVED: latent cross-job padding of a supply-short job (review-#2-class, gate-caught)
+Surfaced by the wave1-p4 selection-fix 9-generation re-run on `47dde94` (2026-07-20): 2 of 3 **control**
+(Ramen Bae) tailor runs failed the strict pre-write gate with `does not belong to job mrgreen (false
+attribution)` + a duplicate id. Cause: the review-#2 bullet-ceiling task text tells the model "select up
+to the per-job count (… mrgreen **8** …)", but MrGreen's pool supplies only **6** result candidates
+(text-disjoint from the reference's 8, per finding 8). On some decoder rolls the model padded MrGreen
+toward its ceiling by borrowing **ComeOn** operative `job_result`s (`datafact_7285b5a5`,
+`datafact_968df6f9`). The review-#2 **finding-5 bucket-membership gate caught it and failed closed** — no
+bad draft was ever written; the guardrail did its job.
+
+**Provenance (honest attribution): NOT caused by the Lever A/B selection change.** Same-decode A/B on
+`47dde94`: stock-`47dde94` and the Lever-A+B build each produced **0 padding failures across 20
+controlled tailor runs** (5 fixed-decode + 5 fresh-decode per arm). It is a **latent, intermittent,
+decode-triggered gap** in the ceiling framing, present on stock; upstream's single run drew a clean
+decode, this one did not. Recorded here so it is not mistaken for part of the selection-quality change.
+
+**Resolution (2026-07-20, approved by Daniel):** added ONE trusted **pool-depth-honesty** line to the
+selection prompt (`cv-tailor/execute.cjs`): each fixed job's intro + results are selected ONLY from THAT
+job's own listed candidates; the per-job count is a **ceiling, not a quota** — a job that lists fewer
+candidates renders **fewer**, never padded, moved, or repeated from another job. This aligns the prompt
+with the pre-existing finding-5 gate (the tailor stops *attempting* what the gate already rejects); it
+changes **no ceiling numbers** and weakens **no review-#2 fix**. tailor-side, prompt-only, consistent with
+the anti-fabrication + bucket-membership rules. Guarded by a prompt-presence assertion in
+`cv-tailor.test.cjs`. Harness re-run: **OVERALL PASS** (P1+P2 all nine; P3 minCross 0.2402 > maxWithin
+0.0749, Δ 0.1653 — healthy, well above the prior thin Δ 0.0138; the boundary rule also stabilised
+within-ad distance by removing padding variance).
+
 ---
 
 

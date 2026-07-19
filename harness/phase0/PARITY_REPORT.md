@@ -1,6 +1,6 @@
 # Wave 1 — Parity Harness Report
 
-**Run date:** 2026-07-19 · **Overall:** ✅ PASS
+**Run date:** 2026-07-20 · **Overall:** ✅ PASS
 
 ## Run integrity (D12)
 - Tailor model: `claude-sonnet-4-6` · Decoder (input step): `claude-sonnet-4-6 (single-model chain; decode + tailor same model — finding 7)`
@@ -8,7 +8,7 @@
 - Corpus version: `a1d95743a06d969900f3ce103de5fc7f83be7dbef6c5628d03524b712906429f`
 - Pool: 183 datafacts · pool_sha256 `18b878550ffa76026ba01f2efc8d779df7c5eb82f13f210670653dd60502d693`
 - Runs per ad: 3 · Ads: primary (Wrknest), control (Ramen Bae), second (Aloi AI)
-- Distinct source ids resolved across all runs: 78
+- Distinct source ids resolved across all runs: 80
 - Selections are datafact ids (opaque refs, no content) — fixture-law safe to commit.
 
 ## P1 (structure) + P2 (provenance) — every run
@@ -28,13 +28,13 @@
 
 ## P3 (job sensitivity)
 Pass rule: **min(primary-vs-control distance) > max(within-ad distance)**.
-- min cross-ad (primary↔control) distance: **0.2157** (9 pairs)
-- max within-ad distance: **0.1467**
+- min cross-ad (primary↔control) distance: **0.2402** (9 pairs)
+- max within-ad distance: **0.0749**
 - **P3: ✅ PASS**
 
-> ⚠️ **Margin dependency (ledger #2):** this pass is load-bearing on tailor **temperature=0** — the recorded intended setting for stable selection (`server/submodules/cv-tailor/manifest.cjs`). The margin is thin (Δ 0.069 = 0.2157 − 0.1467); at a non-zero temperature the within-ad distances would rise and could flip the result. Any re-run must hold temperature=0 for this result to stand.
+> ⚠️ **Margin dependency (ledger #2):** this pass is load-bearing on tailor **temperature=0** — the recorded intended setting for stable selection (`server/submodules/cv-tailor/manifest.cjs`). The margin is thin (Δ 0.1653 = 0.2402 − 0.0749); at a non-zero temperature the within-ad distances would rise and could flip the result. Any re-run must hold temperature=0 for this result to stand.
 
-Within-ad pair distances: primary 0.0124, 0.0086, 0.0065 · control 0.0655, 0.0609, 0.0896 · second 0.134, 0.014, 0.1467
+Within-ad pair distances: primary 0.0099, 0.0271, 0.0352 · control 0.0675, 0.0749, 0.0074 · second 0.0288, 0.0338, 0.0521
 
 ## Scope honesty (brief finding 15)
 P3 proves the selection RESPONDS to the ad; it does not prove the response is RELEVANT — that is

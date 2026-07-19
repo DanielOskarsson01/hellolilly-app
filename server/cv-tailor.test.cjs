@@ -183,6 +183,40 @@ test('execute: malformed model output fails schema validation -> part failed (IN
   assert.strictEqual(t.rec.parts.cvDraft.status, 'failed');
 });
 
+test('Lever A (wave1-p4): decodedSignal ranks by weight, carries rationale + narrative, degrades on missing weight', () => {
+  const out = tailor.decodedSignal({
+    narrative: 'This job executes; it rejects founder theatre.',
+    requirements: [
+      { requirement: 'no personal legacy', rationale: 'ad rejects founder framing', weight: 2 },
+      { requirement: 'hands-on delivery', rationale: 'ships campaigns itself', weight: 5 },
+      { requirement: 'coordinate sales+product' }, // no weight / rationale — must still list, ranked last
+    ],
+  });
+  assert.match(out, /What this job really is: This job executes; it rejects founder theatre\./);
+  assert.ok(out.indexOf('hands-on delivery') < out.indexOf('no personal legacy'), 'most-decisive-first: weight 5 before weight 2');
+  assert.match(out, /\[weight 5\/5\] hands-on delivery — ships campaigns itself/);
+  assert.match(out, /\[weight \?\/5\] coordinate sales\+product/); // missing weight degrades, still selectable signal
+  assert.ok(out.indexOf('coordinate sales+product') > out.indexOf('no personal legacy'), 'null weight sorts last');
+});
+
+test('Lever A+B (wave1-p4): register-match is a TRUSTED instruction; decoded weights + narrative reach the prompt ENVELOPED', async () => {
+  // NB: probe phrase must be UNIQUE to the decoded block (not wording that also appears in REGISTER_MATCH).
+  const caseWithWeights = { meta: { sourceInput: 'Operative marketing role.' }, decodedRole: { data: { narrative: 'Runs the release cadence itself.', requirements: [{ requirement: 'ship weekly release trains', rationale: 'owns the cadence', weight: 5 }] } } };
+  const t = fakeTools(caseWithWeights, VALID_SELECTION());
+  await tailor({ caseId: 'c1' }, { model: 'claude-sonnet-4-6', language: 'en' }, t);
+  const prompt = t.rec.prompt;
+  const firstFence = prompt.indexOf('BEGIN UNTRUSTED_DATA');
+  // Lever B: the register-match steer is a trusted task line, ABOVE every envelope (not obeyable ad text)
+  assert.ok(prompt.indexOf('REGISTER MATCH') > -1 && prompt.indexOf('REGISTER MATCH') < firstFence, 'register-match is trusted, above the envelopes');
+  // Pool-depth honesty (per-job boundary): a trusted task line, above the envelopes — keeps the model from
+  // padding a supply-short job across job buckets (aligns the prompt with the finding-5 membership gate).
+  assert.ok(prompt.indexOf('PER-JOB BOUNDARY') > -1 && prompt.indexOf('PER-JOB BOUNDARY') < firstFence, 'per-job boundary is a trusted task line, above the envelopes');
+  // Lever A: weight + narrative are present AND sit inside an untrusted-derived envelope, not the trusted task
+  assert.match(prompt, /\[weight 5\/5\] ship weekly release trains — owns the cadence/);
+  assert.match(prompt, /What this job really is: Runs the release cadence itself\./);
+  assert.ok(prompt.indexOf('ship weekly release trains') > firstFence, 'decoded signal is enveloped, not inlined as trusted');
+});
+
 test('drift guard: inlined template constants match TEMPLATE_DEFINITION.md machine block', () => {
   const md = fs.readFileSync(path.join(__dirname, '..', 'harness', 'phase0', 'TEMPLATE_DEFINITION.md'), 'utf8');
   const block = JSON.parse(md.match(/```json\s*([\s\S]*?)```/)[1]);
