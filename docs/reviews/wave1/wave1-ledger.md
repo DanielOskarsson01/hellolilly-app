@@ -52,3 +52,26 @@ These are recorded truthfully in `harness/phase0/MANIFEST.json` (`run_config.sam
 deliberate, disclosed divergence — not an error. The brief's backstop for output-quality divergence is
 **P4** (human parity judgement of the first HelloLilly generation vs the captured reference). Recorded;
 P4 is the gate that speaks to whether the divergence matters.
+
+## L4 — Named offline gate lists a fixed test file set that omits newer regression files (recorded, HIGH 7)
+The Tier-1 offline gate (`.github/workflows/wave1-eval.yml`) runs a **hard-coded** `node --test` file
+list — currently five files: `prompt-assembly/index.test.cjs`, `eval-gate.test.cjs`,
+`parity-metric.test.cjs`, `cv-tailor.test.cjs`, `synthetic-corpus.test.cjs`. Newer regression files are
+**not** in that named list: `server/decoder.test.cjs`, `server/skeleton/store/index.test.cjs`
+(store-taint), `server/adoption-corpus.test.cjs`, `server/synthetic-pool.test.cjs` (clean-pool guard),
+and — added in this review-#2 fix round — `server/cv-draft-client-parity.test.cjs` (client==server leaf
+parity, the BLOCKER guard). **Coverage exists**: the separate `deploy-pages.yml` workflow runs the full
+`npm test` on every push and PR, so nothing is unguarded in CI. What is owed is bookkeeping — the *named*
+targeted gate should enumerate the new files (or, better, run the same `npm test` glob so it cannot drift
+again). Recorded, not repaired (a workflow-list edit, deliberately out of scope for this code round).
+
+## L5 — P3 pass margin is thin and load-bearing on tailor temperature=0 (recorded, HIGH 7)
+The committed P3 pass is `minCross 0.1771 > maxWithin 0.1633` (Δ ≈ 0.0138). This is thin and depends on
+the tailor running at **temperature=0** (stable selection). At a non-zero temperature the within-ad
+distances would rise and could flip the result, so any re-run must hold temperature=0 for the result to
+stand. (Review #2's bullet-ceiling fix re-runs the harness; the new numbers are reported with the run and
+this margin item stands until P4.) Recorded, not repaired.
+
+## L6 — Branch protection on `wave1-phase0-baseline` is owed as a GitHub setting (not code, HIGH 7)
+The workflow mechanics are in place; enforcing them (required status checks / protected branch) is a
+repository **setting Daniel owns** on GitHub, not something this branch can commit. Owed, not code.
