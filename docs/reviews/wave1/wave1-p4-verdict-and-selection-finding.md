@@ -1,4 +1,7 @@
 # Wave 1 - P4 Human Judgement + Selection-Quality Finding
+
+> **SUPERSEDED (2026-07-20)** by [`wave1-p4-final-disposition.md`](wave1-p4-final-disposition.md) in this folder: the "does not pass / do not merge" state below is superseded — staged pass accepted, merge authorised. The selection-quality finding and root-cause analysis below stand as the record of what P4 found.
+
 Date: 2026-07-19. Judge: Daniel. Branch under test: wave1-phase0-baseline @ 47dde94.
 Record preserved from the planner session for docs/reviews/wave1/.
 
