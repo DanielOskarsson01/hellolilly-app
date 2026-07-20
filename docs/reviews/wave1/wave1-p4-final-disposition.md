@@ -50,3 +50,21 @@ re-test - deferred to after that wave, by design.
 Immediately after merge: the suggestion-wave brief (planner drafts; opus-4-8;
 AI-drafted bullets, human accept-and-mint, bridging under the HIGH-RISK
 machinery). This is the wave that fills the drawer.
+
+## Second-reviewer addition (Gemini judgement pass, 2026-07-20)
+Gemini independently reached the same verdict: SOUND TO MERGE AS STAGED.
+It argued the strongest case against (trust deficit from shipping a tool that
+predictably under-selects on operative ads before the fix exists) and still
+concluded merge - holding a proven, fabrication-safe engine hostage to its
+companion data-supply feature is the anti-pattern; the operative-ad "failure"
+is a successful validation of the safety invariant.
+
+One product gap it surfaced, ACCEPTED and BOUND to the suggestion wave (not a
+Wave 1 merge blocker): graceful failure UX. When the tailor under-selects
+because the pool is thin for an ad, the product should TELL the user ("I
+couldn't find enough hands-on/operative experience in your profile for this
+ad") rather than silently output a weak CV. This is not separate work - the
+suggestion engine already detects the ad-vs-pool gap; that same detection
+drives both the honest message and the drafting prompt. The suggestion wave's
+brief must include this surfaced-gap affordance as its front door. Recorded so
+it binds the next brief.
