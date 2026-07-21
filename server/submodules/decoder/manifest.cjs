@@ -7,6 +7,9 @@ module.exports = {
   description: 'Stage 2 decoder: reads the ad together with culture/stage/ambition/niche signals and outputs the true-job profile (decodedRole) — the real requirements beneath the ad.',
   reads: ['dossiers'],
   writes: ['decodedRole'],
-  capabilities: ['store', 'logger', 'llm', 'utils'],
-  options: { model: 'claude-opus-4-8' },
+  capabilities: ['store', 'logger', 'llm', 'utils', 'assembly'],
+  // Wave 1 decode runs the SAME model as the tailor (review #2 finding 7) so the whole HelloLilly
+  // chain is single-model (claude-sonnet-4-6), matching the reference's single-model property. The
+  // opus writing-wave model is D20c's next-wave concern, not this selection-only wave.
+  options: { model: 'claude-sonnet-4-6' },
 };

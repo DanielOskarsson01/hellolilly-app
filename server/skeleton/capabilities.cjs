@@ -8,6 +8,7 @@
 
 const { mintId, ref } = require('./ids.cjs');
 const utils = require('./utils.cjs');
+const assembly = require('./prompt-assembly/index.cjs'); // D12 Rule 2 — the one named prompt-assembly module
 
 // The submodule-facing store: a SCOPED, RESTRICTED view of the host store. A submodule
 // may only write the case parts its manifest declares, and (when the invocation carries a
@@ -64,6 +65,10 @@ function buildTools({ manifest, callContext, store, http, llm, search, logSink, 
   // least-privilege still reads from the manifest; injected as ONE maintained copy instead of
   // copy-pasted into each submodule (the require-guard forbids them require()-ing it directly).
   if (caps.has('utils')) tools.utils = utils;
+
+  // D12 Rule 2: the single prompt-assembly module (envelope/provenance/output-schema-validation).
+  // Injected so submodules never require() it directly (require-guard) — one named owner.
+  if (caps.has('assembly')) tools.assembly = assembly;
 
   if (caps.has('http')) tools.http = http;
   if (caps.has('llm')) {

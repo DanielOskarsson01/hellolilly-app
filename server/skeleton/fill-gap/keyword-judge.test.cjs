@@ -8,9 +8,9 @@ const { applyAlign } = require('./keyword-judge.cjs');
 // Persists deep copies so the test verifies actual write-through, not object identity.
 function fixtureStore() {
   const cvDraft = { data: { language: 'en', sections: [ { key:'exp', items: [
-    { datafactRef: { kind:'datafact', id:'df_aff' }, text: 'Built the marketing department at ComeOn.' },
+    { datafactRef: { kind:'datafact', id:'df_aff' }, text: 'Built the marketing department at a fast-growing operator.' },
   ] } ] } };
-  const datafacts = { df_aff: { id:'df_aff', kind:'datafact', type:'job_result', text:'Built the marketing department at ComeOn.' } };
+  const datafacts = { df_aff: { id:'df_aff', kind:'datafact', type:'job_result', text:'Built the marketing department at a fast-growing operator.' } };
   const caseObj = { meta: { id:'c1' }, cvDraft };
   return {
     caseId: 'c1',

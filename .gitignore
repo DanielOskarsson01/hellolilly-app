@@ -13,3 +13,6 @@ server/data/
 
 # Candidate evidence pool (D2): personal data, in-repo but never committed
 data/cv_data.json
+
+# Wave 1 Phase 0 LOCAL PARITY REFERENCES - real content, never committed (FIXTURE LAW)
+harness/phase0/local/

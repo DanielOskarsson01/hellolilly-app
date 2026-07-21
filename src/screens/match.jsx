@@ -11,6 +11,7 @@ import { listJobs, createCase, linkJobCase, decideJob } from '../api/caseApi.js'
 import { setActiveCaseId } from '../utils/jobStore.js';
 import { generateOutcome } from '../lib/generateOutcome.mjs';
 import { openGaps as deriveOpenGaps, skippedGaps as deriveSkippedGaps, cvGateOpen } from '../lib/gapResolution.mjs';
+import { parseMatchDeepOpen, jobForCase } from '../lib/matchDeepOpen.mjs';
 
 // HelloLilly — Matchanalys (design-system era, T13 → T15)
 // Ported from design/design/screens-match2.jsx.
@@ -389,6 +390,24 @@ function JobMatchReview() {
     }
   }, [items]);
 
+  // Item 3 deep-open: #match/<caseId> opens that job's EXISTING analysis view by id (no new
+  // affordance, no fill-loop rework). An unresolved caseId shows a visible "job not found" —
+  // never a silent bare list. Waits for the queue to load before deciding not-found.
+  const [deepMiss, setDeepMiss] = React.useState(null);
+  React.useEffect(() => {
+    const tryDeepOpen = () => {
+      const caseId = parseMatchDeepOpen(location.hash);
+      if (!caseId) { setDeepMiss(null); return; }
+      if (!items.length) return; // queue not loaded yet — leave the hash for the next pass
+      const job = jobForCase(caseId, items);
+      if (job) { setDeepMiss(null); location.hash = '#match'; handleOpenJob(job.id); }
+      else setDeepMiss(caseId);
+    };
+    tryDeepOpen();
+    window.addEventListener('hashchange', tryDeepOpen);
+    return () => window.removeEventListener('hashchange', tryDeepOpen);
+  }, [items, handleOpenJob]);
+
   // The match-analysis layover's "Välj bort" CTA rejects into this same list.
   React.useEffect(() => {
     const onReject = (e) => { if (e.detail && e.detail.id) rejectItem(e.detail.id); };
@@ -520,7 +539,20 @@ function JobMatchReview() {
   /* ---- Body: either list view or per-job analysis view ---- */
   let body;
 
-  if (!openId) {
+  if (!openId && deepMiss) {
+    /* ==== DEEP-OPEN MISS: a #match/<caseId> that resolves to no job in the queue. Honest,
+       visible — never the bare list under a link that promised this job. ==== */
+    body = (
+      <PartState
+        title={tr({ sv: 'Jobbet hittades inte', en: 'Job not found' })}
+        body={tr({ sv: 'Den här matchningen finns inte längre i din analyskö — den kan ha valts bort eller tagits bort. Öppna Matchanalys för att se dina aktuella jobb.', en: 'This match is no longer in your analysis queue — it may have been rejected or removed. Open Match analysis to see your current jobs.' })}
+      >
+        <a href="#match" style={{ textDecoration: 'none' }}>
+          <Button variant="primary" size="sm" icon="target">{tr({ sv: 'Till Matchanalys', en: 'To Match analysis' })}</Button>
+        </a>
+      </PartState>
+    );
+  } else if (!openId) {
     /* ==== LIST VIEW ==== */
     const activeItems = items.filter((j) => !created.includes(j.id));
     const createdJobs = created.map((id) => items.find((x) => x.id === id)).filter(Boolean);

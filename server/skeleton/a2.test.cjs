@@ -140,7 +140,7 @@ test('writer produces a coverLetter that passes the writing gate', async () => {
   const llm = { completeJSON: async () => ({
     paragraphs: [
       'Your search for a commercial product leader maps closely to what I have done.',
-      'At ComeOn I ran the commercial org as CMO and grew revenue threefold.',
+      'At a previous operator I ran the commercial org as CMO and grew revenue threefold.',
       'I have led ML-adjacent delivery and would ramp on the infra side quickly.',
       'I would welcome a conversation about the role.',
     ],

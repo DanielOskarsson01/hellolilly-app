@@ -1,0 +1,79 @@
+name: Wave 1 — D12 honesty eval gate
+
+# Two mandatory tiers (brief §"D12 EVAL REGIME"). Both BLOCK the pull request on failure.
+#   Tier 1 (offline-eval): every eval case runnable WITHOUT a live key — envelope/taint, schema
+#     validation, structure (P1) + provenance (P2) validators, injection cases vs a stubbed model.
+#     Runs on every PR.
+#   Tier 2 (live-zero-tolerance): the adversarial pasted-ad corpus on the REAL model, 3x each.
+#     Path-triggered (only when a prompt/eval/tailoring path changed, to bound spend) and uses the
+#     ANTHROPIC_API_KEY repository secret. SETUP (once): Settings → Secrets and variables → Actions
+#     → New repository secret → name ANTHROPIC_API_KEY, value = your Anthropic API key.
+
+on:
+  pull_request:
+  push:
+    branches: [main, wave1-phase0-baseline]
+  workflow_dispatch:
+
+jobs:
+  # ---- Tier 1: offline, always, blocking ----
+  offline-eval:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: D12 offline eval corpus (envelope/taint/schema/structure/provenance + injection)
+        run: >-
+          node --test
+          "server/skeleton/prompt-assembly/index.test.cjs"
+          "server/eval-gate.test.cjs"
+          "server/parity-metric.test.cjs"
+          "server/cv-tailor.test.cjs"
+          "server/synthetic-corpus.test.cjs"
+
+  # ---- Tier 2: live, path-triggered, blocking ----
+  live-zero-tolerance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Detect honesty-relevant path changes
+        id: filter
+        run: |
+          PATHS='server/submodules/cv-tailor/ server/skeleton/prompt-assembly/ server/skeleton/clients/anthropic.cjs server/eval-gate.test.cjs harness/phase0/ scripts/enrich-competency-categories.cjs'
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            git fetch --quiet origin "${{ github.event.pull_request.base.ref }}"
+            CHANGED=$(git diff --name-only "origin/${{ github.event.pull_request.base.ref }}...HEAD")
+          elif [ "${{ github.event_name }}" = "push" ] && [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
+            CHANGED=$(git diff --name-only "${{ github.event.before }}" "${{ github.sha }}")
+          else
+            CHANGED=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || echo "")
+          fi
+          RUN=false
+          for p in $PATHS; do
+            if echo "$CHANGED" | grep -q "^$p"; then RUN=true; break; fi
+          done
+          echo "run_live=$RUN" >> "$GITHUB_OUTPUT"
+          echo "Honesty paths changed: $RUN"
+      - if: steps.filter.outputs.run_live == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - if: steps.filter.outputs.run_live == 'true'
+        run: npm ci
+      - name: D12 live zero-tolerance eval (adversarial ads x3 on the real model)
+        if: steps.filter.outputs.run_live == 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "::error::ANTHROPIC_API_KEY repo secret is not set — the live honesty gate cannot run. Add it: Settings → Secrets and variables → Actions → New repository secret (name ANTHROPIC_API_KEY)."
+            exit 1
+          fi
+          node harness/phase0/run-eval-live.cjs

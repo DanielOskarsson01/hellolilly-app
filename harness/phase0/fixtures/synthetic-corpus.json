@@ -1,0 +1,69 @@
+{
+  "_note": "SYNTHETIC content corpus - same SHAPE as the real reference data, fully fabricated (fictional candidate 'Alex Sample'). Committed (synthetic tier). Every selectable content node carries a stable synthetic identifier. Drives offline CI structure/provenance tests; contains NO real personal data.",
+  "candidate": "Alex Sample (synthetic)",
+  "summary_variants": [
+    {"id": "syn.summary.growth", "variant": "cmo", "text": "Marketing leader who has scaled teams and brands at fast-growing companies, with hands-on depth in performance marketing, CRM, and analytics."},
+    {"id": "syn.summary.builder", "variant": "startup", "text": "Zero-to-one builder who has stood up marketing functions from scratch and grown them through rapid scaling, comfortable owning strategy and execution."}
+  ],
+  "highlights_pool": [
+    {"id": "syn.hl.01", "variant": "shared", "text": "Grew active users 3x in one year through a data-driven CRM strategy."},
+    {"id": "syn.hl.02", "variant": "shared", "text": "Built and led a marketing team from first hire to twenty across acquisition, CRM, and creative."},
+    {"id": "syn.hl.03", "variant": "shared", "text": "Launched eight brands across three markets with full positioning and go-to-market."},
+    {"id": "syn.hl.04", "variant": "cmo", "text": "Stood up analytics and reporting so budget decisions became data-driven."},
+    {"id": "syn.hl.05", "variant": "cmo", "text": "Cut acquisition cost by a third while holding retention flat via creative testing."},
+    {"id": "syn.hl.06", "variant": "cmo", "text": "Owned a seven-figure paid-media budget across search and paid social."},
+    {"id": "syn.hl.07", "variant": "startup", "text": "Founding marketer at two companies that reached profitability."},
+    {"id": "syn.hl.08", "variant": "startup", "text": "Built the first repeatable growth loop from nothing."}
+  ],
+  "_competency_note": "Each item flattens to a datafact { type:'competency', tags:['competency',group], category:{id,title,group,source} } — the SAME field shape the live pool carries after scripts/enrich-competency-categories.cjs. The category TITLES are the committed taxonomy (structural, ledger #4); the item TEXTS are fully FABRICATED (finding 10 — no byte-copies from the real competency pool).",
+  "competency_categories": [
+    {"id": "syn.comp.growth", "title": "Marketing & Growth", "group": "marketing_strategy", "source": "COMPETENCY_MASTER_POOL.json", "items": [
+      {"id": "syn.comp.growth.01", "text": "Brand storytelling for niche B2B buyers"},
+      {"id": "syn.comp.growth.02", "text": "Lifecycle journeys tuned to purchase intent"},
+      {"id": "syn.comp.growth.03", "text": "Channel mix planning under a fixed budget"},
+      {"id": "syn.comp.growth.04", "text": "Launch playbooks for new product lines"},
+      {"id": "syn.comp.growth.05", "text": "Message testing against real buyer objections"},
+      {"id": "syn.comp.growth.06", "text": "Partner and co-marketing motions"}
+    ]},
+    {"id": "syn.comp.data", "title": "Data & Analytics", "group": "technical_analytical", "source": "COMPETENCY_MASTER_POOL.json", "items": [
+      {"id": "syn.comp.data.01", "text": "Reporting that ties spend to pipeline"},
+      {"id": "syn.comp.data.02", "text": "Hold-out experiment design"},
+      {"id": "syn.comp.data.03", "text": "Budget reallocation from live signals"},
+      {"id": "syn.comp.data.04", "text": "Multi-touch attribution modelling"}
+    ]},
+    {"id": "syn.comp.leadership", "title": "Leadership & Scaling", "group": "leadership_management", "source": "COMPETENCY_MASTER_POOL.json", "items": [
+      {"id": "syn.comp.leadership.01", "text": "Hiring a first marketing bench"},
+      {"id": "syn.comp.leadership.02", "text": "Shaping a team around the funnel"},
+      {"id": "syn.comp.leadership.03", "text": "Owning a marketing P&L line"},
+      {"id": "syn.comp.leadership.04", "text": "Steering a function through fast change"},
+      {"id": "syn.comp.leadership.05", "text": "Aligning marketing with sales and product"}
+    ]}
+  ],
+  "jobs": {
+    "onlyigaming": {"company": "Synthco Platform | Remote", "period": "2020 - Present", "variants": [
+      {"id": "syn.job.onlyigaming.cmo", "variant": "cmo", "role": "Head of Marketing", "intro": "Lead brand and go-to-market for a B2B platform.",
+       "bullets": [{"id": "syn.job.onlyigaming.cmo.b1", "text": "Built the content and SEO engine that drives organic growth."}, {"id": "syn.job.onlyigaming.cmo.b2", "text": "Designed positioning and go-to-market for new product lines."}, {"id": "syn.job.onlyigaming.cmo.b3", "text": "Set up analytics and performance scoring across channels."}]}
+    ]},
+    "coinhero": {"company": "Synthco Ventures | Remote", "period": "2023 - 2024", "variants": [
+      {"id": "syn.job.coinhero.cmo", "variant": "cmo", "role": "Marketing Director", "intro": "Owned all brand and marketing decisions from scratch.",
+       "bullets": [{"id": "syn.job.coinhero.cmo.b1", "text": "Created the brand identity and positioning end to end."}, {"id": "syn.job.coinhero.cmo.b2", "text": "Designed acquisition and retention funnels."}, {"id": "syn.job.coinhero.cmo.b3", "text": "Selected channels and set the media plan."}]}
+    ]},
+    "betclic": {"company": "Synthco Group | Elsewhere", "period": "2018 - 2019", "variants": [
+      {"id": "syn.job.betclic.cmo", "variant": "cmo", "role": "Head of a New Division", "intro": "Built a new division inside a large company.",
+       "bullets": [{"id": "syn.job.betclic.cmo.b1", "text": "Ran acquisition and retention for a new product line."}, {"id": "syn.job.betclic.cmo.b2", "text": "Introduced data-driven retention strategies."}, {"id": "syn.job.betclic.cmo.b3", "text": "Built internal tooling for proactive communication."}]}
+    ]},
+    "comeon": {"company": "Synthco Scaleup (listed) | Two Cities", "period": "2012 - 2017", "variants": [
+      {"id": "syn.job.comeon.cmo", "variant": "cmo", "role": "Marketing Lead", "intro": "Scaled the marketing organization during rapid growth.",
+       "bullets": [{"id": "syn.job.comeon.cmo.b1", "text": "Scaled marketing from one to a hundred people."}, {"id": "syn.job.comeon.cmo.b2", "text": "Delivered consistent monthly growth across KPIs."}, {"id": "syn.job.comeon.cmo.b3", "text": "Built the BI capability from scratch."}, {"id": "syn.job.comeon.cmo.b4", "text": "Launched twenty brands across markets."}]}
+    ]},
+    "mrgreen": {"company": "Synthco Startup (listed) | One City", "period": "2009 - 2013", "variants": [
+      {"id": "syn.job.mrgreen.cmo", "variant": "cmo", "role": "Head of Marketing (Founding Team)", "intro": "Founding team member; built the marketing function.",
+       "bullets": [{"id": "syn.job.mrgreen.cmo.b1", "text": "Grew active users through a new CRM strategy."}, {"id": "syn.job.mrgreen.cmo.b2", "text": "Built the brand from the ground up."}, {"id": "syn.job.mrgreen.cmo.b3", "text": "Built the CRM department from zero."}]}
+    ]}
+  },
+  "otherExp": [
+    {"id": "syn.other.01", "text": "Synthco Advisory - marketing advisor (2020-)"},
+    {"id": "syn.other.02", "text": "Synthco Labs - co-founder, early product and brand (2017-2018)"},
+    {"id": "syn.other.03", "text": "Synthco Agency - strategist (2008-2009)"}
+  ]
+}

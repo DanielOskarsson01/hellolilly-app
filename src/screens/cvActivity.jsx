@@ -8,6 +8,40 @@ import { PartGate, PartState, PartSkeleton, STATUS } from '../components/partGat
 import { tr, useLang, LangToggle } from '../lib/i18n.mjs';
 import { ContentArea, ContentBox, CrossColumn, PageTemplate } from '../components/grid.jsx';
 import { listCases } from '../api/caseApi.js';
+import { sectionItems } from '../lib/cvDraftItems.mjs';
+import { computeDraftCoverage } from '../lib/presendCoverage.mjs';
+
+const sectionLeafCount = (s) => sectionItems(s).length;
+
+/* ---------- Item 3: the gaps/analysis bridge on the Anpassad CV surface ----------
+   Retargeted "Innan du skickar" links land here; the promised context (the job's gaps/analysis
+   state) must be visible and the existing fill loop reachable via the #match/<caseId> deep-open. */
+function GapsBridge({ parts, caseId }) {
+  const fitStatus = parts.statusOf('fit');
+  const deep = caseId ? `#match/${encodeURIComponent(caseId)}` : '#match';
+  if (fitStatus !== 'ready') {
+    return (
+      <div className="gapsbridge">
+        <Icon name="bulb" size={16} sw={2.4} />
+        <div className="gapsbridge__b">{tr({ sv:'Matchanalysen för den här rollen är inte klar än — där ser du vilka krav som är svaga eller saknas.', en:"The match analysis for this role isn't done yet — that's where you see which requirements are weak or missing." })}</div>
+        <a className="gapsbridge__link" href={deep}><Icon name="target" size={13} sw={2.4} />{tr({ sv:'Öppna Matchanalys', en:'Open Match analysis' })}</a>
+      </div>
+    );
+  }
+  const cov = computeDraftCoverage({ fit: parts.fit, cvDraft: parts.cvDraft, decodedRole: parts.decodedRole });
+  const toStrengthen = cov.counts.weak + cov.counts.missing;
+  return (
+    <div className="gapsbridge">
+      <Icon name="target" size={16} sw={2.4} />
+      <div className="gapsbridge__b">
+        {toStrengthen > 0
+          ? tr({ sv:`${toStrengthen} krav är svaga eller saknas i utkastet. Fyll luckorna där du stärker dem — vi hittar aldrig på en match åt dig.`, en:`${toStrengthen} requirements are weak or missing in the draft. Fill the gaps where you strengthen them — we never invent a match for you.` })
+          : tr({ sv:'Utkastet täcker kraven analysen hittade. Du kan ändå öppna hela analysen.', en:'The draft covers the requirements the analysis found. You can still open the full analysis.' })}
+      </div>
+      <a className="gapsbridge__link" href={deep}><Icon name="target" size={13} sw={2.4} />{tr({ sv:'Fyll luckorna i Matchanalys', en:'Fill the gaps in Match analysis' })}</a>
+    </div>
+  );
+}
 
 // HelloLilly — CV-byggaren (design-system era, bound to cvDraft)
 // Ported from design/design/screens-cv2.jsx; wired to real data hooks.
@@ -65,10 +99,37 @@ function ImproveStrip({ section }) {
 }
 
 /* ---------- The living CV preview (renders cvDraft.sections[]) ---------- */
+// Section body renders one of three shapes: Core Competencies -> categories[] (title + items),
+// Professional Experience -> jobs[] (company·period + role + intro + bullets), everything else -> flat items.
+function SectionBody({ sec, resolve }) {
+  if (sec.categories) {
+    return sec.categories.filter(c => (c.items || []).length).map(cat => (
+      <div className="cvlive__cat" key={cat.id}>
+        <div className="paper__cat-h">{cat.title}</div>
+        <ul>{cat.items.map((it, i) => <CvItem key={i} item={it} resolve={resolve} asBullet />)}</ul>
+      </div>
+    ));
+  }
+  if (sec.jobs) {
+    // Professional Experience: role/intro/bullets are DISTINCT nodes (server finding 8). Render the
+    // fixed role title, then the intro paragraph(s), then the result bullets — all five jobs show.
+    return sec.jobs.filter(j => (j.intro || []).length || (j.bullets || []).length).map(job => (
+      <div className="cvlive__job" key={job.key}>
+        <div className="paper__job-h">{job.company} · {job.period}</div>
+        {job.role && job.role.text ? <div className="paper__job-role">{job.role.text}</div> : null}
+        {(job.intro || []).map((it, i) => <CvItem key={`i${i}`} item={it} resolve={resolve} />)}
+        {(job.bullets || []).length ? <ul>{job.bullets.map((it, i) => <CvItem key={`b${i}`} item={it} resolve={resolve} asBullet />)}</ul> : null}
+      </div>
+    ));
+  }
+  if (sec.key === 'summary') return sec.items.map((it, i) => <CvItem key={i} item={it} resolve={resolve} />);
+  return <ul>{(sec.items || []).map((it, i) => <CvItem key={i} item={it} resolve={resolve} asBullet />)}</ul>;
+}
+
 function CvLive({ cvDraft, meta, resolve }) {
   const person = meta.person || {};
-  // Only sections with at least one renderable item render (spec: select, never invent).
-  const sections = (cvDraft.sections || []).filter(s => (s.items || []).length > 0);
+  // Only sections with at least one renderable leaf render (spec: select, never invent).
+  const sections = (cvDraft.sections || []).filter(s => sectionLeafCount(s) > 0);
   return (
     <div className="cvlive">
       <div className="paper paper--cv">
@@ -78,9 +139,7 @@ function CvLive({ cvDraft, meta, resolve }) {
         {sections.map(sec => (
           <div className="cvlive__sec" key={sec.key}>
             <div className="paper__sec-h">{sec.heading}</div>
-            {sec.key === 'summary'
-              ? sec.items.map((it, i) => <CvItem key={i} item={it} resolve={resolve} />)
-              : <ul>{sec.items.map((it, i) => <CvItem key={i} item={it} resolve={resolve} asBullet />)}</ul>}
+            <SectionBody sec={sec} resolve={resolve} />
             <ImproveStrip section={sec} />
           </div>
         ))}
@@ -171,7 +230,7 @@ function CVBuilder() {
   const head = (
     <div className="ll-pagehead">
       <div className="ll-pagehead__b">
-        <h1>{tr({ sv:'CV-byggaren', en:'CV builder' })}</h1>
+        <h1>{tr({ sv:'Anpassad CV', en:'Anpassad CV' })}</h1>
         <p className="ll-pagehead__sub">{tr({ sv:'Förbi det tomma pappret: dina svar blir byggstenar, Lilly väljer ihop dem till ett CV för rollen - aldrig något påhittat.', en:'Past the blank page: your answers become building blocks, Lilly assembles them into a role-tailored CV - never anything invented.' })}</p>
       </div>
       <div className="ll-pagehead__actions"><LangToggle /></div>
@@ -269,7 +328,7 @@ function CVBuilder() {
       label="CV-byggaren"
       nav={<Sidebar active="cv" />}
       cross={cross}
-      content={<ContentArea>{head}{ctx}{body}</ContentArea>}
+      content={<ContentArea>{head}{ctx}{caseData && <GapsBridge parts={parts} caseId={caseData.meta && caseData.meta.id} />}{body}</ContentArea>}
     />
   );
 }

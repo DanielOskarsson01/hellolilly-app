@@ -17,10 +17,11 @@ import { JobSearch } from './screens/jobSearch.jsx';
 import { HelpfulNow } from './components/helpfulNow.jsx';
 import { HelpfulLayover } from './components/helpfulLayover.jsx';
 import { InnanDuSkickar } from './screens/presend.jsx';
+import { routeKey } from './lib/matchDeepOpen.mjs';
 
 const LL_ROUTES = {
   home: { c: () => <HomeExpanded />, title: 'Hem' },
-  cv: { c: () => <CVBuilder />, title: 'CV-byggaren', template: true },
+  cv: { c: () => <CVBuilder />, title: 'Anpassad CV', template: true }, // Wave 1 D17: the #cv route shows the tailored draft (route unchanged; label truthful)
   letter: { c: () => <CoverLetter />, title: 'Personligt brev', template: true },
   interview: { c: () => <InterviewTrainer />, title: 'Intervjuträning' },
   activity: { c: () => <ActivityTracker />, title: 'Min aktivitet' },
@@ -37,8 +38,9 @@ const LL_ROUTES = {
 };
 
 function getRoute() {
-  const r = (location.hash || '#home').slice(1);
-  return r || 'home';
+  // Base route key only; a "/param" suffix (e.g. #match/<caseId> deep-open) is read from the
+  // hash by the target screen. Keeps LL_ROUTES a flat map while allowing per-id deep links.
+  return routeKey(location.hash);
 }
 
 // A render throw inside a screen (e.g. a data-shape drift the screen didn't guard)

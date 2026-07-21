@@ -159,9 +159,29 @@ test('POST answer with missing fields is 400 and mints nothing', async () => {
   assert.equal(host.store.getCase(caseId).fit.data.capability.requirements[0].status, 'missing');
 });
 
+// A CONFORMANT synthetic pool: the strict pre-write gate requires a full valid CV (summary,
+// 6 highlights, 3x4 competencies, 5 jobs each with a bullet, other, + static earlier/edu/awards).
+const CATF = (id, catId, title, group) => ({ id, kind: 'datafact', type: 'competency', text: `Competency ${id}.`, tags: ['competency', group], language: 'en', category: { id: catId, title, group, source: 'COMPETENCY_MASTER_POOL.json' } });
+const GEN_FACTS = [
+  { id: 'd_sum', type: 'professional_summary', text: 'Synthetic summary.', tags: [] },
+  ...['0', '1', '2', '3', '4', '5'].map((i) => ({ id: `d_h${i}`, type: 'value_proposition', text: `Highlight ${i}.`, tags: ['value-prop'] })),
+  { id: 'd_ow', type: 'other_work', text: 'Advisor at Synthco (2020-).', tags: ['other-work'] },
+  { id: 'd_edu', type: 'education', text: 'BSc Marketing.', tags: ['education'] },
+  { id: 'd_awd', type: 'award', text: 'Best Operator 2015.', tags: ['award'] },
+  { id: 'd_ear', type: 'job_result', text: 'Grew a utility brand.', tags: ['Telge Energi'] },
+  { id: 'datafact_x', type: 'job_result', text: 'Grew revenue 3x.', tags: ['ComeOn'] },
+  { id: 'd_oj', type: 'job_result', text: 'Shipped the flagship platform.', tags: ['OnlyiGaming / Enablers'] },
+  { id: 'd_ch', type: 'job_result', text: 'Founded a new venture.', tags: ['Coinhero'] },
+  { id: 'd_bc', type: 'job_result', text: 'Built casino division.', tags: ['Betclic'] },
+  { id: 'd_mg', type: 'job_result', text: 'Grew the company from scratch.', tags: ['MrGreen'] },
+].map((f) => ({ kind: 'datafact', language: 'en', ...f }))
+  .concat(['1', '2', '3', '4'].map((i) => CATF(`d_l${i}`, 'leadership-scaling', 'Leadership & Scaling', 'leadership_management')))
+  .concat(['1', '2', '3', '4'].map((i) => CATF(`d_m${i}`, 'marketing-growth', 'Marketing & Growth', 'marketing_strategy')))
+  .concat(['1', '2', '3', '4'].map((i) => CATF(`d_d${i}`, 'data-analytics', 'Data & Analytics', 'technical_analytical')));
+
 function generateFixture(llm) {
   const host = createHost({ llm });
-  host.store.ingestDatafact({ id: 'datafact_x', kind: 'datafact', type: 'job_result', text: 'Grew revenue 3x.', tags: ['ComeOn'], language: 'en' });
+  for (const f of GEN_FACTS) host.store.ingestDatafact(f);
   const c = host.store.createCase({ company: 'Acme', role: 'PM' });
   host.store.writePart(c.meta.id, 'decodedRole', { narrative: '', requirements: [{ id: 'decodedRequirement_1', requirement: 'X', rationale: '', weight: 1 }] });
   host.store.writePart(c.meta.id, 'fit', { capability: { requirements: [{ requirementRef: { kind: 'decodedRequirement', id: 'decodedRequirement_1' }, evidence: 'Grew revenue 3x.', evidenceRef: { kind: 'datafact', id: 'datafact_x' }, status: 'match' }], overall: '' }, preference: { narrative: '' } });
@@ -169,9 +189,25 @@ function generateFixture(llm) {
   return { host, caseId: c.meta.id };
 }
 
-test('POST /generate runs cv-builder + writer and returns both parts ready', async () => {
+// cv-tailor returns a conformant SELECTION of datafact ids per fixed template node.
+const TAILOR_SELECTION = {
+  summary: ['d_sum'], highlights: ['d_h0', 'd_h1', 'd_h2', 'd_h3', 'd_h4', 'd_h5'],
+  competencies: [
+    { category: 'leadership-scaling', items: ['d_l1', 'd_l2', 'd_l3', 'd_l4'] },
+    { category: 'marketing-growth', items: ['d_m1', 'd_m2', 'd_m3', 'd_m4'] },
+    { category: 'data-analytics', items: ['d_d1', 'd_d2', 'd_d3', 'd_d4'] },
+  ],
+  other: ['d_ow'],
+  jobs: {
+    onlyigaming: { intro: [], bullets: ['d_oj'] }, coinhero: { intro: [], bullets: ['d_ch'] }, betclic: { intro: [], bullets: ['d_bc'] },
+    comeon: { intro: [], bullets: ['datafact_x'] }, mrgreen: { intro: [], bullets: ['d_mg'] },
+  },
+};
+const isTailorCall = (prompt) => prompt.includes('fixed CV section');
+
+test('POST /generate runs cv-tailor + writer and returns both parts ready', async () => {
   const llm = { completeJSON: async ({ prompt }) => {
-    if (prompt.includes('SELECT')) return { sections: [{ key: 'experience', heading: 'Experience', datafactIds: ['datafact_x'] }] };
+    if (isTailorCall(prompt)) return TAILOR_SELECTION;
     return { paragraphs: ['A clear opening line.', 'A solid middle paragraph.', 'An honest bridge.', 'A closing line.'], unsupported_by_cv: [] };
   } };
   const { host, caseId } = generateFixture(llm);
@@ -182,6 +218,7 @@ test('POST /generate runs cv-builder + writer and returns both parts ready', asy
   assert.equal(res._status, 200);
   assert.equal(res._body.ok, true);
   assert.equal(host.store.getCase(caseId).cvDraft.status, 'ready');
+  assert.equal(host.store.getCase(caseId).cvDraft.data.provenance, 'untrusted-derived'); // D12 transitive taint
   assert.equal(host.store.getCase(caseId).coverLetter.status, 'ready');
   assert.ok(res._body.coverLetter.paragraphs.length >= 4);
 });
@@ -322,7 +359,7 @@ test('POST research on an unknown case is 404; a partial (decoder failed) run is
 test('POST /generate is 207 with a per-generator error when one fails', async () => {
   // writer emits a banned phrase -> the writing-rules gate fails the coverLetter part.
   const llm = { completeJSON: async ({ prompt }) => {
-    if (prompt.includes('SELECT')) return { sections: [{ key: 'experience', heading: 'Experience', datafactIds: ['datafact_x'] }] };
+    if (isTailorCall(prompt)) return TAILOR_SELECTION;
     return { paragraphs: ['I am a perfect fit and would hit the ground running.'], unsupported_by_cv: [] };
   } };
   const { host, caseId } = generateFixture(llm);
@@ -332,7 +369,7 @@ test('POST /generate is 207 with a per-generator error when one fails', async ()
   await handle(makeReq('POST', `/api/case/${caseId}/generate`), res);
   assert.equal(res._status, 207);
   assert.equal(res._body.ok, false);
-  assert.equal(host.store.getCase(caseId).cvDraft.status, 'ready', 'cv-builder still succeeded');
+  assert.equal(host.store.getCase(caseId).cvDraft.status, 'ready', 'cv-tailor still succeeded');
   assert.equal(host.store.getCase(caseId).coverLetter.status, 'failed', 'writer failed the gate');
   assert.ok(res._body.writer_error, 'the writer error is surfaced');
 });

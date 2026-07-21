@@ -5,7 +5,7 @@
 // manifest declares what a submodule reads/writes and which capabilities it needs;
 // the skeleton injects only the declared ones (least privilege, see capabilities.cjs).
 
-const VALID_CAPABILITIES = new Set(['http', 'logger', 'store', 'request', 'llm', 'search', 'utils', 'datalayer']);
+const VALID_CAPABILITIES = new Set(['http', 'logger', 'store', 'request', 'llm', 'search', 'utils', 'datalayer', 'assembly']);
 
 function validateManifest(m) {
   if (!m || typeof m !== 'object') throw new Error('manifest must be an object');
