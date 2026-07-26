@@ -24,8 +24,17 @@ function seedDatafacts(store, { jsonPath = DEFAULT_JSON, language = 'en' } = {})
       'or pass { jsonPath } / set CV_DATA_PATH.',
     );
   }
-  const cv = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
-  const facts = cvDataToDatafacts(cv, language);
+  const raw = fs.readFileSync(jsonPath, 'utf8');
+  const cv = JSON.parse(raw);
+  // Wave 2 (3.2): stamp curated origin WITH the source file's sha, so every seeded fact's
+  // provenance is auditable against the exact cv_data.json bytes it came from.
+  const originDetail = {
+    method: 'cv_data-ingest',
+    file: path.basename(jsonPath),
+    cvDataSha256: require('node:crypto').createHash('sha256').update(raw).digest('hex'),
+    ingestedAt: new Date().toISOString(),
+  };
+  const facts = cvDataToDatafacts(cv, language, originDetail);
   for (const f of facts) store.ingestDatafact(f);
   return facts;
 }

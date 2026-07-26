@@ -62,10 +62,12 @@ function normalise(s) {
 
 const hasTag = (f, tags) => (f.tags || []).some((t) => tags.includes(t));
 
-// Model-authored datafacts (gap answers) are untrusted-derived: authored from an untrusted ad.
-// They must enter the prompt ENVELOPED, never as trusted candidates (finding 1). Provenance is
-// carried on the fact when minted; fill-gap type is the durable fallback for legacy facts.
-const isDerived = (f) => f.provenance === 'untrusted-derived' || f.type === 'fill-gap';
+// Model-authored datafacts must enter the prompt ENVELOPED, never as trusted candidates
+// (finding 1). HONEST RECORD (Wave 2, 3.2): legacy fill-gap facts carry NO provenance
+// field — the old mint never stamped one (the previous comment here claimed it did; that
+// was false) — so `type === 'fill-gap'` is the durable marker for them. Wave 2 mints
+// stamp machine provenance ('person-approved-derived') on the fact at mint.
+const isDerived = (f) => f.provenance === 'untrusted-derived' || f.provenance === 'person-approved-derived' || f.type === 'fill-gap';
 
 // jobOfFact -> fixed job key | 'earlier' | null (deterministic, by grouping tag).
 function jobOfFact(f) {

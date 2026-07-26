@@ -7,13 +7,21 @@
 
 const { mintId } = require('../ids.cjs');
 
-function df(type, text, tags, language) {
-  return { id: mintId('datafact'), kind: 'datafact', type, text: String(text).trim(), tags: tags.filter(Boolean), language };
+// Wave 2 (brief 3.2): every fact this mapper produces is CURATED-ORIGIN by definition —
+// cv_data.json is the person's curated source file — so the origin is stamped at ingest.
+// `originDetail` (optional) carries the source file's sha + method so the record is
+// auditable; the 3.2 backfill replays this mapper to classify facts that predate the field.
+function df(type, text, tags, language, originDetail) {
+  return {
+    id: mintId('datafact'), kind: 'datafact', type, text: String(text).trim(),
+    tags: tags.filter(Boolean), language,
+    origin: 'curated', ...(originDetail ? { originDetail } : {}),
+  };
 }
 
-function cvDataToDatafacts(cv = {}, language = 'en') {
+function cvDataToDatafacts(cv = {}, language = 'en', originDetail = null) {
   const out = [];
-  const push = (type, text, tags = []) => { const s = String(text ?? '').trim(); if (s) out.push(df(type, s, tags, language)); };
+  const push = (type, text, tags = []) => { const s = String(text ?? '').trim(); if (s) out.push(df(type, s, tags, language, originDetail)); };
 
   // professional_summary
   if (cv.professional_summary) push('professional_summary', cv.professional_summary.default, cv.professional_summary.tags || []);

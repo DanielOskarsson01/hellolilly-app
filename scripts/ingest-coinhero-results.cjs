@@ -64,6 +64,9 @@ function main() {
       id, kind: 'datafact', type: 'job_result', text,
       tags: ['job-result', 'Coinhero'], language: 'en',
       source: SOURCE_LABEL, // provenance/lineage of this imported evidence
+      // Wave 2 (3.2): the explicit source is formalised as curated origin at ingest.
+      origin: 'curated',
+      originDetail: { method: 'explicit-source', source: SOURCE_LABEL, ingestedAt: new Date().toISOString() },
     });
     added++;
   }
