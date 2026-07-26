@@ -202,6 +202,18 @@ Daniel decided the architecture for coach network reach — **Network Match (E3)
 - **Design** — the E3/F3 screens keep demo tier; the uniform-sentence rule is a copy commitment.
 - **Planner** — the §2 review scope gains the controller/tool-provider hypothesis and the enrichment-route question; E3/F3 briefs inherit this architecture.
 
+## D22 - Person-typed material is a first-class source of record
+
+**Date:** 2026-07-21 (ratified by Daniel; recorded 2026-07-25). **Status:** decided by Daniel. **Full text and binding consequences: `docs/WAVE_2_BRIEF_suggestion-engine_v3.2.md` §3.7.** (D22 is the next decision number after D21, clear of this addendum's D1-D5 line and the Omställning area's D4-D8 range.)
+
+What the person types is saved as truth — the SAME trust class as his curated source files, minting without friction (D14 advocate-not-audit). The record states its class honestly: span-grounded or person-attested. The authorship discriminator (a deterministic diff of unsupported tokens against the model's draft) prevents a model invention minting on a bare accept: the model's draft must be span-grounded; only content originating in the person's own wording mints as person-attested.
+
+## D23 - "Who accepted" is attested, not authenticated, until D13 identity fires
+
+**Date:** 2026-07-21 (ratified by Daniel; recorded 2026-07-25). **Status:** decided by Daniel. **Detail: `docs/WAVE_2_BRIEF_suggestion-engine_v3.2.md` §5.4.** (D23 is the next decision number after D22, clear of this addendum's D1-D5 line and the Omställning area's D4-D8 range.)
+
+Accepted as a stated residual for the single-user local product: acceptance events carry nonce binding (accept bound to a served review) and a server-side rate ceiling, but the recorded "who" is attested, not authenticated, until the D13 identity trigger fires. Re-opened the moment a second person or a hosted surface exists.
+
 ## Persona note (already in the seed, restated because it interacts with D3)
 New/rebuilt screens use the real persona (Daniel Oskarsson, iGaming/marketing) with real data. The Amir Hassan fixture persona survives ONLY inside labelled demo screens. No new Amir content.
 
