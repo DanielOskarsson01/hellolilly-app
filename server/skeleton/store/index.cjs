@@ -28,6 +28,14 @@
 const { createCase, setPartData, setPartStatus, PARTS } = require('../contract/case.cjs');
 const { enforce } = require('../writing-rules/gate.cjs');
 
+// INVARIANT 1 (Wave 2) — verified status. A fact is VERIFIED iff it is curated-origin
+// (stamped at ingest or by the 3.2 backfill) OR it carries a recorded acceptance event.
+// Everything else — including missing or unknown provenance — is UNVERIFIED and cannot
+// enter generation or a CV. Enforced HERE, at the single datalayer root, so every
+// consumer (cv-tailor, writer, cv-builder, the ledgered letter writer) inherits it;
+// per-caller enforcement is exactly what the review rejected.
+const isVerifiedFact = (f) => !!f && (f.origin === 'curated' || !!(f.acceptance && f.acceptance.id));
+
 // Transitive taint enforced at the WRITE BOUNDARY (finding 3), not a one-time stamp: once a part's
 // data is untrusted-derived, every later write to that part must stay untrusted-derived. A write
 // that omits provenance or downgrades it (to trusted/untrusted) would launder the taint — rejected.
@@ -224,10 +232,24 @@ function createStore() {
     datafacts.set(df.id, detach(df));
     return detach(df);
   }
+  // DEFAULT reads exclude non-verified facts (INVARIANT 1). A quarantined, legacy or
+  // unclassified fact is invisible here — and therefore invisible to every submodule
+  // (tools.datalayer wraps exactly these two).
   function getDatafact(id) {
-    return detach(datafacts.get(id) || null);
+    const f = datafacts.get(id);
+    return f && isVerifiedFact(f) ? detach(f) : null;
   }
   function listDatafacts() {
+    return [...datafacts.values()].filter(isVerifiedFact).map(detach);
+  }
+
+  // RAW reads — the EXPLICIT host-level accessor (INVARIANT 1's one sanctioned bypass).
+  // For the suggestion engine, the 3.2 backfill and operator scripts ONLY. Never exposed
+  // on tools.store / tools.datalayer (capabilities.cjs is an explicit whitelist).
+  function getDatafactRaw(id) {
+    return detach(datafacts.get(id) || null);
+  }
+  function listDatafactsRaw() {
     return [...datafacts.values()].map(detach);
   }
 
@@ -256,10 +278,12 @@ function createStore() {
     ingestDatafact,
     getDatafact,
     listDatafacts,
+    getDatafactRaw,
+    listDatafactsRaw,
     removeDatafact,
     snapshot,
     hydrate,
   };
 }
 
-module.exports = { createStore };
+module.exports = { createStore, isVerifiedFact };

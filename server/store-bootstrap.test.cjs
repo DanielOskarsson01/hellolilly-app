@@ -46,7 +46,7 @@ test('one-time migration: a legacy JSON snapshot is loaded into the new sqlite d
   // a legacy store.json as the Stream 2 JSON wrapper would have written it
   const legacy = createStore();
   const c = legacy.createCase({ company: 'Brightsales', role: 'Marknadschef' });
-  legacy.ingestDatafact({ id: 'datafact_legacy', kind: 'datafact', type: 'cv', text: 'Kept across the migration.', tags: [], language: 'en' });
+  legacy.ingestDatafact({ id: 'datafact_legacy', kind: 'datafact', origin: 'curated', type: 'cv', text: 'Kept across the migration.', tags: [], language: 'en' });
   fs.writeFileSync(path.join(dir, 'store.json'), JSON.stringify(legacy.snapshot()));
 
   const boot = bootstrapStore({ adapter: 'sqlite', dataDir: dir });

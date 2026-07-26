@@ -116,7 +116,9 @@ test('accepted answer logs exactly one gap_filled activity row referencing the m
   assert.equal(filled[0].caseId, caseId);
   assert.equal(filled[0].meta.gapId, 'gap_1');
   assert.equal(filled[0].meta.datafactId, res._body.newDatafactId, 'the activity row cites the minted datafact');
-  assert.ok(host.store.getDatafact(filled[0].meta.datafactId), 'the cited datafact exists in the store');
+  // RAW read: the legacy auto-mint carries no acceptance event, so under INVARIANT 1 the
+  // fact is (correctly) unverified until the Wave 2 proposal-review rewire of this path.
+  assert.ok(host.store.getDatafactRaw(filled[0].meta.datafactId), 'the cited datafact exists in the store');
 });
 
 test('POST /gap/:id/skip persists a terminal skip served on reload and logs gap_skipped', async () => {
@@ -161,7 +163,7 @@ test('POST answer with missing fields is 400 and mints nothing', async () => {
 
 // A CONFORMANT synthetic pool: the strict pre-write gate requires a full valid CV (summary,
 // 6 highlights, 3x4 competencies, 5 jobs each with a bullet, other, + static earlier/edu/awards).
-const CATF = (id, catId, title, group) => ({ id, kind: 'datafact', type: 'competency', text: `Competency ${id}.`, tags: ['competency', group], language: 'en', category: { id: catId, title, group, source: 'COMPETENCY_MASTER_POOL.json' } });
+const CATF = (id, catId, title, group) => ({ id, kind: 'datafact', origin: 'curated', type: 'competency', text: `Competency ${id}.`, tags: ['competency', group], language: 'en', category: { id: catId, title, group, source: 'COMPETENCY_MASTER_POOL.json' } });
 const GEN_FACTS = [
   { id: 'd_sum', type: 'professional_summary', text: 'Synthetic summary.', tags: [] },
   ...['0', '1', '2', '3', '4', '5'].map((i) => ({ id: `d_h${i}`, type: 'value_proposition', text: `Highlight ${i}.`, tags: ['value-prop'] })),
@@ -174,7 +176,7 @@ const GEN_FACTS = [
   { id: 'd_ch', type: 'job_result', text: 'Founded a new venture.', tags: ['Coinhero'] },
   { id: 'd_bc', type: 'job_result', text: 'Built casino division.', tags: ['Betclic'] },
   { id: 'd_mg', type: 'job_result', text: 'Grew the company from scratch.', tags: ['MrGreen'] },
-].map((f) => ({ kind: 'datafact', language: 'en', ...f }))
+].map((f) => ({ kind: 'datafact', origin: 'curated', language: 'en', ...f }))
   .concat(['1', '2', '3', '4'].map((i) => CATF(`d_l${i}`, 'leadership-scaling', 'Leadership & Scaling', 'leadership_management')))
   .concat(['1', '2', '3', '4'].map((i) => CATF(`d_m${i}`, 'marketing-growth', 'Marketing & Growth', 'marketing_strategy')))
   .concat(['1', '2', '3', '4'].map((i) => CATF(`d_d${i}`, 'data-analytics', 'Data & Analytics', 'technical_analytical')));
@@ -527,7 +529,7 @@ test('POST /api/job/:id/case does NOT hit the case handler (shadowing regression
 
 function alignKeywordFixture() {
   const host = createHost({ llm: null });
-  host.store.ingestDatafact({ id: 'datafact_k1', kind: 'datafact', type: 'cv', text: 'Led agile transformation across three squads.', tags: [], language: 'en' });
+  host.store.ingestDatafact({ id: 'datafact_k1', kind: 'datafact', origin: 'curated', type: 'cv', text: 'Led agile transformation across three squads.', tags: [], language: 'en' });
   const c = host.store.createCase({ company: 'Acme', role: 'PM' });
   host.store.writePart(c.meta.id, 'cvDraft', {
     sections: [{
@@ -804,7 +806,7 @@ test('over-logging guard: datafact ingest + bulk job/filterSet upserts emit NO a
   const host = createHost({});
   // These are exactly the non-action writes (seeding, job-search bulk, filter set).
   // None go through logActivity (which lives only in action handlers), so none log.
-  host.store.ingestDatafact({ id: 'datafact_x', kind: 'datafact', type: 'cv', text: 'Some CV text.', tags: [], language: 'sv' });
+  host.store.ingestDatafact({ id: 'datafact_x', kind: 'datafact', origin: 'curated', type: 'cv', text: 'Some CV text.', tags: [], language: 'sv' });
   host.store.putRecord('jobs', { id: 'job_a', decision: 'new' });
   host.store.putRecord('jobs', { id: 'job_b', decision: 'new' });
   host.store.putRecord('filterSet', { id: 'filterSet', searchTerms: [] });

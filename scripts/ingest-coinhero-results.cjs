@@ -52,7 +52,9 @@ function main() {
   console.log(`backed up store.db -> ${backup}`);
 
   const { store } = bootstrapStore({ storePath: STORE_DB });
-  const before = store.listDatafacts();
+  // RAW reads: the additive-only byte-identity check must cover unverified facts too (INV1).
+  const listAll = () => (store.listDatafactsRaw ? store.listDatafactsRaw() : store.listDatafacts());
+  const before = listAll();
   const beforeById = new Map(before.map((f) => [f.id, JSON.stringify(f)]));
   const existingIds = new Set(before.map((f) => f.id));
 
@@ -72,7 +74,7 @@ function main() {
   }
 
   // Safety: every pre-existing fact is byte-for-byte unchanged (ADDITIVE ONLY invariant).
-  const after = store.listDatafacts();
+  const after = listAll();
   let changed = 0;
   for (const f of after) {
     if (beforeById.has(f.id) && beforeById.get(f.id) !== JSON.stringify(f)) { changed++; console.error(`  CHANGED existing fact: ${f.id}`); }

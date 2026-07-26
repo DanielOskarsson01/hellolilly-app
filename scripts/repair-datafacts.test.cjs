@@ -60,8 +60,8 @@ function fixture() {
 // job_result fact holding the literal "[object Object]".
 function buggyStore() {
   const store = createStore();
-  store.ingestDatafact({ id: 'datafact_sum', kind: 'datafact', type: 'job_summary', text: 'Ran things.', tags: ['job', 'Acme', 'X'], language: 'en' });
-  store.ingestDatafact({ id: 'datafact_res', kind: 'datafact', type: 'job_result', text: '[object Object]', tags: ['job-result', 'Acme'], language: 'en' });
+  store.ingestDatafact({ id: 'datafact_sum', kind: 'datafact', origin: 'curated', type: 'job_summary', text: 'Ran things.', tags: ['job', 'Acme', 'X'], language: 'en' });
+  store.ingestDatafact({ id: 'datafact_res', kind: 'datafact', origin: 'curated', type: 'job_result', text: '[object Object]', tags: ['job-result', 'Acme'], language: 'en' });
   return store;
 }
 
@@ -92,7 +92,7 @@ test('preserves fill-gap answers and is idempotent', () => {
   const tmp = fixture();
   try {
     const store = buggyStore();
-    store.ingestDatafact({ id: 'datafact_gap', kind: 'datafact', type: 'fill-gap', text: 'A gap answer.', tags: ['fill-gap'], language: 'en' });
+    store.ingestDatafact({ id: 'datafact_gap', kind: 'datafact', origin: 'curated', type: 'fill-gap', text: 'A gap answer.', tags: ['fill-gap'], language: 'en' });
     repair(store, { jsonPath: tmp });
     assert.ok(store.getDatafact('datafact_gap'), 'gap answer preserved');
     // Re-running finds nothing to fix.
@@ -108,8 +108,8 @@ test('aborts rather than guess when the store does not align with cv_data.json',
   try {
     const store = createStore();
     // Wrong shape at index 0: a non-corrupt fact whose text will not match the fixture.
-    store.ingestDatafact({ id: 'datafact_x', kind: 'datafact', type: 'job_summary', text: 'Different summary.', tags: [], language: 'en' });
-    store.ingestDatafact({ id: 'datafact_y', kind: 'datafact', type: 'job_result', text: '[object Object]', tags: [], language: 'en' });
+    store.ingestDatafact({ id: 'datafact_x', kind: 'datafact', origin: 'curated', type: 'job_summary', text: 'Different summary.', tags: [], language: 'en' });
+    store.ingestDatafact({ id: 'datafact_y', kind: 'datafact', origin: 'curated', type: 'job_result', text: '[object Object]', tags: [], language: 'en' });
     assert.throws(() => repair(store, { jsonPath: tmp }), /alignment/, 'refuses to repair a misaligned store');
   } finally {
     fs.unlinkSync(tmp);

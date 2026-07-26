@@ -23,7 +23,9 @@ test('accepted answer mints a datafact and flips the requirement to match', asyn
   const res = await applyAnswer(store, llm, { caseId, gapId: 'gap_1', answer: 'I built our feature store for 12 models', requirementId: 'decodedRequirement_2' });
   assert.equal(res.outcome, 'accepted');
   assert.ok(res.newDatafactId.startsWith('datafact_'));
-  const fact = store.getDatafact(res.newDatafactId);
+  // RAW read: the legacy auto-mint carries no acceptance event, so under INVARIANT 1 the
+  // fact is (correctly) unverified until the Wave 2 proposal-review rewire of this path.
+  const fact = store.getDatafactRaw(res.newDatafactId);
   assert.ok(fact.tags.includes('addresses:decodedRequirement_2'));
   assert.equal(fact.language, 'en');
   const req = store.getCase(caseId).fit.data.capability.requirements.find((r) => r.requirementRef.id === 'decodedRequirement_2');

@@ -67,8 +67,11 @@ function bootstrapStore({
 }
 
 // Seed the datafact pool ONLY when it is empty. Returns { seeded, skipped }.
+// RAW emptiness guard (INVARIANT 1): default reads exclude non-verified facts, so a
+// pool holding only unverified facts would look empty and re-seed duplicates.
 function seedDatafactsIfEmpty(store, opts) {
-  if (store.listDatafacts().length > 0) return { seeded: 0, skipped: true };
+  const count = (store.listDatafactsRaw ? store.listDatafactsRaw() : store.listDatafacts()).length;
+  if (count > 0) return { seeded: 0, skipped: true };
   const facts = seedDatafacts(store, opts);
   return { seeded: facts.length, skipped: false };
 }

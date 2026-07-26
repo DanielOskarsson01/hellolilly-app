@@ -42,7 +42,7 @@ test('gap-analyzer writes honest fit + gaps citing datafacts', async () => {
     },
   });
   const host = createHost({ llm });
-  host.store.ingestDatafact({ id: 'datafact_x', kind: 'datafact', type: 'job_result', text: 'Grew revenue 3x.', tags: [], language: 'en' });
+  host.store.ingestDatafact({ id: 'datafact_x', kind: 'datafact', origin: 'curated', type: 'job_result', text: 'Grew revenue 3x.', tags: [], language: 'en' });
   const c = host.store.createCase({ company: 'Acme', role: 'Head of Product' });
   host.store.writePart(c.meta.id, 'decodedRole', DECODED);
 
@@ -98,7 +98,7 @@ test('cv-builder selects datafacts into a cvDraft (selects, never authors)', asy
       prompt.includes('SELECT') ? { sections: [{ key: 'experience', heading: 'Experience', datafactIds: ['datafact_x'] }] } : {},
   };
   const host = createHost({ llm });
-  host.store.ingestDatafact({ id: 'datafact_x', kind: 'datafact', type: 'job_result', text: 'Grew revenue 3x.', tags: ['ComeOn'], language: 'en' });
+  host.store.ingestDatafact({ id: 'datafact_x', kind: 'datafact', origin: 'curated', type: 'job_result', text: 'Grew revenue 3x.', tags: ['ComeOn'], language: 'en' });
   const c = host.store.createCase({ company: 'Acme', role: 'Head of Product' });
   host.store.writePart(c.meta.id, 'decodedRole', { narrative: '', requirements: [{ id: 'decodedRequirement_1', requirement: 'Scale a commercial org', rationale: '', weight: 0.9 }] });
   host.store.writePart(c.meta.id, 'fit', { capability: { requirements: [{ requirementRef: { kind: 'decodedRequirement', id: 'decodedRequirement_1' }, evidence: 'Grew revenue 3x.', status: 'match' }], overall: '' }, preference: { narrative: '' } });
@@ -124,7 +124,7 @@ test('cv-builder drops hallucinated ids and empty sections', async () => {
         : {},
   };
   const host = createHost({ llm });
-  host.store.ingestDatafact({ id: 'datafact_x', kind: 'datafact', type: 'job_result', text: 'Grew revenue 3x.', tags: ['ComeOn'], language: 'en' });
+  host.store.ingestDatafact({ id: 'datafact_x', kind: 'datafact', origin: 'curated', type: 'job_result', text: 'Grew revenue 3x.', tags: ['ComeOn'], language: 'en' });
   const c = host.store.createCase({ company: 'Acme', role: 'Head of Product' });
   host.store.writePart(c.meta.id, 'decodedRole', { narrative: '', requirements: [{ id: 'decodedRequirement_1', requirement: 'Scale', rationale: '', weight: 1 }] });
   host.store.writePart(c.meta.id, 'fit', { capability: { requirements: [], overall: '' }, preference: { narrative: '' } });

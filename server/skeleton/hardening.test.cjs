@@ -22,7 +22,7 @@ test('writePart has NO skipGate opt-out — authored prose is always gated', () 
 test('imported facts ingest intact — a real CV with banned phrases is exempt from the gate', () => {
   const store = createStore();
   const cvText = 'Proven track record of scaling. Built for synergy. Driven by passion. Ran dynamic pricing.';
-  store.ingestDatafact({ id: 'datafact_cv1', kind: 'datafact', type: 'achievement', text: cvText });
+  store.ingestDatafact({ id: 'datafact_cv1', kind: 'datafact', origin: 'curated', type: 'achievement', text: cvText });
   assert.equal(store.getDatafact('datafact_cv1').text, cvText, 'CV text stored verbatim, ungated');
 });
 

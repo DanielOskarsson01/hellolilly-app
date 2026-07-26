@@ -12,7 +12,7 @@
 // bullet, otherExp, and the static earlier/education/awards sections. Requires NO gitignored file, so
 // the live eval runs from a clean checkout.
 
-const DF = (id, type, text, tags = [], extra = {}) => ({ id, kind: 'datafact', type, text, tags, language: 'en', ...extra });
+const DF = (id, type, text, tags = [], extra = {}) => ({ id, kind: 'datafact', origin: 'curated', type, text, tags, language: 'en', ...extra });
 const CAT = (id, title, group) => ({ category: { id, title, group, source: 'COMPETENCY_MASTER_POOL.json' } });
 
 const SYNTHETIC_FACTS = [

@@ -25,7 +25,7 @@ function seedStore(store) {
     narrative: 'A plain narrative.',
     requirements: [{ id: 'decodedRequirement_1', requirement: 'Ship things', rationale: 'They ship weekly', weight: 3 }],
   });
-  store.ingestDatafact({ id: 'datafact_1', kind: 'datafact', type: 'cv', text: 'Led a team of five.', tags: [], language: 'en' });
+  store.ingestDatafact({ id: 'datafact_1', kind: 'datafact', origin: 'curated', type: 'cv', text: 'Led a team of five.', tags: [], language: 'en' });
   store.putRecord('jobs', { id: 'job_1', title: 'Head of Product' });
   store.scratch('some-submodule').set('k', 'private working value');
   return c.meta.id;

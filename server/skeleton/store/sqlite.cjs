@@ -151,8 +151,9 @@ function createSqliteStore({ path: dbPath } = {}) {
     ingestDatafact(df) {
       const out = inner.ingestDatafact(df);
       // Serialize the store's own detached copy, not the caller's object — disk is
-      // always exactly what the in-memory truth is.
-      stmt.putFact.run(df.id, JSON.stringify(inner.getDatafact(df.id)));
+      // always exactly what the in-memory truth is. RAW read: an unverified fact
+      // (INVARIANT 1) must still persist exactly as ingested, not as null.
+      stmt.putFact.run(df.id, JSON.stringify(inner.getDatafactRaw(df.id)));
       return out;
     },
     putRecord(collection, record) {

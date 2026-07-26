@@ -19,11 +19,11 @@ const POOL = [
 // Seed a store shaped like the real one: competency facts carrying their cv_data group as
 // tags[1] (ingest-cv.cjs:31), plus a flat skill fact and an unrelated fact.
 function seed(store) {
-  store.ingestDatafact({ id: 'df_c1', kind: 'datafact', type: 'competency', text: 'Built teams up to 120.', tags: ['competency', 'leadership_management'], language: 'en' });
-  store.ingestDatafact({ id: 'df_c2', kind: 'datafact', type: 'competency', text: 'Brand development.', tags: ['competency', 'marketing_strategy'], language: 'en' });
-  store.ingestDatafact({ id: 'df_c3', kind: 'datafact', type: 'competency', text: 'iGaming (casino, sportsbook).', tags: ['competency', 'industry_knowledge'], language: 'en' });
-  store.ingestDatafact({ id: 'df_sk', kind: 'datafact', type: 'skill', text: 'Node.js / Express', tags: ['skill', 'engineering'], language: 'en' });
-  store.ingestDatafact({ id: 'df_job', kind: 'datafact', type: 'job_result', text: 'Shipped v1.', tags: ['job-result', 'Acme'], language: 'en' });
+  store.ingestDatafact({ id: 'df_c1', kind: 'datafact', origin: 'curated', type: 'competency', text: 'Built teams up to 120.', tags: ['competency', 'leadership_management'], language: 'en' });
+  store.ingestDatafact({ id: 'df_c2', kind: 'datafact', origin: 'curated', type: 'competency', text: 'Brand development.', tags: ['competency', 'marketing_strategy'], language: 'en' });
+  store.ingestDatafact({ id: 'df_c3', kind: 'datafact', origin: 'curated', type: 'competency', text: 'iGaming (casino, sportsbook).', tags: ['competency', 'industry_knowledge'], language: 'en' });
+  store.ingestDatafact({ id: 'df_sk', kind: 'datafact', origin: 'curated', type: 'skill', text: 'Node.js / Express', tags: ['skill', 'engineering'], language: 'en' });
+  store.ingestDatafact({ id: 'df_job', kind: 'datafact', origin: 'curated', type: 'job_result', text: 'Shipped v1.', tags: ['job-result', 'Acme'], language: 'en' });
 }
 
 test('imports category (id+title+source) onto competency facts, keeps ids, case ref still resolves', () => {
@@ -63,7 +63,7 @@ test('fail-closed: a crosswalk target missing from the pool throws (never author
 test('fail-closed: a competency fact with an unknown group throws rather than guess', () => {
   const store = createStore();
   seed(store);
-  store.ingestDatafact({ id: 'df_x', kind: 'datafact', type: 'competency', text: 'Mystery.', tags: ['competency', 'not_a_group'], language: 'en' });
+  store.ingestDatafact({ id: 'df_x', kind: 'datafact', origin: 'curated', type: 'competency', text: 'Mystery.', tags: ['competency', 'not_a_group'], language: 'en' });
   assert.throws(() => enrich(store, { poolCategories: POOL }), /no crosswalk entry/);
 });
 

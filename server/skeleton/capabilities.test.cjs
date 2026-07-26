@@ -7,7 +7,7 @@ const { createStore } = require('./store/index.cjs');
 
 test('datalayer capability exposes read-only datafact access', () => {
   const store = createStore();
-  store.ingestDatafact({ id: 'datafact_a', kind: 'datafact', type: 'summary', text: 'Real CV text.', tags: [], language: 'en' });
+  store.ingestDatafact({ id: 'datafact_a', kind: 'datafact', origin: 'curated', type: 'summary', text: 'Real CV text.', tags: [], language: 'en' });
   const manifest = { id: 'tester', reads: [], writes: [], capabilities: ['datalayer'] };
   const tools = buildTools({ manifest, callContext: {}, store });
   assert.equal(typeof tools.datalayer.listDatafacts, 'function');

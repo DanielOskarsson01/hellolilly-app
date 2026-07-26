@@ -479,8 +479,9 @@ async function start() {
   if (boot.migrated) {
     console.log(`[store] migrated legacy JSON snapshot into ${boot.path}`);
   }
-  if (host.store.listDatafacts().length > 0) {
-    console.log(`[store] ${boot.adapter} store at ${boot.path} (${host.store.listCases().length} cases, ${host.store.listDatafacts().length} datafacts)`);
+  // RAW count for the emptiness decision (INVARIANT 1: default reads hide unverified facts).
+  if (host.store.listDatafactsRaw().length > 0) {
+    console.log(`[store] ${boot.adapter} store at ${boot.path} (${host.store.listCases().length} cases, ${host.store.listDatafactsRaw().length} facts, ${host.store.listDatafacts().length} verified)`);
   } else {
     try {
       // CV_DATA_PATH overrides the seed source (see scripts/seed-datafacts.cjs).

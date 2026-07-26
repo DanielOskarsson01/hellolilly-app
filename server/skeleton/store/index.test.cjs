@@ -5,7 +5,7 @@ const { createStore } = require('./index.cjs');
 
 test('writePart: authored prose is gated even when a fact contains the banned word as substring', () => {
   const store = createStore();
-  store.ingestDatafact({ id: 'datafact_d', kind: 'datafact', type: 'job_result', text: 'Market dynamics shifted every quarter.', tags: [], language: 'en' });
+  store.ingestDatafact({ id: 'datafact_d', kind: 'datafact', origin: 'curated', type: 'job_result', text: 'Market dynamics shifted every quarter.', tags: [], language: 'en' });
   const c = store.createCase({});
   // decodedRole carries NO datafact ref -> full gate; "dynamic" must still throw.
   assert.throws(() => store.writePart(c.meta.id, 'decodedRole', { narrative: 'A dynamic team.', requirements: [] }), /Writing-rule/);
@@ -27,7 +27,7 @@ test('transitive taint (finding 3): once a part is untrusted-derived, a later wr
 
 test('datafacts are detached at the boundary: post-ingest mutation does not persist', () => {
   const store = createStore();
-  const df = { id: 'datafact_m', kind: 'datafact', type: 'cv', text: 'Original verbatim text.', tags: ['a'], language: 'en' };
+  const df = { id: 'datafact_m', kind: 'datafact', origin: 'curated', type: 'cv', text: 'Original verbatim text.', tags: ['a'], language: 'en' };
   store.ingestDatafact(df);
   df.text = 'MUTATED after ingest';
   df.tags.push('mutated');
@@ -37,7 +37,7 @@ test('datafacts are detached at the boundary: post-ingest mutation does not pers
 
 test('datafacts are detached at the boundary: mutating a read copy does not persist', () => {
   const store = createStore();
-  store.ingestDatafact({ id: 'datafact_r', kind: 'datafact', type: 'cv', text: 'Stays exact.', tags: [], language: 'en' });
+  store.ingestDatafact({ id: 'datafact_r', kind: 'datafact', origin: 'curated', type: 'cv', text: 'Stays exact.', tags: [], language: 'en' });
   store.getDatafact('datafact_r').text = 'MUTATED via getDatafact';
   store.listDatafacts()[0].text = 'MUTATED via listDatafacts';
   assert.equal(store.getDatafact('datafact_r').text, 'Stays exact.');
@@ -48,7 +48,7 @@ test('the ref-scoped gate exemption still works against the DETACHED internal fa
   // not break that: the internal map's copy is the truth the exemption compares against,
   // and a caller mutating their own object cannot launder new text into the exemption.
   const store = createStore();
-  const df = { id: 'datafact_g', kind: 'datafact', type: 'job_result', text: 'Led the team that spearheaded the rebuild.', tags: [], language: 'en' };
+  const df = { id: 'datafact_g', kind: 'datafact', origin: 'curated', type: 'job_result', text: 'Led the team that spearheaded the rebuild.', tags: [], language: 'en' };
   store.ingestDatafact(df);
   df.text = 'A dynamic robust synergy.'; // caller-side mutation must NOT become exempt
   const c = store.createCase({});
@@ -60,7 +60,7 @@ test('the ref-scoped gate exemption still works against the DETACHED internal fa
 test('writePart: evidence that cites a fact (by ref) and equals its text is exempt', () => {
   const store = createStore();
   const text = 'Led the team that spearheaded the 2019 platform rebuild.';
-  store.ingestDatafact({ id: 'datafact_e', kind: 'datafact', type: 'job_result', text, tags: [], language: 'en' });
+  store.ingestDatafact({ id: 'datafact_e', kind: 'datafact', origin: 'curated', type: 'job_result', text, tags: [], language: 'en' });
   const c = store.createCase({});
   const fit = { capability: { requirements: [{ requirementRef: { kind: 'decodedRequirement', id: 'decodedRequirement_1' }, evidence: text, evidenceRef: { kind: 'datafact', id: 'datafact_e' }, status: 'match' }], overall: '' }, preference: { narrative: '' } };
   assert.doesNotThrow(() => store.writePart(c.meta.id, 'fit', fit));
