@@ -13,15 +13,21 @@ const { createAnthropicClient } = require('./skeleton/clients/anthropic.cjs');
 const { applyAnswer, setGapResolution } = require('./skeleton/fill-gap/bullet-judge.cjs');
 const { applyAlign } = require('./skeleton/fill-gap/keyword-judge.cjs');
 const { logActivity } = require('./activity-log.cjs');
+const { createDocument, storeDocument, deleteDocument, MAX_DOCUMENT_BYTES } = require('./skeleton/documents/index.cjs');
 
 const PORT = Number(process.env.PORT || 5173);
 
-function readJson(req) {
+// Document uploads carry up to MAX_DOCUMENT_BYTES of text; JSON string escaping can
+// inflate that, so the transport limit is generous while createDocument enforces the
+// real 5 MB ceiling on the decoded text.
+const DOC_BODY_LIMIT = MAX_DOCUMENT_BYTES * 2 + 65536;
+
+function readJson(req, limit = 100_000) {
   return new Promise((resolve, reject) => {
     let body = '';
     req.on('data', (chunk) => {
       body += chunk;
-      if (body.length > 100_000) {
+      if (body.length > limit) {
         reject(new Error('Request body too large'));
         req.destroy();
       }
@@ -115,20 +121,69 @@ function createApiHandler(host, { preferencesPath, llm } = {}) {
       return true;
     }
 
+    // Wave 2 (3.4) — DOCUMENT INTAKE, dedicated constrained routes. The generic
+    // collection path refuses documents/spans/proposals entirely (CONSTRAINED below):
+    // intake ALWAYS runs attestation + spanisation + the ceilings; deletion ALWAYS
+    // purges spans; proposals are server-minted only.
+    if (req.method === 'GET' && req.url === '/api/documents') {
+      const spans = host.store.listRecords('spans');
+      const documents = host.store.listRecords('documents')
+        .map((d) => ({ ...d, spanCount: spans.filter((s) => s.documentId === d.id).length }));
+      sendJson(res, 200, { ok: true, documents });
+      return true;
+    }
+    if (req.method === 'POST' && req.url === '/api/documents') {
+      try {
+        const body = await readJson(req, DOC_BODY_LIMIT);
+        const { doc, spans } = createDocument({
+          name: body.name, text: body.text, attestedClass: body.attestedClass,
+          ownership: body.ownership || 'mine', context: body.context || {},
+        });
+        storeDocument(host.store, doc, spans);
+        logActivity(host.store, { type: 'document_uploaded', label: `Dokument mottaget: ${doc.name}`,
+          meta: { documentId: doc.id, attestedClass: doc.attestedClass, ownership: doc.ownership, spanCount: spans.length, bytes: doc.bytes } });
+        sendJson(res, 201, { ok: true, document: doc, spans });
+      } catch (err) {
+        // Section 0 disposition: an explicit failed envelope, never a silent empty span set.
+        sendJson(res, 422, { ok: false, error: err.message, failure: err.name === 'ParseError' ? 'parse_failed' : 'rejected' });
+      }
+      return true;
+    }
+    const docDel = req.method === 'DELETE' && req.url.match(/^\/api\/documents\/([^/]+)$/);
+    if (docDel) {
+      const id = decodeURIComponent(docDel[1]);
+      const doc = host.store.getRecord('documents', id);
+      if (!doc) { sendJson(res, 404, { ok: false, error: 'no such document' }); return true; }
+      deleteDocument(host.store, id); // purges the document's unminted spans with it
+      logActivity(host.store, { type: 'document_deleted', label: `Dokument raderat: ${doc.name}`, meta: { documentId: id } });
+      sendJson(res, 200, { ok: true, removed: true });
+      return true;
+    }
+
     // Generic named-collection CRUD (D5) — the reusable surface every later collection
     // tool inherits. Mirrors the jobs routes. `activity` is append-only + server-emitted:
     // GET allowed, client POST/DELETE rejected so the log records only confirmed server
-    // state changes (see server/activity-log.cjs).
+    // state changes (see server/activity-log.cjs). Wave 2 (3.4): documents, spans and
+    // proposals are CONSTRAINED collections — POST, GET and DELETE are ALL refused here;
+    // only the dedicated routes above (and the server-side suggest engine) touch them.
     {
+      const CONSTRAINED = new Set(['documents', 'spans', 'proposals']);
+      const refuse = (name) => {
+        sendJson(res, 405, { ok: false, error: `${name} is a constrained collection — use its dedicated routes; the generic collection path is closed for it` });
+        return true;
+      };
       const collGet = req.method === 'GET' && req.url.match(/^\/api\/collection\/([^/]+)$/);
       if (collGet) {
-        sendJson(res, 200, { ok: true, records: host.store.listRecords(decodeURIComponent(collGet[1])) });
+        const name = decodeURIComponent(collGet[1]);
+        if (CONSTRAINED.has(name)) return refuse(name);
+        sendJson(res, 200, { ok: true, records: host.store.listRecords(name) });
         return true;
       }
       const collPost = req.method === 'POST' && req.url.match(/^\/api\/collection\/([^/]+)$/);
       if (collPost) {
         const name = decodeURIComponent(collPost[1]);
         if (name === 'activity') { sendJson(res, 405, { ok: false, error: 'activity is append-only and server-emitted; client writes are not accepted' }); return true; }
+        if (CONSTRAINED.has(name)) return refuse(name);
         const body = await readJson(req);
         if (!body || !body.id) { sendJson(res, 400, { ok: false, error: 'a record with an id is required' }); return true; }
         sendJson(res, 200, { ok: true, record: host.store.putRecord(name, body) });
@@ -138,6 +193,7 @@ function createApiHandler(host, { preferencesPath, llm } = {}) {
       if (collDel) {
         const name = decodeURIComponent(collDel[1]);
         if (name === 'activity') { sendJson(res, 405, { ok: false, error: 'activity is append-only; deletes are not accepted' }); return true; }
+        if (CONSTRAINED.has(name)) return refuse(name);
         sendJson(res, 200, { ok: true, removed: host.store.removeRecord(name, decodeURIComponent(collDel[2])) });
         return true;
       }
