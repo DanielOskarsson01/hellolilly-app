@@ -7,6 +7,7 @@
 
 const { mintId } = require('../ids.cjs');
 const { check } = require('../writing-rules/gate.cjs'); // host-level file MAY require the skeleton
+const { createDocument, storeDocument } = require('../documents/index.cjs'); // 3.1 stop the discard
 
 const JUDGE_SYSTEM = `You decide whether a candidate's answer can become a single truthful, specific, CV-worthy bullet.
 Rules: do NOT invent facts, numbers, titles, or scope beyond the answer. If the answer is vague, hedged,
@@ -55,6 +56,21 @@ async function applyAnswer(store, llm, { caseId, gapId, answer, requirementId, t
   if (!gap) throw new Error(`applyAnswer: no such gap ${gapId} in case ${caseId}`);
   const reqs = ((theCase.decodedRole && theCase.decodedRole.data && theCase.decodedRole.data.requirements) || []);
   const requirement = (reqs.find((r) => r.id === requirementId) || {}).requirement || '';
+
+  // 3.1 STOP THE DISCARD — retain the person's typed answer BEFORE any judging, whatever
+  // the verdict. It is a DOCUMENT CLASS (auto-attested 'gap_answer'), NOT pre-trusted
+  // source material: it carries its gap and requirement as structural context and goes
+  // through the same spanisation/attestation/context handling as an upload (MEDIUM 3 —
+  // gap answers habitually echo the requirement they answer, so employer-voice and
+  // negation must not arrive trusted).
+  const retained = createDocument({
+    name: `Gap answer — ${(gap.what || gapId)}`.slice(0, 160),
+    text: answer,
+    attestedClass: 'gap_answer',
+    ownership: 'mine',
+    context: { caseId, gapId, gap: gap.what || '', requirementId, requirement },
+  });
+  storeDocument(store, retained.doc, retained.spans);
 
   const verdict = await judgeAnswer({ requirement, gap, answer }, llm);
   if (!verdict.canFill || !verdict.bulletText) {

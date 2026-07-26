@@ -13,6 +13,10 @@ const KINDS = new Set([
   'question', 'prepSection', 'cvSlide', 'liveQA', 'harvestItem', 'datafact',
   'job', // job-search: a discovered/ingested job posting (lives in the `jobs` store collection, not a case)
   'activity', // progress support: one confirmed state-change record (lives in the `activity` collection)
+  'document', // wave 2 intake: an attested uploaded/pasted/retained text document (`documents` collection)
+  'span', // wave 2 intake: one candidate span parsed from a document (`spans` collection)
+  'proposal', // wave 2 suggest: one drafted fact proposal awaiting review (`proposals` collection)
+  'acceptance', // wave 2 mint: one recorded acceptance event (lives ON the minted fact)
 ]);
 
 function mintId(kind) {
