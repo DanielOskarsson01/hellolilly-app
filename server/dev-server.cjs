@@ -15,6 +15,7 @@ const { applyAlign } = require('./skeleton/fill-gap/keyword-judge.cjs');
 const { logActivity } = require('./activity-log.cjs');
 const { createDocument, storeDocument, deleteDocument, MAX_DOCUMENT_BYTES } = require('./skeleton/documents/index.cjs');
 const suggest = require('./skeleton/suggest/engine.cjs');
+const targeting = require('./skeleton/targeting/index.cjs');
 
 const PORT = Number(process.env.PORT || 5173);
 
@@ -309,7 +310,7 @@ function createApiHandler(host, { preferencesPath, llm } = {}) {
       return true;
     }
 
-    const m = req.url.match(/^\/api\/case\/([^/]+)(\/analyze|\/generate|\/research|\/letter-draft|\/cv\/align-keyword|\/gap\/([^/]+)\/answer|\/gap\/([^/]+)\/skip)?$/);
+    const m = req.url.match(/^\/api\/case\/([^/]+)(\/analyze|\/generate|\/research|\/target|\/letter-draft|\/cv\/align-keyword|\/gap\/([^/]+)\/answer|\/gap\/([^/]+)\/skip)?$/);
     if (!m) return false;
     const caseId = decodeURIComponent(m[1]);
     const action = m[2];
@@ -337,6 +338,18 @@ function createApiHandler(host, { preferencesPath, llm } = {}) {
       } catch (err) {
         sendJson(res, 500, { ok: false, error: err.message });
       }
+      return true;
+    }
+
+    // Section 4A — the AD-DRIVEN PRE-DRAFT face: decoder requirements vs what the
+    // VERIFIED pool can support. Where thin for a top-weighted requirement, the UI says
+    // so plainly and offers to draft from the person's own material.
+    if (req.method === 'GET' && action === '/target') {
+      const c = host.store.getCase(caseId);
+      if (!c) { sendJson(res, 404, { ok: false, error: 'no such case' }); return true; }
+      const decoded = (c.decodedRole && c.decodedRole.data) || null;
+      if (!decoded) { sendJson(res, 200, { ok: false, error: 'no decoded role yet — run research first' }); return true; }
+      sendJson(res, 200, { ok: true, target: targeting.assessPool(decoded, host.store.listDatafacts()) });
       return true;
     }
 
@@ -448,6 +461,9 @@ function createApiHandler(host, { preferencesPath, llm } = {}) {
       out.coverLetter = c.coverLetter.data;
       out.cvDraftStatus = c.cvDraft.status;
       out.coverLetterStatus = c.coverLetter.status;
+      // Section 4B — the GENERATION-TIME face: a thin draft (jobs under their fixed
+      // ceilings = the pool could not support the ad) is SAID, never silently handed over.
+      out.thinness = c.cvDraft.status === 'ready' ? targeting.assessDraftThinness(c.cvDraft.data) : null;
       // ok ONLY when BOTH generators produced a ready part — never render a phantom-complete card.
       out.ok = c.cvDraft.status === 'ready' && c.coverLetter.status === 'ready';
       if (c.cvDraft.status === 'ready') logActivity(host.store, { type: 'cv_generated', caseId, label: 'CV genererat', meta: { status: 'ready' } });
