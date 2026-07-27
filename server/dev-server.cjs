@@ -14,6 +14,7 @@ const { applyAnswer, setGapResolution } = require('./skeleton/fill-gap/bullet-ju
 const { applyAlign } = require('./skeleton/fill-gap/keyword-judge.cjs');
 const { logActivity } = require('./activity-log.cjs');
 const { createDocument, storeDocument, deleteDocument, MAX_DOCUMENT_BYTES } = require('./skeleton/documents/index.cjs');
+const suggest = require('./skeleton/suggest/engine.cjs');
 
 const PORT = Number(process.env.PORT || 5173);
 
@@ -149,6 +150,68 @@ function createApiHandler(host, { preferencesPath, llm } = {}) {
       }
       return true;
     }
+    // Wave 2 (3.5-3.7) — the suggestion engine. Draft proposals from attested material;
+    // serve them (rendering mints the 5.4 single-use nonce); accept mints a datafact
+    // through the recorded-acceptance gate; the person-typed path mints first-class.
+    if (req.method === 'POST' && req.url === '/api/suggest') {
+      try {
+        const body = await readJson(req);
+        const r = await suggest.propose(({ store: host.store, llm, caseId: body.caseId || null, documentIds: body.documentIds || null }));
+        sendJson(res, 200, { ok: true, ...r });
+      } catch (err) {
+        sendJson(res, 500, { ok: false, error: err.message });
+      }
+      return true;
+    }
+    if (req.method === 'GET' && req.url === '/api/proposals') {
+      sendJson(res, 200, { ok: true, ...suggest.serveProposals({ store: host.store }) });
+      return true;
+    }
+    const propAct = req.method === 'POST' && req.url.match(/^\/api\/proposals\/([^/]+)\/(accept|reject)$/);
+    if (propAct) {
+      const proposalId = decodeURIComponent(propAct[1]);
+      try {
+        const body = await readJson(req);
+        if (propAct[2] === 'reject') {
+          const r = suggest.reject({ store: host.store, proposalId, reason: body.reason || '' });
+          sendJson(res, 200, { ok: r.outcome === 'rejected', result: r });
+          return true;
+        }
+        const session = { sessionId: (body.session && body.session.sessionId) || 'local', device: (body.session && body.session.device) || req.headers['user-agent'] || 'unknown' };
+        const r = await suggest.accept({ store: host.store, llm, proposalId, nonce: body.nonce, finalText: body.finalText, attribution: body.attribution, session });
+        if (r.outcome === 'accepted') {
+          const ctx = (host.store.getRecord('proposals', proposalId) || {}).caseContext || null;
+          logActivity(host.store, { type: 'fact_minted', caseId: (ctx && ctx.caseId) || null,
+            label: `Faktum myntat: ${r.fact.text.slice(0, 60)}`,
+            meta: { datafactId: r.fact.id, grounding: r.fact.grounding, proposalId, placement: r.fact.acceptance.reviewedAttribution.placementLabel } });
+          if (r.fitFlipped && ctx) {
+            logActivity(host.store, { type: 'gap_filled', caseId: ctx.caseId, label: 'Lucka fylld',
+              meta: { gapId: ctx.gapId, requirementId: ctx.requirementId, datafactId: r.fact.id } });
+          }
+        }
+        sendJson(res, r.rateLimited ? 429 : 200, { ok: r.outcome === 'accepted', result: r });
+      } catch (err) {
+        sendJson(res, 500, { ok: false, error: err.message });
+      }
+      return true;
+    }
+    if (req.method === 'POST' && req.url === '/api/facts/person') {
+      try {
+        const body = await readJson(req);
+        const session = { sessionId: (body.session && body.session.sessionId) || 'local', device: (body.session && body.session.device) || req.headers['user-agent'] || 'unknown' };
+        const r = await suggest.personMint({ store: host.store, llm, text: body.text, attribution: body.attribution, session });
+        if (r.outcome === 'accepted') {
+          logActivity(host.store, { type: 'fact_minted', caseId: null,
+            label: `Egen rad sparad: ${r.fact.text.slice(0, 60)}`,
+            meta: { datafactId: r.fact.id, grounding: 'person-attested', placement: r.fact.acceptance.reviewedAttribution.placementLabel } });
+        }
+        sendJson(res, r.rateLimited ? 429 : 200, { ok: r.outcome === 'accepted', result: r });
+      } catch (err) {
+        sendJson(res, 500, { ok: false, error: err.message });
+      }
+      return true;
+    }
+
     const docDel = req.method === 'DELETE' && req.url.match(/^\/api\/documents\/([^/]+)$/);
     if (docDel) {
       const id = decodeURIComponent(docDel[1]);
@@ -298,14 +361,14 @@ function createApiHandler(host, { preferencesPath, llm } = {}) {
           sendJson(res, 400, { ok: false, error: 'answer and requirementId are required' });
           return true;
         }
-        // Uses the threaded `llm` (NOT host.llm, which does not exist).
+        // Uses the threaded `llm` (NOT host.llm, which does not exist). Wave 2: the
+        // answer is RETAINED (3.1) and returns a PROPOSAL for review — minting (and the
+        // gap_filled record) happens at /api/proposals/:id/accept, behind the INV5 gate.
         const out = await applyAnswer(host.store, llm, {
-          caseId, gapId, answer: body.answer, requirementId: body.requirementId, tags: body.tags || [],
+          caseId, gapId, answer: body.answer, requirementId: body.requirementId,
         });
-        if (out.outcome === 'accepted') {
-          logActivity(host.store, { type: 'gap_filled', caseId, label: 'Lucka fylld',
-            meta: { gapId, requirementId: body.requirementId, datafactId: out.newDatafactId } });
-        }
+        logActivity(host.store, { type: 'gap_answer_retained', caseId, label: 'Svar sparat som källmaterial',
+          meta: { gapId, requirementId: body.requirementId, documentId: out.retainedDocumentId, outcome: out.outcome } });
         sendJson(res, 200, { ok: true, ...out });
       } catch (err) {
         sendJson(res, 500, { ok: false, error: err.message });

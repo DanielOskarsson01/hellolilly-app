@@ -1,13 +1,22 @@
 'use strict';
-const { test } = require('node:test');
+
+// The Wave 2 fill-gap contract: the typed answer is RETAINED (3.1) and comes back as a
+// PROPOSAL for review; minting + the fit flip happen only at engine.accept behind the
+// INV5 recorded-acceptance gate. The Wave 1 honesty tests (no durable claim on a failed
+// write, honest-failure path) are ported onto the new mechanism, not deleted.
+
+const { test, beforeEach } = require('node:test');
 const assert = require('node:assert');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { DatabaseSync } = require('node:sqlite');
 const { applyAnswer, setGapResolution } = require('./bullet-judge.cjs');
+const engine = require('../suggest/engine.cjs');
 const { createStore } = require('../store/index.cjs');
 const { createSqliteStore } = require('../store/sqlite.cjs');
+
+beforeEach(() => engine._resetCeiling(1000));
 
 function fixtureStore(store = createStore()) {
   const c = store.createCase({ company: 'Acme', role: 'Head of Product' });
@@ -17,52 +26,135 @@ function fixtureStore(store = createStore()) {
   return { store, caseId: c.meta.id };
 }
 
-test('accepted answer mints a datafact and flips the requirement to match', async () => {
-  const llm = { completeJSON: async () => ({ canFill: true, bulletText: 'Built the ML feature store serving 12 models in production.', reason: 'Concrete, truthful, CV-worthy.' }) };
-  const { store, caseId } = fixtureStore();
-  const res = await applyAnswer(store, llm, { caseId, gapId: 'gap_1', answer: 'I built our feature store for 12 models', requirementId: 'decodedRequirement_2' });
-  assert.equal(res.outcome, 'accepted');
-  assert.ok(res.newDatafactId.startsWith('datafact_'));
-  // RAW read: the legacy auto-mint carries no acceptance event, so under INVARIANT 1 the
-  // fact is (correctly) unverified until the Wave 2 proposal-review rewire of this path.
-  const fact = store.getDatafactRaw(res.newDatafactId);
-  assert.ok(fact.tags.includes('addresses:decodedRequirement_2'));
-  assert.equal(fact.language, 'en');
-  const req = store.getCase(caseId).fit.data.capability.requirements.find((r) => r.requirementRef.id === 'decodedRequirement_2');
+// Stub model speaking the engine's three contracts (drafter, Judge B, Judge A).
+function stubLlm({ drafter, judgeB } = {}) {
+  return {
+    completeJSON: async ({ system, prompt }) => {
+      if (/claim-addition checker/.test(system)) return { claims: [] };
+      if (/FIRST-PERSON EXPERIENCE CLAIM/.test(system)) return judgeB ? judgeB(prompt) : { isExperienceClaim: true, detectedClass: 'experience', reason: '' };
+      return drafter ? drafter(prompt) : { proposals: [] };
+    },
+  };
+}
+const draftFromSpan = (text) => (prompt) => {
+  const m = prompt.match(/(span_[a-z0-9]+) ::/);
+  return { proposals: [{ spanId: m ? m[1] : 'span_none', text, type: 'job_result', jobKey: null, requirementId: 'decodedRequirement_2' }] };
+};
+
+async function answerToProposal(overrides = {}) {
+  const { store, caseId } = fixtureStore(overrides.store);
+  const llm = stubLlm({ drafter: draftFromSpan('Built the ML feature store serving 12 models in production'), ...overrides.stub });
+  const out = await applyAnswer(store, llm, { caseId, gapId: 'gap_1', answer: 'I built our feature store for 12 models in production', requirementId: 'decodedRequirement_2' });
+  return { store, caseId, llm, out };
+}
+
+test('answer -> PROPOSAL: retained as gap-answer document, nothing minted, fit untouched, case context threaded', async () => {
+  const { store, caseId, out } = await answerToProposal();
+  assert.equal(out.outcome, 'proposal');
+  assert.equal(out.proposals.length, 1);
+  assert.deepStrictEqual(out.proposals[0].caseContext, { caseId, gapId: 'gap_1', requirementId: 'decodedRequirement_2' });
+  const docs = store.listRecords('documents');
+  assert.equal(docs.length, 1, 'the raw answer is retained (3.1)');
+  assert.equal(docs[0].attestedClass, 'gap_answer');
+  assert.equal(store.listDatafactsRaw().length, 0, 'NO datafact minted before the reviewed accept (INV5)');
+  assert.equal(store.getCase(caseId).fit.data.capability.requirements[0].status, 'missing', 'fit untouched');
+});
+
+test('a barred answer (not an experience claim) stays_gap with the honest reason — and is still retained', async () => {
+  const { store, out } = await answerToProposal({ stub: { judgeB: () => ({ isExperienceClaim: false, detectedClass: 'negation', reason: 'operative meaning is a negation' }) } });
+  assert.equal(out.outcome, 'stays_gap');
+  assert.match(out.reason, /negation/);
+  assert.equal(store.listRecords('documents').length, 1, 'retention is independent of the verdict');
+  assert.equal(store.listDatafactsRaw().length, 0);
+});
+
+test('a drafter that finds nothing truthful stays_gap (honest-failure path)', async () => {
+  const { out } = await answerToProposal({ stub: { drafter: () => ({ proposals: [] }) } });
+  assert.equal(out.outcome, 'stays_gap');
+  assert.match(out.reason, /no truthful bullet/);
+});
+
+test('accepting the gap proposal mints a VERIFIED fact, flips fit and marks the gap terminal', async () => {
+  const { store, caseId, llm, out } = await answerToProposal();
+  const served = engine.serveProposals({ store });
+  const p = served.proposals.find((x) => x.id === out.proposals[0].id);
+  const r = await engine.accept({ store, llm, proposalId: p.id, nonce: p.nonce, finalText: p.text, attribution: { type: 'job_result', jobKey: 'betclic', personPlaced: true } });
+  assert.equal(r.outcome, 'accepted');
+  assert.equal(r.fitFlipped, true);
+  assert.ok(store.getDatafact(r.fact.id), 'minted fact is verified via its acceptance event');
+  const req = store.getCase(caseId).fit.data.capability.requirements[0];
   assert.equal(req.status, 'match');
-  assert.equal(req.evidence, 'Built the ML feature store serving 12 models in production.');
-  assert.equal(req.evidenceRef.kind, 'datafact');
-  assert.equal(req.evidenceRef.id, res.newDatafactId);
+  assert.equal(req.evidence, p.text);
+  assert.equal(req.evidenceRef.id, r.fact.id);
+  assert.equal(store.getCase(caseId).gaps.data[0].resolution, 'accepted');
 });
 
-test('rejected answer leaves the gap open and mints nothing (honest-failure path)', async () => {
-  const llm = { completeJSON: async () => ({ canFill: false, bulletText: null, reason: 'Cannot be made truthful from the answer.' }) };
-  const { store, caseId } = fixtureStore();
-  const before = store.listDatafacts().length;
-  const res = await applyAnswer(store, llm, { caseId, gapId: 'gap_1', answer: 'um maybe', requirementId: 'decodedRequirement_2' });
-  assert.equal(res.outcome, 'stays_gap');
-  assert.equal(store.listDatafacts().length, before, 'no datafact minted');
-  const req = store.getCase(caseId).fit.data.capability.requirements.find((r) => r.requirementRef.id === 'decodedRequirement_2');
-  assert.equal(req.status, 'missing', 'requirement stays missing');
+test('a failed resolution write at accept leaves NO durable claim: fit unflipped, gap open, fact unminted', async () => {
+  const { store, caseId, llm, out } = await answerToProposal();
+  const served = engine.serveProposals({ store });
+  const p = served.proposals.find((x) => x.id === out.proposals[0].id);
+  const failing = { ...store, writeParts: () => { throw new Error('simulated write failure'); } };
+  await assert.rejects(
+    () => engine.accept({ store: failing, llm, proposalId: p.id, nonce: p.nonce, finalText: p.text, attribution: { type: 'job_result', jobKey: 'betclic', personPlaced: true } }),
+    /simulated write failure/,
+  );
+  assert.equal(store.getCase(caseId).fit.data.capability.requirements[0].status, 'missing', 'fit does not claim match');
+  assert.equal(store.getCase(caseId).gaps.data[0].resolution, undefined, 'gap stays unresolved');
+  assert.equal(store.listDatafactsRaw().length, 0, 'the minted fact was compensated away');
 });
 
-test('a judge-approved bullet with a banned phrase is rejected pre-mint (stays_gap, nothing minted)', async () => {
-  const llm = { completeJSON: async () => ({ canFill: true, bulletText: 'Spearheaded the entire ML platform single-handedly.', reason: 'ok' }) };
-  const { store, caseId } = fixtureStore();
-  const before = store.listDatafacts().length;
-  const res = await applyAnswer(store, llm, { caseId, gapId: 'gap_1', answer: 'I led the ML platform work', requirementId: 'decodedRequirement_2' });
-  assert.equal(res.outcome, 'stays_gap');
-  assert.match(res.reason, /spearheaded/);
-  assert.equal(store.listDatafacts().length, before, 'no banned-word datafact minted');
-  assert.equal(store.getCase(caseId).fit.data.capability.requirements.find((r) => r.requirementRef.id === 'decodedRequirement_2').status, 'missing');
+// Ordering proven at the REAL adapter layer: a SQLite trigger aborts the cases-row write
+// AFTER the inner store mutated; the live store must not keep serving a match disk refused.
+test('a failed SQLite case write at accept leaves the LIVE store honest, and a restart agrees', async () => {
+  const dbPath = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'll-fillgap-')), 'store.db');
+  const { store, caseId, llm, out } = await answerToProposal({ store: createSqliteStore({ path: dbPath }) });
+  const served = engine.serveProposals({ store });
+  const p = served.proposals.find((x) => x.id === out.proposals[0].id);
+
+  const saboteur = new DatabaseSync(dbPath);
+  saboteur.exec(`CREATE TRIGGER fail_case_writes BEFORE INSERT ON cases
+                 BEGIN SELECT RAISE(ABORT, 'simulated disk failure'); END;`);
+  saboteur.close();
+
+  await assert.rejects(
+    () => engine.accept({ store, llm, proposalId: p.id, nonce: p.nonce, finalText: p.text, attribution: { type: 'job_result', jobKey: 'betclic', personPlaced: true } }),
+    /simulated disk failure/,
+  );
+  const served2 = store.getCase(caseId);
+  assert.equal(served2.fit.data.capability.requirements[0].status, 'missing', 'live fit does not claim match');
+  assert.equal(served2.gaps.data[0].resolution, undefined, 'live gap stays unresolved');
+  assert.equal(store.listDatafactsRaw().filter((f) => f.acceptance).length, 0, 'minted fact compensated away in the live store');
+  store.close();
+
+  const reopened = createSqliteStore({ path: dbPath });
+  assert.equal(reopened.getCase(caseId).fit.data.capability.requirements[0].status, 'missing');
+  assert.equal(reopened.getCase(caseId).gaps.data[0].resolution, undefined);
+  assert.equal(reopened.listDatafactsRaw().filter((f) => f.acceptance).length, 0);
+  reopened.close();
 });
 
-test('accepted answer marks the resolved gap terminal in the persisted gaps part', async () => {
-  const llm = { completeJSON: async () => ({ canFill: true, bulletText: 'Built the ML feature store serving 12 models in production.', reason: 'ok' }) };
+test('an unknown gapId throws BEFORE anything durable happens (no retention, no proposal)', async () => {
   const { store, caseId } = fixtureStore();
-  await applyAnswer(store, llm, { caseId, gapId: 'gap_1', answer: 'I built our feature store for 12 models', requirementId: 'decodedRequirement_2' });
-  const gap = store.getCase(caseId).gaps.data.find((g) => g.id === 'gap_1');
-  assert.equal(gap.resolution, 'accepted', 'the accepted gap is marked terminal so it stops showing as open');
+  const llm = stubLlm({});
+  await assert.rejects(
+    () => applyAnswer(store, llm, { caseId, gapId: 'gap_NOPE', answer: 'x', requirementId: 'decodedRequirement_2' }),
+    /no such gap/,
+  );
+  assert.equal(store.listRecords('documents').length, 0);
+  assert.equal(store.listRecords('proposals').length, 0);
+});
+
+test('an unknown requirementId: the material still mints on accept, but the fit is NOT flipped and the gap stays open', async () => {
+  const { store, caseId } = fixtureStore();
+  const llm = stubLlm({ drafter: draftFromSpan('Built the ML feature store serving 12 models in production') });
+  const out = await applyAnswer(store, llm, { caseId, gapId: 'gap_1', answer: 'I built our feature store for 12 models in production', requirementId: 'decodedRequirement_NOPE' });
+  assert.equal(out.outcome, 'proposal');
+  const served = engine.serveProposals({ store });
+  const p = served.proposals[0];
+  const r = await engine.accept({ store, llm, proposalId: p.id, nonce: p.nonce, finalText: p.text, attribution: { type: 'job_result', jobKey: 'betclic', personPlaced: true } });
+  assert.equal(r.outcome, 'accepted', 'real reviewed material is still worth keeping in the drawer');
+  assert.equal(r.fitFlipped, false, 'no false match claim against a requirement fit does not hold');
+  assert.equal(store.getCase(caseId).gaps.data[0].resolution, undefined, 'the gap stays honestly open');
 });
 
 test('setGapResolution persists a skip that survives a re-read', () => {
@@ -76,74 +168,4 @@ test('setGapResolution on an unknown gap throws and persists nothing', () => {
   const { store, caseId } = fixtureStore();
   assert.throws(() => setGapResolution(store, caseId, 'gap_NOPE', 'skipped'), /no such gap/);
   assert.equal(store.getCase(caseId).gaps.data[0].resolution, undefined);
-});
-
-test('an unknown gapId throws BEFORE anything durable happens (no mint, no fit flip)', async () => {
-  const llm = { completeJSON: async () => ({ canFill: true, bulletText: 'Built a clean feature store for 12 models.', reason: 'ok' }) };
-  const { store, caseId } = fixtureStore();
-  const before = store.listDatafacts().length;
-  await assert.rejects(
-    () => applyAnswer(store, llm, { caseId, gapId: 'gap_NOPE', answer: 'x', requirementId: 'decodedRequirement_2' }),
-    /no such gap/,
-  );
-  assert.equal(store.listDatafacts().length, before, 'nothing minted for an unknown gap');
-  assert.equal(store.getCase(caseId).fit.data.capability.requirements[0].status, 'missing', 'fit untouched');
-});
-
-test('a failed resolution write leaves NO durable claim: fit unflipped, gap open, fact unminted', async () => {
-  const llm = { completeJSON: async () => ({ canFill: true, bulletText: 'Built the ML feature store serving 12 models in production.', reason: 'ok' }) };
-  const { store, caseId } = fixtureStore();
-  const before = store.listDatafacts().length;
-  // Same store, but the atomic fit+gaps write fails (e.g. disk error at persist time).
-  const failing = { ...store, writeParts: () => { throw new Error('simulated write failure'); } };
-  await assert.rejects(
-    () => applyAnswer(failing, llm, { caseId, gapId: 'gap_1', answer: 'I built our feature store', requirementId: 'decodedRequirement_2' }),
-    /simulated write failure/,
-  );
-  assert.equal(store.getCase(caseId).fit.data.capability.requirements[0].status, 'missing', 'fit does not claim match');
-  assert.equal(store.getCase(caseId).gaps.data[0].resolution, undefined, 'gap stays unresolved');
-  assert.equal(store.listDatafacts().length, before, 'the minted fact was compensated away — nothing for the cv-builder to mine');
-});
-
-// The stub test above proves the compensation logic; this one proves the ORDERING. The
-// failure is forced at the real adapter layer — a SQLite trigger aborts the cases-row
-// write itself, AFTER the inner store has already mutated — and the assertions read
-// through store.getCase, the same call the API routes serve case state with. A live
-// server must not keep reporting fit 'match' / resolution 'accepted' that disk refused.
-test('a failed SQLite case write leaves the LIVE store honest: gap unresolved, fit unmigrated, fact unminted', async () => {
-  const llm = { completeJSON: async () => ({ canFill: true, bulletText: 'Built the ML feature store serving 12 models in production.', reason: 'ok' }) };
-  const dbPath = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'll-fillgap-')), 'store.db');
-  const { store, caseId } = fixtureStore(createSqliteStore({ path: dbPath }));
-  const before = store.listDatafacts().length;
-
-  const saboteur = new DatabaseSync(dbPath);
-  saboteur.exec(`CREATE TRIGGER fail_case_writes BEFORE INSERT ON cases
-                 BEGIN SELECT RAISE(ABORT, 'simulated disk failure'); END;`);
-  saboteur.close();
-
-  await assert.rejects(
-    () => applyAnswer(store, llm, { caseId, gapId: 'gap_1', answer: 'I built our feature store', requirementId: 'decodedRequirement_2' }),
-    /simulated disk failure/,
-  );
-  const served = store.getCase(caseId); // the API's read path
-  assert.equal(served.fit.data.capability.requirements[0].status, 'missing', 'live fit does not claim match');
-  assert.equal(served.gaps.data.find((g) => g.id === 'gap_1').resolution, undefined, 'live gap stays unresolved');
-  assert.equal(store.listDatafacts().length, before, 'minted fact compensated away in the live store');
-  store.close();
-
-  // A restart changes nothing — durable and served state already agreed.
-  const reopened = createSqliteStore({ path: dbPath });
-  assert.equal(reopened.getCase(caseId).fit.data.capability.requirements[0].status, 'missing');
-  assert.equal(reopened.getCase(caseId).gaps.data[0].resolution, undefined);
-  assert.equal(reopened.listDatafacts().length, before);
-  reopened.close();
-});
-
-test('an unknown requirementId mints nothing and stays_gap', async () => {
-  const llm = { completeJSON: async () => ({ canFill: true, bulletText: 'Built a clean feature store for 12 models.', reason: 'ok' }) };
-  const { store, caseId } = fixtureStore();
-  const before = store.listDatafacts().length;
-  const res = await applyAnswer(store, llm, { caseId, gapId: 'gap_1', answer: 'x', requirementId: 'decodedRequirement_DOES_NOT_EXIST' });
-  assert.equal(res.outcome, 'stays_gap');
-  assert.equal(store.listDatafacts().length, before, 'nothing minted for unknown requirement');
 });

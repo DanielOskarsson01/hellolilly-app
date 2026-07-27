@@ -72,53 +72,91 @@ function fillGapFixture(llm) {
   return { host, caseId: c.meta.id };
 }
 
-test('POST /gap/:gapId/answer accepted flips the fit requirement to match', async () => {
-  const llm = { completeJSON: async () => ({ canFill: true, bulletText: 'Built the feature store for 12 models in production.', reason: 'ok' }) };
+const gapStubLlm = () => ({
+  completeJSON: async ({ system, prompt }) => {
+    if (/claim-addition checker/.test(system)) return { claims: [] };
+    if (/FIRST-PERSON EXPERIENCE CLAIM/.test(system)) return { isExperienceClaim: true, detectedClass: 'experience', reason: '' };
+    const m = prompt.match(/(span_[a-z0-9]+) ::/);
+    return { proposals: [{ spanId: m ? m[1] : 'span_none', text: 'Built the feature store for 12 models in production', type: 'job_result', jobKey: null, requirementId: 'decodedRequirement_1' }] };
+  },
+});
+
+// answer -> proposal -> serve (nonce) -> accept, over the HTTP surface.
+async function acceptGapProposal(handle, caseId) {
+  let res = mockRes();
+  await handle(makeReq('POST', `/api/case/${caseId}/gap/gap_1/answer`, { answer: 'I built our feature store for 12 models in production', requirementId: 'decodedRequirement_1' }), res);
+  assert.equal(res._status, 200);
+  assert.equal(res._body.outcome, 'proposal', 'Wave 2: the answer returns a PROPOSAL, never an auto-mint');
+  res = mockRes();
+  await handle(makeReq('GET', '/api/proposals'), res);
+  const p = res._body.proposals.find((x) => x.status === 'open');
+  assert.ok(p && p.nonce, 'serving the review minted the 5.4 nonce');
+  res = mockRes();
+  await handle(makeReq('POST', `/api/proposals/${p.id}/accept`, {
+    nonce: p.nonce, finalText: p.text,
+    attribution: { type: 'job_result', jobKey: 'betclic', personPlaced: true },
+    session: { sessionId: 'test', device: 'api.test' },
+  }), res);
+  assert.equal(res._status, 200);
+  assert.equal(res._body.ok, true);
+  return res._body.result;
+}
+
+test('gap answer -> proposal -> nonce-bound accept flips the fit requirement to match (the INV5 path over HTTP)', async () => {
+  const llm = gapStubLlm();
   const { host, caseId } = fillGapFixture(llm);
   const handle = createApiHandler(host, { preferencesPath: null, llm });
-
-  const res = mockRes();
-  await handle(makeReq('POST', `/api/case/${caseId}/gap/gap_1/answer`, { answer: 'I built our feature store for 12 models', requirementId: 'decodedRequirement_1' }), res);
-  assert.equal(res._status, 200);
-  assert.equal(res._body.outcome, 'accepted');
-  assert.ok(res._body.newDatafactId);
+  const result = await acceptGapProposal(handle, caseId);
+  assert.equal(result.fitFlipped, true);
+  assert.ok(host.store.getDatafact(result.fact.id), 'minted fact is verified via its acceptance event');
   assert.equal(host.store.getCase(caseId).fit.data.capability.requirements[0].status, 'match');
 });
 
-test('accepted answer persists a terminal gap resolution served on reload (survives navigation/reload)', async () => {
-  const llm = { completeJSON: async () => ({ canFill: true, bulletText: 'Built the feature store for 12 models in production.', reason: 'ok' }) };
+test('accepted gap proposal persists a terminal resolution served on reload (survives navigation/reload)', async () => {
+  const llm = gapStubLlm();
   const { host, caseId } = fillGapFixture(llm);
   const handle = createApiHandler(host, { preferencesPath: null, llm });
-
-  let res = mockRes();
-  await handle(makeReq('POST', `/api/case/${caseId}/gap/gap_1/answer`, { answer: 'I built our feature store for 12 models', requirementId: 'decodedRequirement_1' }), res);
-  assert.equal(res._body.outcome, 'accepted');
+  await acceptGapProposal(handle, caseId);
 
   // "Reload" = a fresh GET of the same case. Both the resolution and the migration must persist.
-  res = mockRes();
+  const res = mockRes();
   await handle(makeReq('GET', `/api/case/${caseId}`), res);
   const gap = res._body.case.gaps.data.find((g) => g.id === 'gap_1');
   assert.equal(gap.resolution, 'accepted', 'accepted gap is terminal in persisted state');
   assert.equal(res._body.case.fit.data.capability.requirements[0].status, 'match', 'requirement stays migrated');
 });
 
-test('accepted answer logs exactly one gap_filled activity row referencing the minted datafact', async () => {
-  const llm = { completeJSON: async () => ({ canFill: true, bulletText: 'Built the feature store for 12 models in production.', reason: 'ok' }) };
+test('accepting a gap proposal logs exactly one gap_filled row citing the minted datafact; the answer logs its retention', async () => {
+  const llm = gapStubLlm();
   const { host, caseId } = fillGapFixture(llm);
   const handle = createApiHandler(host, { preferencesPath: null, llm });
+  const result = await acceptGapProposal(handle, caseId);
 
-  const res = mockRes();
-  await handle(makeReq('POST', `/api/case/${caseId}/gap/gap_1/answer`, { answer: 'I built our feature store for 12 models', requirementId: 'decodedRequirement_1' }), res);
-  assert.equal(res._body.outcome, 'accepted');
-
+  const retained = host.store.listRecords('activity').filter((r) => r.type === 'gap_answer_retained');
+  assert.equal(retained.length, 1, 'the retention is a confirmed state change (3.1)');
   const filled = host.store.listRecords('activity').filter((r) => r.type === 'gap_filled');
-  assert.equal(filled.length, 1, 'exactly one gap_filled row for one accepted answer');
+  assert.equal(filled.length, 1, 'exactly one gap_filled row for one accepted proposal');
   assert.equal(filled[0].caseId, caseId);
   assert.equal(filled[0].meta.gapId, 'gap_1');
-  assert.equal(filled[0].meta.datafactId, res._body.newDatafactId, 'the activity row cites the minted datafact');
-  // RAW read: the legacy auto-mint carries no acceptance event, so under INVARIANT 1 the
-  // fact is (correctly) unverified until the Wave 2 proposal-review rewire of this path.
-  assert.ok(host.store.getDatafactRaw(filled[0].meta.datafactId), 'the cited datafact exists in the store');
+  assert.equal(filled[0].meta.datafactId, result.fact.id, 'the activity row cites the minted datafact');
+  assert.ok(host.store.getDatafact(filled[0].meta.datafactId), 'the cited datafact is verified in the store');
+});
+
+test('POST /api/facts/person mints a first-class person-attested fact over HTTP (D22 — no friction)', async () => {
+  const { host } = { host: createHost({ llm: null }) };
+  const handle = createApiHandler(host, { preferencesPath: null, llm: null });
+  const res = mockRes();
+  await handle(makeReq('POST', '/api/facts/person', {
+    text: 'Ran the 2011 rebrand end to end',
+    attribution: { type: 'job_result', jobKey: 'mrgreen' },
+    session: { sessionId: 'test', device: 'api.test' },
+  }), res);
+  assert.equal(res._status, 200);
+  assert.equal(res._body.ok, true);
+  const fact = host.store.getDatafact(res._body.result.fact.id);
+  assert.ok(fact, 'verified via its acceptance event');
+  assert.equal(fact.grounding, 'person-attested');
+  assert.equal(host.store.listRecords('activity').filter((a) => a.type === 'fact_minted').length, 1);
 });
 
 test('POST /gap/:id/skip persists a terminal skip served on reload and logs gap_skipped', async () => {

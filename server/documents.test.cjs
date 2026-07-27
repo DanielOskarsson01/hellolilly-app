@@ -104,7 +104,12 @@ test('3.1: applyAnswer retains the raw answer as a gap-answer document even when
   const c = store.createCase({ company: 'X', role: 'Y' });
   store.writePart(c.meta.id, 'gaps', [{ id: 'gap_1', what: 'No SAP experience', why: 'ad wants SAP' }]);
   store.writePart(c.meta.id, 'decodedRole', { requirements: [{ id: 'req_1', requirement: 'SAP experience' }] });
-  const llm = { completeJSON: async () => ({ canFill: false, reason: 'too vague' }) };
+  // Judge B bars the answer -> nothing drafts -> stays_gap; retention must still happen.
+  const llm = { completeJSON: async ({ system }) => {
+    if (/FIRST-PERSON EXPERIENCE CLAIM/.test(system)) return { isExperienceClaim: false, detectedClass: 'other', reason: 'too vague' };
+    if (/claim-addition checker/.test(system)) return { claims: [] };
+    return { proposals: [] };
+  } };
   const out = await applyAnswer(store, llm, { caseId: c.meta.id, gapId: 'gap_1', answer: 'I once configured SAP for a client.', requirementId: 'req_1' });
   assert.strictEqual(out.outcome, 'stays_gap');
   const docs = store.listRecords('documents');
