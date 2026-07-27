@@ -12,6 +12,8 @@ import { setActiveCaseId } from '../utils/jobStore.js';
 import { generateOutcome } from '../lib/generateOutcome.mjs';
 import { openGaps as deriveOpenGaps, skippedGaps as deriveSkippedGaps, cvGateOpen } from '../lib/gapResolution.mjs';
 import { parseMatchDeepOpen, jobForCase } from '../lib/matchDeepOpen.mjs';
+import { listProposals } from '../api/suggestApi.js';
+import { ProposalReviewCard } from './sourceMaterial.jsx';
 
 // HelloLilly — Matchanalys (design-system era, T13 → T15)
 // Ported from design/design/screens-match2.jsx.
@@ -67,6 +69,7 @@ function FillGap({ gap, reqLabel, onAnswer, onSkip }) {
   const [busy, setBusy] = React.useState(false);
   const [skipping, setSkipping] = React.useState(false);
   const [res, setRes] = React.useState(null); // { outcome, reason?, ... }
+  const [review, setReview] = React.useState(null); // Wave 2: { proposal, placementOptions, factTypes }
 
   const reset = () => {
     setMode(initialMode);
@@ -74,15 +77,27 @@ function FillGap({ gap, reqLabel, onAnswer, onSkip }) {
     setRes(null);
   };
 
-  // Three honest outcomes: accepted / stays_gap / save_failed.
-  // accepted → the store mutates and the screen reloads; this card unmounts.
+  // Wave 2 honest outcomes: proposal (review before anything mints) / stays_gap /
+  // save_failed — and accepted only AFTER the reviewed accept.
   // stays_gap / save_failed → keep the user's typed text, show the banner.
   const submit = async (opts) => {
     setBusy(true);
     setRes(null);
     const r = await onAnswer(gap, text, opts || {});
+    if (r && r.outcome === 'proposal' && r.proposals && r.proposals.length) {
+      // Serve the review: rendering mints the single-use nonce the accept must present.
+      try {
+        const served = await listProposals();
+        const mine = (served.proposals || []).find((p) => p.id === r.proposals[0].id);
+        if (mine) setReview({ proposal: mine, placementOptions: served.placementOptions || [], factTypes: served.factTypes || [] });
+        else setRes({ outcome: 'save_failed', reason: 'proposal vanished before review' });
+      } catch (err) {
+        setRes({ outcome: 'save_failed', reason: err.message });
+      }
+    } else {
+      setRes(r);
+    }
     setBusy(false);
-    setRes(r);
   };
 
   // Skip is a legitimate terminal state — it PERSISTS ("consciously not filled"), it does
@@ -128,7 +143,24 @@ function FillGap({ gap, reqLabel, onAnswer, onSkip }) {
         </div>
       </div>
 
-      <div className="loop">
+      {/* Wave 2 review step: the drafted proposal — wording + placement — before any mint */}
+      {review && (
+        <div className="loop">
+          <div className="loop__label">{tr({ sv: 'Lillys förslag ur ditt svar — granska text och placering', en: "Lilly's draft from your answer — review wording and placement" })}</div>
+          <ProposalReviewCard
+            proposal={review.proposal}
+            placementOptions={review.placementOptions}
+            factTypes={review.factTypes}
+            onDone={({ accepted }) => {
+              setReview(null);
+              if (accepted) setRes({ outcome: 'accepted' }); // the case refetch (ll:case:changed) drops the gap
+              else setRes(null); // rejected: back to the answer box, gap honestly open
+            }}
+          />
+        </div>
+      )}
+
+      {!review && <div className="loop">
         {gap.fillable !== 'credential' && (
           <div className="loop__mode" role="group" aria-label={tr({ sv: 'Hur vill du fylla luckan', en: 'How to fill the gap' })}>
             <button
@@ -227,7 +259,7 @@ function FillGap({ gap, reqLabel, onAnswer, onSkip }) {
             </button>
           </div>
         )}
-      </div>
+      </div>}
     </div>
   );
 }

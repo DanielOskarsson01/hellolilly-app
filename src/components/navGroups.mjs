@@ -24,6 +24,7 @@ export const NAV_GROUPS = [
     // the slot for the D15 from-scratch builder (the established "Kommer" pattern).
     { id:'cv',             label:'Anpassad CV' },
     { id:'cv-byggaren',    label:'CV-byggaren', soon:true },
+    { id:'kallmaterial',   label:'Källmaterial' }, // Wave 2: intake + suggestion review (fills the drawer); sits below the CV pair (D17 adjacency law)
     { id:'letter',         label:'Personligt brev' },
     { id:'ansokningskoll',    label:'Ansökningskoll' },
     { id:'innan-du-skickar', label:'Innan du skickar' },

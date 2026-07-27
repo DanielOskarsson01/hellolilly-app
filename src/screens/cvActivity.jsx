@@ -10,6 +10,7 @@ import { ContentArea, ContentBox, CrossColumn, PageTemplate } from '../component
 import { listCases } from '../api/caseApi.js';
 import { sectionItems } from '../lib/cvDraftItems.mjs';
 import { computeDraftCoverage } from '../lib/presendCoverage.mjs';
+import { assessDraftThinness } from '../lib/draftThinness.mjs';
 
 const sectionLeafCount = (s) => sectionItems(s).length;
 
@@ -94,6 +95,28 @@ function ImproveStrip({ section }) {
       <button className="cvb-improve__btn" disabled aria-disabled="true"><Icon name="pen" size={11} sw={2.6} />{tr({ sv:'Förbättra formulering', en:'Improve wording' })}</button>
       <button className="cvb-improve__btn" disabled aria-disabled="true"><Icon name="search" size={11} sw={2.6} />{tr({ sv:'Lägg till nyckelord', en:'Add keywords' })}</button>
       <span className="soon-tag">{tr({ sv:'Kommer', en:'Coming' })}</span>
+    </div>
+  );
+}
+
+/* ---------- Section 4B (Wave 2): the generation-time graceful-failure face ---------- */
+// A thin draft — jobs under their frozen ceilings because the pool could not support the
+// ad — is SAID, plainly, with the way forward. Never a silently weak CV.
+function ThinnessNotice({ cvDraft }) {
+  const t = assessDraftThinness(cvDraft);
+  if (!t.thin) return null;
+  const jobs = t.underfilled.map((j) => `${(j.company || j.key).split('|')[0].trim()} (${j.bullets}/${j.ceiling})`).join(' · ');
+  return (
+    <div className="loop__res loop__res--gap" style={{ marginBottom: 'var(--sp-3)' }}>
+      <Icon name="bulb" size={16} />
+      <div className="loop__res-b">
+        <div className="loop__res-t">{tr({ sv: 'Det här CV:t är tunnare än mallen tillåter', en: 'This CV is thinner than the template allows' })}</div>
+        <div className="loop__res-m">
+          {tr({ sv: 'Din faktapool kunde inte fylla: ', en: 'Your fact pool could not fill: ' })}{jobs}.{' '}
+          {tr({ sv: 'Lägg till eget material så kan Lilly föreslå fler rader — ', en: 'Add your own material and Lilly can draft more lines — ' })}
+          <a className="ll-link ll-link--text" href="#kallmaterial">{tr({ sv: 'öppna Källmaterial', en: 'open Source material' })}</a>.
+        </div>
+      </div>
     </div>
   );
 }
@@ -303,6 +326,7 @@ function CVBuilder() {
               </PartState>
             }
           >
+            {cvDraft && <ThinnessNotice cvDraft={cvDraft} />}
             {cvDraft && <CvLive cvDraft={cvDraft} meta={meta} resolve={resolveDatafact} />}
           </PartGate>
         </ContentBox>

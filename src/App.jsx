@@ -11,6 +11,7 @@ import { MultiCoachReview } from './screens/review.jsx';
 import { ImageStudio } from './screens/studio.jsx';
 import { CoachWorkspace, COACH_NAV_INDEX } from './screens/coach.jsx';
 import { JobMatchReview } from './screens/match.jsx';
+import { SourceMaterial } from './screens/sourceMaterial.jsx';
 import { CalendarView } from './screens/calendar.jsx';
 import { Community } from './screens/community.jsx';
 import { JobSearch } from './screens/jobSearch.jsx';
@@ -32,6 +33,8 @@ const LL_ROUTES = {
   coach: { c: () => <CoachWorkspace />, title: 'Coachvy' },
   jobbsok: { c: () => <JobSearch />, title: 'Jobbsök', template: true },
   match: { c: () => <JobMatchReview />, title: 'Matchanalys', template: true },
+  kallmaterial: { c: () => <SourceMaterial />, title: 'Källmaterial', template: true }, // Wave 2: the suggestion engine's surface
+
   'innan-du-skickar': { c: () => <InnanDuSkickar />, title: 'Innan du skickar', template: true },
   calendar: { c: () => <CalendarView />, title: 'Kalender' },
   community: { c: () => <Community />, title: 'Community' },
