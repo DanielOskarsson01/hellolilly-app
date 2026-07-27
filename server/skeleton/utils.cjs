@@ -77,4 +77,9 @@ async function retry(fn, opts = {}) {
   throw lastErr;
 }
 
-module.exports = { parseJSON, stripHtml, truncate, retry };
+// Wave 2 (Section 4): the decode->tailor serialiser is skeleton-owned (one copy) and
+// reaches cv-tailor through this injected surface — the brief mandates the hoist, which
+// is why a domain serialiser sits on the utils surface despite the scope rule above.
+const { decodedSignal } = require('./targeting/decoded-signal.cjs');
+
+module.exports = { parseJSON, stripHtml, truncate, retry, decodedSignal };

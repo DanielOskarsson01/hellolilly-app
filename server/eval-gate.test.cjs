@@ -71,6 +71,7 @@ function fakeTools(sourceInput, llmResponse) {
     },
     datalayer: { listDatafacts: () => FACTS, getDatafact: (id) => byId.get(id) },
     assembly,
+    utils: require('./skeleton/utils.cjs'), // hoisted decodedSignal (Wave 2, Section 4)
     ids: { ref: (kind, id) => ({ kind, id }) },
     llm: { completeJSON: async ({ prompt }) => { rec.prompt = prompt; return typeof llmResponse === 'function' ? llmResponse(prompt) : llmResponse; } },
   };

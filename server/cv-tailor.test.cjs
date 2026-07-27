@@ -66,6 +66,7 @@ function fakeTools(caseObj, llmResponse) {
     },
     datalayer: { listDatafacts: () => FACTS, getDatafact: (id) => byId.get(id) },
     assembly,
+    utils: require('./skeleton/utils.cjs'), // carries the hoisted decodedSignal (Wave 2, Section 4)
     ids: { ref: (kind, id) => ({ kind, id }) },
     llm: { completeJSON: async ({ prompt }) => { rec.prompt = prompt; return typeof llmResponse === 'function' ? llmResponse(prompt) : llmResponse; } },
   };
@@ -184,7 +185,7 @@ test('execute: malformed model output fails schema validation -> part failed (IN
 });
 
 test('Lever A (wave1-p4): decodedSignal ranks by weight, carries rationale + narrative, degrades on missing weight', () => {
-  const out = tailor.decodedSignal({
+  const out = require('./skeleton/targeting/decoded-signal.cjs').decodedSignal({
     narrative: 'This job executes; it rejects founder theatre.',
     requirements: [
       { requirement: 'no personal legacy', rationale: 'ad rejects founder framing', weight: 2 },

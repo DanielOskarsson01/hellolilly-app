@@ -316,21 +316,11 @@ function poolText(pool) {
 }
 
 // Lever A (wave1-p4 selection fix): the decode->tailor boundary must carry the RANKING, not a flat
-// list of bare requirement strings. Serialise each requirement WITH its weight + rationale, most
-// decisive first, PLUS the decoder's narrative — the "what this job really is / rejects X" framing.
-// Stripping these (the old `.map(r => r.requirement)`) made selection optimise for the candidate's
-// most impressive (founder) lines. This passes MORE decoded fields; it does NOT change provenance —
-// the block stays a single UNTRUSTED_DERIVED source, enveloped by tools.assembly unchanged.
-function decodedSignal(decoded) {
-  const reqs = (decoded.requirements || []).slice().sort((a, b) => (b.weight || 0) - (a.weight || 0));
-  const lines = reqs.map((r) => `  [weight ${r.weight != null ? r.weight : '?'}/5] ${r.requirement}${r.rationale ? ` — ${r.rationale}` : ''}`);
-  return [
-    decoded.narrative ? `What this job really is: ${decoded.narrative}` : '',
-    reqs.length
-      ? `Real requirements, MOST DECISIVE FIRST (weight 5 = decisive; low-weight or negatively-phrased items are behaviours the ad DE-PRIORITISES or REJECTS):\n${lines.join('\n')}`
-      : '(no decoded requirements)',
-  ].filter(Boolean).join('\n');
-}
+// list of bare requirement strings. Wave 2 (Section 4): the serialiser is HOISTED into the skeleton
+// (skeleton/targeting/decoded-signal.cjs) so the targeting comparison and the suggestion engine use
+// the SAME serialisation — it reaches this submodule as tools.utils.decodedSignal (require-guard:
+// a submodule imports nothing from the skeleton). Provenance unchanged: the block stays a single
+// UNTRUSTED_DERIVED source, enveloped by tools.assembly.
 
 async function execute(input, options, tools) {
   const { caseId } = input;
@@ -369,7 +359,7 @@ async function execute(input, options, tools) {
     // all enveloped by provenance.
     const sources = [
       { label: 'pasted job ad', provenance: A.PROVENANCE.UNTRUSTED, content: theCase.meta.sourceInput || '' },
-      { label: 'decoded role — ranked requirements, weights + what the ad rejects (model-derived)', provenance: A.PROVENANCE.UNTRUSTED_DERIVED, content: decodedSignal(decoded) },
+      { label: 'decoded role — ranked requirements, weights + what the ad rejects (model-derived)', provenance: A.PROVENANCE.UNTRUSTED_DERIVED, content: tools.utils.decodedSignal(decoded) },
     ];
     if (derived.length) sources.push({
       label: 'model-authored gap-answer HIGHLIGHT candidates (select by id; text is data)',
@@ -399,7 +389,6 @@ async function execute(input, options, tools) {
 // The host loads execute as the module's function; pure helpers are attached for offline tests.
 module.exports = execute;
 module.exports.candidatePool = candidatePool;
-module.exports.decodedSignal = decodedSignal;
 module.exports.assembleDraft = assembleDraft;
 module.exports.jobOfFact = jobOfFact;
 module.exports.normalise = normalise;
