@@ -118,8 +118,12 @@ async function propose({ store, llm, caseId = null, documentIds = null, spanIds 
   const eligibleDocs = allDocs.filter((d) => !isBarredAsExperienceSource(d));
   const docsById = new Map(eligibleDocs.map((d) => [d.id, d]));
 
-  // spans without a live (open/defective/accepted) proposal already on them
-  const taken = new Set(store.listRecords('proposals').filter((p) => p.status !== 'rejected').map((p) => p.span.spanId));
+  // spans without a live (open/defective/accepted) proposal already on them. When the
+  // operator names spans EXPLICITLY (spanIds), only an open/defective proposal blocks:
+  // a span can hold several facts, and an accepted proposal on one of them must not
+  // freeze the rest (the minted fact is untouched; the new proposal reviews normally).
+  const blocking = spanIds ? ['open', 'defective'] : ['open', 'defective', 'accepted'];
+  const taken = new Set(store.listRecords('proposals').filter((p) => blocking.includes(p.status)).map((p) => p.span.spanId));
   const allSpans = store.listRecords('spans')
     .filter((s) => docsById.has(s.documentId) && !taken.has(s.id) && (!spanIds || spanIds.includes(s.id)));
   const spans = allSpans.slice(0, maxSpans);

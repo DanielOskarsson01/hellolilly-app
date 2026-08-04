@@ -236,6 +236,24 @@ test('gap-driven proposal: accept flips fit + gap resolution atomically and repo
   assert.strictEqual(after.gaps.data[0].resolution, 'accepted');
 });
 
+test('explicit spanIds re-draft: an accepted proposal on a multi-fact span does not block; open/defective still do', async () => {
+  const { store, llm, proposal } = await proposeOne();
+  // accept the existing proposal -> its span now holds an accepted proposal + a minted fact
+  const out = await engine.accept({ store, llm, proposalId: proposal.id, nonce: proposal.nonce, finalText: proposal.text, attribution: { type: 'job_result', jobKey: 'betclic' } });
+  assert.strictEqual(out.outcome, 'accepted');
+  const spanId = proposal.span.spanId;
+  // default propose still refuses the taken span…
+  const r1 = await engine.propose({ store, llm });
+  assert.ok(!r1.proposals.some((p) => p.span.spanId === spanId), 'default path: accepted blocks');
+  // …but the operator's explicit spanIds path re-drafts it (the minted fact is untouched)
+  const r2 = await engine.propose({ store, llm, spanIds: [spanId] });
+  assert.strictEqual(r2.proposals.length, 1, 'explicit path: re-drafted');
+  assert.ok(store.getDatafact(out.fact.id), 'the previously minted fact is untouched');
+  // an OPEN proposal now exists on the span — even the explicit path refuses a duplicate
+  const r3 = await engine.propose({ store, llm, spanIds: [spanId] });
+  assert.strictEqual(r3.proposals.length, 0, 'open proposals always block');
+});
+
 test('reject closes a proposal and burns its nonce', async () => {
   const { store, proposal } = await proposeOne();
   const out = engine.reject({ store, proposalId: proposal.id, reason: 'not mine' });
