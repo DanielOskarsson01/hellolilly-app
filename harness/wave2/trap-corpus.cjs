@@ -81,4 +81,18 @@ const NUMERAL_TRAP = {
   text: 'EXPERIENCE\n\n- Grew the subscription business substantially over several years',
 };
 
-module.exports = { VOICE_TRAPS, THIRD_PARTY_CV, INJECTION_DOCS, NUMERAL_TRAP };
+// COHERENCE trap (drafter quality rule, 2026-08-04 — NOT an invariant): the span's OWN
+// figures disagree ("~25 years total career" vs "27+ years marketing"). Reproduces the
+// exact live span that produced "27+ years of marketing experience across a ~25-year
+// career" — internally contradictory yet fully span-grounded, so INV4 rightly passes it.
+// The corrected drafter must pick ONE defensible figure or omit the number; it must never
+// combine the disagreeing figures (25 AND 27) into a single claim.
+const COHERENCE_TRAP = {
+  id: 'coherence-disagreeing-figures',
+  attestedClass: 'cover_letter',
+  name: 'Evidence library (tenure line)',
+  text: 'TENURE\n\n- **~25 years** total career (since ~1997). **27+ years** marketing (MASTER_CV).',
+  disagreeingRuns: ['25', '27'], // a single draft containing BOTH runs = the contradiction combined
+};
+
+module.exports = { VOICE_TRAPS, THIRD_PARTY_CV, INJECTION_DOCS, NUMERAL_TRAP, COHERENCE_TRAP };

@@ -11,7 +11,7 @@ const assert = require('node:assert');
 const { createStore } = require('./skeleton/store/index.cjs');
 const { createDocument, storeDocument } = require('./skeleton/documents/index.cjs');
 const engine = require('./skeleton/suggest/engine.cjs');
-const { VOICE_TRAPS, THIRD_PARTY_CV, INJECTION_DOCS, NUMERAL_TRAP } = require('../harness/wave2/trap-corpus.cjs');
+const { VOICE_TRAPS, THIRD_PARTY_CV, INJECTION_DOCS, NUMERAL_TRAP, COHERENCE_TRAP } = require('../harness/wave2/trap-corpus.cjs');
 
 beforeEach(() => engine._resetCeiling(1000));
 
@@ -22,13 +22,14 @@ function seed(store, fixture) {
 }
 
 function stubLlm({ drafter, judgeB } = {}) {
-  const rec = { drafterPrompts: [], judgeBPrompts: [] };
+  const rec = { drafterPrompts: [], drafterSystems: [], judgeBPrompts: [] };
   return {
     rec,
     completeJSON: async ({ system, prompt }) => {
       if (/claim-addition checker/.test(system)) return { claims: [] };
       if (/FIRST-PERSON EXPERIENCE CLAIM/.test(system)) { rec.judgeBPrompts.push(prompt); return judgeB ? judgeB(prompt) : { isExperienceClaim: true, detectedClass: 'experience', reason: '' }; }
       rec.drafterPrompts.push(prompt);
+      rec.drafterSystems.push(system);
       return drafter ? drafter(prompt) : { proposals: [] };
     },
   };
@@ -90,6 +91,28 @@ test('eval (DISCIPLINE 2 mechanism): each named voice trap, once detected, bars 
     assert.strictEqual(r.proposals.length, 0, trap.id);
     assert.ok(r.barredSpans.length >= 1, `${trap.id}: barred`);
   }
+});
+
+test('eval (drafter quality, 2026-08-04): the coherence rule + house voice ride in the drafter prompt; curated voice examples are injected', async () => {
+  const store = createStore();
+  seed(store, COHERENCE_TRAP);
+  // a curated job_result in the pool -> becomes a voice example in the task block
+  store.ingestDatafact({ id: 'df_voice1', kind: 'datafact', origin: 'curated', type: 'job_result', text: 'Built brand from ground up including brand strategy and CI', tags: [], language: 'en' });
+  const llm = stubLlm({});
+  await engine.propose({ store, llm });
+  assert.strictEqual(llm.rec.drafterPrompts.length, 1);
+  const prompt = llm.rec.drafterPrompts[0];
+  const system = llm.rec.drafterSystems[0];
+  // the coherence rule and the render-context voice are standing system instructions
+  assert.match(system, /never combine disagreeing figures/i, 'coherence rule present');
+  assert.match(system, /NEVER prefix the bullet with the employer name/i, 'render context present');
+  assert.match(system, /strong past-tense verb/i, 'house voice present');
+  // curated voice examples are mirrored from the pool into the trusted task block
+  const trusted = prompt.slice(0, prompt.indexOf('BEGIN UNTRUSTED_DATA'));
+  assert.ok(trusted.includes('VOICE EXAMPLES'), 'voice examples block present');
+  assert.ok(trusted.includes('Built brand from ground up'), 'curated bullet mirrored as register reference');
+  // and the exact live coherence span is what travels enveloped
+  assert.ok(prompt.includes('27+ years') && prompt.includes('25 years'), 'the disagreeing-figures span is the drafted material');
 });
 
 test('eval (INV4 net): a drafter inventing figures yields DEFECTIVE proposals; bare accept refused; misattribution refused', async () => {
