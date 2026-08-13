@@ -13,7 +13,8 @@ const { createAnthropicClient } = require('./skeleton/clients/anthropic.cjs');
 const { applyAnswer, setGapResolution } = require('./skeleton/fill-gap/bullet-judge.cjs');
 const { applyAlign } = require('./skeleton/fill-gap/keyword-judge.cjs');
 const { logActivity } = require('./activity-log.cjs');
-const { createDocument, storeDocument, deleteDocument, MAX_DOCUMENT_BYTES } = require('./skeleton/documents/index.cjs');
+const { createDocument, storeDocument, deleteDocument, MAX_DOCUMENT_BYTES, findDuplicate, factsMintedByDocument } = require('./skeleton/documents/index.cjs');
+const { extractText } = require('./skeleton/documents/extract.cjs');
 const suggest = require('./skeleton/suggest/engine.cjs');
 const targeting = require('./skeleton/targeting/index.cjs');
 
@@ -129,18 +130,36 @@ function createApiHandler(host, { preferencesPath, llm } = {}) {
     // purges spans; proposals are server-minted only.
     if (req.method === 'GET' && req.url === '/api/documents') {
       const spans = host.store.listRecords('spans');
+      const factCounts = factsMintedByDocument(host.store); // library view: facts minted per document
       const documents = host.store.listRecords('documents')
-        .map((d) => ({ ...d, spanCount: spans.filter((s) => s.documentId === d.id).length }));
+        .map((d) => ({ ...d, spanCount: spans.filter((s) => s.documentId === d.id).length, factCount: factCounts.get(d.id) || 0 }));
       sendJson(res, 200, { ok: true, documents });
       return true;
     }
     if (req.method === 'POST' && req.url === '/api/documents') {
       try {
         const body = await readJson(req, DOC_BODY_LIMIT);
+        // File formats: a binary/text upload (dataBase64 + filename) is extracted to TEXT
+        // here, BEFORE createDocument — a parse failure throws ParseError -> failed envelope.
+        // The 5 MB ceiling is enforced on the file itself; the binary is never stored.
+        let text = body.text;
+        if (typeof body.dataBase64 === 'string') {
+          const fileBuffer = Buffer.from(body.dataBase64, 'base64');
+          if (fileBuffer.length > MAX_DOCUMENT_BYTES) throw new Error(`document exceeds the ${MAX_DOCUMENT_BYTES} byte ceiling (${fileBuffer.length})`);
+          text = await extractText({ filename: body.filename || body.name || '', buffer: fileBuffer });
+        }
         const { doc, spans } = createDocument({
-          name: body.name, text: body.text, attestedClass: body.attestedClass,
+          name: body.name, text, attestedClass: body.attestedClass,
           ownership: body.ownership || 'mine', context: body.context || {},
         });
+        // Say so plainly before saving: a same-name/same-content re-upload is refused unless
+        // the person confirms. Nothing is stored on the duplicate branch.
+        const dup = findDuplicate(host.store, { name: doc.name, sha256: doc.sha256 });
+        if (dup && !body.confirmDuplicate) {
+          sendJson(res, 409, { ok: false, failure: 'duplicate',
+            duplicate: { id: dup.id, name: dup.name, sameContent: dup.sha256 === doc.sha256, sameName: dup.name === doc.name } });
+          return true;
+        }
         storeDocument(host.store, doc, spans);
         logActivity(host.store, { type: 'document_uploaded', label: `Dokument mottaget: ${doc.name}`,
           meta: { documentId: doc.id, attestedClass: doc.attestedClass, ownership: doc.ownership, spanCount: spans.length, bytes: doc.bytes } });

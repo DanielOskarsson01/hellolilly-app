@@ -6,7 +6,7 @@ async function request(path, opts = {}) {
   const res = await fetch(path, { headers: { 'content-type': 'application/json' }, ...opts });
   let body = null;
   try { body = await res.json(); } catch { /* non-JSON error page — fall through */ }
-  if (!res.ok && ![207, 422, 429].includes(res.status)) throw new Error((body && body.error) || `HTTP ${res.status}`);
+  if (!res.ok && ![207, 409, 422, 429].includes(res.status)) throw new Error((body && body.error) || `HTTP ${res.status}`);
   return body;
 }
 
@@ -30,9 +30,16 @@ export function listDocuments() {
   return request('/api/documents').then((b) => b.documents);
 }
 
-// -> { ok:true, document, spans } | { ok:false, error, failure } (explicit failed envelope)
-export function uploadDocument({ name, text, attestedClass, ownership = 'mine' }) {
-  return request('/api/documents', { method: 'POST', body: JSON.stringify({ name, text, attestedClass, ownership }) })
+// -> { ok:true, document, spans }
+//  | { ok:false, error, failure:'parse_failed'|'rejected' } (explicit failed envelope)
+//  | { ok:false, failure:'duplicate', duplicate } (same name/content — confirm to save anyway)
+// A file upload sends { filename, dataBase64 } (extracted to text server-side); paste sends { text }.
+export function uploadDocument({ name, text, attestedClass, ownership = 'mine', filename, dataBase64, confirmDuplicate }) {
+  const payload = { name, attestedClass, ownership };
+  if (typeof dataBase64 === 'string') { payload.filename = filename; payload.dataBase64 = dataBase64; }
+  else payload.text = text;
+  if (confirmDuplicate) payload.confirmDuplicate = true;
+  return request('/api/documents', { method: 'POST', body: JSON.stringify(payload) })
     .then((b) => { if (b && b.ok) { notify('activity'); } return b; });
 }
 

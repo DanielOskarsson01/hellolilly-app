@@ -142,7 +142,30 @@ function deleteDocument(store, documentId) {
   return store.removeRecord('documents', documentId);
 }
 
+// Library view (brief: a stored-document list so duplicate uploads stop being guaranteed).
+// A re-upload is a duplicate when it matches an existing document by content hash OR by
+// name — the caller says so plainly before saving. Content-hash match is the real signal
+// (rename-and-reupload still caught); name match catches the human "same file again".
+function findDuplicate(store, { name, sha256, excludeId = null }) {
+  return store.listRecords('documents').find(
+    (d) => d.id !== excludeId && (d.sha256 === sha256 || d.name === name),
+  ) || null;
+}
+
+// "how many facts have been minted from it": an accepted fact carries its source span's
+// snapshot (suggest/engine.cjs), so spanSnapshot.documentId is the link. Person-typed facts
+// have no span snapshot and correctly count toward no document.
+function factsMintedByDocument(store) {
+  const counts = new Map();
+  for (const f of store.listDatafactsRaw()) {
+    const id = f.spanSnapshot && f.spanSnapshot.documentId;
+    if (id) counts.set(id, (counts.get(id) || 0) + 1);
+  }
+  return counts;
+}
+
 module.exports = {
   ATTESTED_CLASSES, isBarredAsExperienceSource, MAX_DOCUMENT_BYTES, SPAN_SCHEMA,
   ParseError, spanise, createDocument, storeDocument, deleteDocument,
+  findDuplicate, factsMintedByDocument,
 };

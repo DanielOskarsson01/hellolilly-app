@@ -4,24 +4,42 @@ import { Sidebar } from '../components/shell.jsx';
 import { ContentArea, ContentBox, CrossColumn, PageTemplate } from '../components/grid.jsx';
 import { tr } from '../lib/i18n.mjs';
 import {
-  listDocuments, uploadDocument, deleteDocument, suggestFacts,
-  listProposals, acceptProposal, rejectProposal, mintPersonFact, getTarget,
+  listDocuments, uploadDocument, deleteDocument,
+  listProposals, acceptProposal, rejectProposal, mintPersonFact,
 } from '../api/suggestApi.js';
-import { listCases } from '../api/caseApi.js';
 
 // HelloLilly — Källmaterial (Wave 2, the suggestion engine's surface).
 // Upload/paste attested material → the engine drafts span-grounded proposals → the person
 // reviews WORDING AND PLACEMENT (3.6: placement in plain words) → accept mints. The
 // person-typed entry is a FIRST-CLASS path (3.7/D22), invited, frictionless.
 
-const CLASS_LABELS = () => ([
-  { v: 'cover_letter', t: tr({ sv: 'Mitt personliga brev', en: 'My cover letter' }) },
-  { v: 'old_cv', t: tr({ sv: 'Mitt gamla CV', en: 'My old CV' }) },
-  { v: 'qa_notes', t: tr({ sv: 'Mina Q&A-/intervjuanteckningar', en: 'My Q&A or interview notes' }) },
-  { v: 'job_ad', t: tr({ sv: 'En jobbannons (används aldrig som erfarenhetskälla)', en: 'A job ad (never used as an experience source)' }) },
-  { v: 'third_party', t: tr({ sv: 'Någon annans material (används aldrig som erfarenhetskälla)', en: "Someone else's material (never used as an experience source)" }) },
-  { v: 'other', t: tr({ sv: 'Annat', en: 'Other' }) },
+// Intake attestation (3.4). Three plainly-worded choices, the last an escape hatch, mapped
+// onto the existing attested classes. Deterministic barring (isBarredAsExperienceSource) is
+// UNCHANGED: 'mine' is usable experience; the other two set ownership 'third_party', which
+// bars them from ever being read as the person's experience. 'unknown' keeps class 'other'
+// so the uncertain/mixed bucket stays distinguishable from declared third-party material.
+const CLASS_OPTIONS = () => ([
+  { v: 'mine', attestedClass: 'old_cv', ownership: 'mine',
+    t: tr({ sv: 'Mitt eget material – brev, CV, anteckningar (används som din erfarenhet)', en: 'My own material – letter, CV, notes (used as your experience)' }) },
+  { v: 'not_mine', attestedClass: 'third_party', ownership: 'third_party',
+    t: tr({ sv: 'Något jag inte skrivit – jobbannons, mall, någon annans CV (läses aldrig som din erfarenhet)', en: "Something I didn't write – a job ad, template, someone else's CV (never read as your experience)" }) },
+  { v: 'unknown', attestedClass: 'other', ownership: 'third_party',
+    t: tr({ sv: 'Vet inte / blandat (Lilly frågar innan något används)', en: 'Not sure / mixed (Lilly asks before anything is used)' }) },
 ]);
+
+// How a STORED document's class reads in the library list (covers legacy classes too). The
+// barred bucket is split for display: uncertain/mixed documents read differently from
+// material declared as someone else's.
+function classDisplay(doc) {
+  const barred = ['job_ad', 'third_party'].includes(doc.attestedClass) || doc.ownership === 'third_party';
+  if (doc.attestedClass === 'other' && doc.ownership === 'third_party')
+    return { label: tr({ sv: 'Vet inte / blandat', en: 'Not sure / mixed' }), tone: 'warn' };
+  if (barred) return { label: tr({ sv: 'Något jag inte skrivit', en: 'Not written by me' }), tone: 'warn' };
+  return { label: tr({ sv: 'Mitt eget material', en: 'My own material' }), tone: 'ok' };
+}
+
+// "when added" — createdAt is already an ISO string; show it plainly, no locale dependency.
+const fmtDate = (iso) => String(iso || '').slice(0, 16).replace('T', ' ');
 
 const TYPE_LABELS = () => ({
   job_result: tr({ sv: 'Jobbresultat (bullet under en anställning)', en: 'Job result (bullet under a job)' }),
@@ -124,18 +142,16 @@ function SourceMaterial() {
   const [proposals, setProposals] = React.useState([]);
   const [placementOptions, setPlacementOptions] = React.useState([]);
   const [factTypes, setFactTypes] = React.useState(['job_result', 'value_proposition', 'competency', 'skill', 'other_work']);
-  const [cases, setCases] = React.useState([]);
-  const [caseId, setCaseId] = React.useState('');
-  const [target, setTarget] = React.useState(null);
-  const [suggesting, setSuggesting] = React.useState(false);
-  const [suggestNote, setSuggestNote] = React.useState(null);
   const [minted, setMinted] = React.useState([]);
 
-  // upload form
+  // upload form — a chosen file rides as base64 (extracted to text server-side); paste rides as text
   const [upName, setUpName] = React.useState('');
   const [upText, setUpText] = React.useState('');
-  const [upClass, setUpClass] = React.useState('cover_letter');
+  const [upFilename, setUpFilename] = React.useState(null);
+  const [upData, setUpData] = React.useState(null); // base64 of a chosen file, or null for paste
+  const [upClass, setUpClass] = React.useState('mine');
   const [upErr, setUpErr] = React.useState(null);
+  const [upDup, setUpDup] = React.useState(null); // a pending same-name/-content match awaiting "save anyway"
   const [upBusy, setUpBusy] = React.useState(false);
 
   // person-typed entry (3.7 — the invited first-class path)
@@ -156,39 +172,34 @@ function SourceMaterial() {
     }).catch(() => {});
   }, []);
 
-  React.useEffect(() => { refreshDocs(); refreshProposals(); listCases().then(setCases).catch(() => {}); }, [refreshDocs, refreshProposals]);
-  React.useEffect(() => {
-    if (!caseId) { setTarget(null); return; }
-    getTarget(caseId).then((b) => setTarget(b.ok ? b.target : { error: b.error })).catch(() => setTarget(null));
-  }, [caseId]);
+  React.useEffect(() => { refreshDocs(); refreshProposals(); }, [refreshDocs, refreshProposals]);
 
+  // File formats: read the chosen file as base64 (any of txt/md/html/docx/pdf) and let the
+  // server extract the text. Paste stays a text path.
   const onFile = (e) => {
     const f = e.target.files && e.target.files[0];
     if (!f) return;
-    setUpName(f.name);
+    setUpErr(null); setUpDup(null); setUpText('');
+    setUpName(f.name); setUpFilename(f.name);
     const reader = new FileReader();
-    reader.onload = () => setUpText(String(reader.result || ''));
-    reader.readAsText(f);
+    reader.onload = () => { const r = String(reader.result || ''); setUpData(r.slice(r.indexOf(',') + 1)); };
+    reader.readAsDataURL(f);
   };
 
-  const doUpload = async () => {
-    setUpBusy(true); setUpErr(null);
-    const b = await uploadDocument({ name: upName || tr({ sv: 'Inklistrad text', en: 'Pasted text' }), text: upText, attestedClass: upClass });
+  const clearUpload = () => { setUpText(''); setUpName(''); setUpFilename(null); setUpData(null); setUpDup(null); };
+
+  const doUpload = async (confirmDuplicate = false) => {
+    const opt = CLASS_OPTIONS().find((o) => o.v === upClass) || CLASS_OPTIONS()[0];
+    setUpBusy(true); setUpErr(null); if (!confirmDuplicate) setUpDup(null);
+    const b = await uploadDocument({
+      name: upName || tr({ sv: 'Inklistrad text', en: 'Pasted text' }),
+      text: upText, filename: upFilename, dataBase64: upData || undefined,
+      attestedClass: opt.attestedClass, ownership: opt.ownership, confirmDuplicate,
+    });
     setUpBusy(false);
-    if (b && b.ok) { setUpText(''); setUpName(''); refreshDocs(); }
+    if (b && b.ok) { clearUpload(); refreshDocs(); }
+    else if (b && b.failure === 'duplicate') setUpDup(b.duplicate); // say so plainly before saving
     else setUpErr((b && b.error) || 'unknown error'); // the explicit failed envelope, shown as-is
-  };
-
-  const doSuggest = async () => {
-    setSuggesting(true); setSuggestNote(null);
-    try {
-      const b = await suggestFacts({ caseId: caseId || null });
-      setSuggestNote(b.ok ? {
-        drafted: b.drafted, barredDocuments: b.barredDocuments || [], barredSpans: b.barredSpans || [], skippedSpans: b.skippedSpans || 0,
-      } : { error: b.error });
-    } catch (err) { setSuggestNote({ error: err.message }); }
-    setSuggesting(false);
-    refreshProposals();
   };
 
   const doOwnMint = async () => {
@@ -199,7 +210,7 @@ function SourceMaterial() {
     else setOwnErr((b && b.result && b.result.reason) || (b && b.error) || 'unknown error');
   };
 
-  const classes = CLASS_LABELS();
+  const classOptions = CLASS_OPTIONS();
   const types = TYPE_LABELS();
 
   const content = (
@@ -251,88 +262,77 @@ function SourceMaterial() {
         ))}
       </ContentBox>
 
-      {/* 3.4 — intake with attestation */}
+      {/* 3.4 — intake with attestation; file formats: Word/PDF/HTML/txt or paste */}
       <ContentBox style={{ display: 'grid', gap: 'var(--sp-3)' }}>
         <b>{tr({ sv: 'Lägg till ett dokument', en: 'Add a document' })}</b>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-          <input type="file" accept=".txt,.md,text/plain" onChange={onFile} />
+          <input type="file" accept=".txt,.md,.pdf,.docx,.html,.htm,text/plain" onChange={onFile} />
           <input type="text" value={upName} onChange={(e) => setUpName(e.target.value)} placeholder={tr({ sv: 'Namn', en: 'Name' })} />
         </div>
-        <textarea className="loop__ta" rows={5} value={upText} onChange={(e) => setUpText(e.target.value)}
-          placeholder={tr({ sv: '…eller klistra in texten här (txt/inklistrat — PDF/DOCX stöds inte ännu)', en: '…or paste the text here (txt/pasted — PDF/DOCX not supported yet)' })} />
+        {upData && (
+          <span className="cap">{tr({ sv: 'Vald fil', en: 'Chosen file' })}: <b>{upFilename}</b> — {tr({ sv: 'texten läses ur filen när du sparar', en: 'the text is read from the file when you save' })}</span>
+        )}
+        <textarea className="loop__ta" rows={5} value={upText}
+          onChange={(e) => { setUpText(e.target.value); setUpData(null); setUpFilename(null); }}
+          placeholder={tr({ sv: '…eller klistra in texten här (Word, PDF, HTML och txt kan laddas upp som fil ovan)', en: '…or paste the text here (Word, PDF, HTML and txt can be uploaded as a file above)' })} />
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
           <label className="cap" style={{ fontWeight: 700 }}>{tr({ sv: 'Vad är det här?', en: 'What is this?' })}</label>
-          <select value={upClass} onChange={(e) => setUpClass(e.target.value)}>
-            {classes.map((c) => <option key={c.v} value={c.v}>{c.t}</option>)}
+          <select value={upClass} onChange={(e) => setUpClass(e.target.value)} style={{ maxWidth: '100%' }}>
+            {classOptions.map((c) => <option key={c.v} value={c.v}>{c.t}</option>)}
           </select>
-          <Button variant="primary" size="sm" icon="plus" onClick={doUpload} disabled={upBusy || !upText.trim()}>
+          <Button variant="primary" size="sm" icon="plus" onClick={() => doUpload(false)} disabled={upBusy || (!upData && !upText.trim())}>
             {upBusy ? tr({ sv: 'Laddar upp…', en: 'Uploading…' }) : tr({ sv: 'Spara dokument', en: 'Save document' })}
           </Button>
         </div>
+        {upDup && (
+          <div className="loop__res loop__res--gap">
+            <Icon name="bulb" size={16} />
+            <div className="loop__res-b">
+              <div className="loop__res-t">{tr({ sv: 'Det här dokumentet finns redan', en: 'This document is already stored' })}</div>
+              <div className="loop__res-m">
+                {upDup.sameContent
+                  ? tr({ sv: `Samma innehåll som ”${upDup.name}”.`, en: `Same content as “${upDup.name}”.` })
+                  : tr({ sv: `Ett dokument heter redan ”${upDup.name}”.`, en: `A document is already named “${upDup.name}”.` })}{' '}
+                <button className="ll-link ll-link--text" style={{ background: 'none', border: 'none', cursor: 'pointer', font: 'inherit', textDecoration: 'underline', padding: 0 }}
+                  onClick={() => doUpload(true)} disabled={upBusy}>
+                  {tr({ sv: 'Spara ändå', en: 'Save anyway' })}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         {upErr && (
           <div className="loop__res loop__res--fail">
             <Icon name="refresh" size={16} />
             <div className="loop__res-b"><div className="loop__res-m">{upErr}</div></div>
           </div>
         )}
+        {/* Library view — what is already stored (name, when added, class, spans, facts minted) */}
         {docsStatus === 'ready' && docs.length > 0 && (
           <div style={{ display: 'grid', gap: 8 }}>
-            {docs.map((d) => (
-              <div key={d.id} style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                <Icon name="cv" size={14} />
-                <b>{d.name}</b>
-                <Tag variant={['job_ad', 'third_party'].includes(d.attestedClass) ? 'warn' : 'ok'}>{(classes.find((c) => c.v === d.attestedClass) || {}).t || d.attestedClass}</Tag>
-                <span className="cap">{d.spanCount} {tr({ sv: 'textavsnitt', en: 'spans' })}</span>
-                <button className="ll-link ll-link--text" style={{ background: 'none', border: 'none', cursor: 'pointer', marginLeft: 'auto' }}
-                  onClick={() => deleteDocument(d.id).then(refreshDocs)}>
-                  {tr({ sv: 'Radera', en: 'Delete' })}
-                </button>
-              </div>
-            ))}
+            <div className="cap" style={{ fontWeight: 700 }}>{tr({ sv: 'Sparat material', en: 'Stored material' })} ({docs.length})</div>
+            {docs.map((d) => {
+              const cd = classDisplay(d);
+              return (
+                <div key={d.id} style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <Icon name="cv" size={14} />
+                  <b>{d.name}</b>
+                  <Tag variant={cd.tone}>{cd.label}</Tag>
+                  <span className="cap">{fmtDate(d.createdAt)}</span>
+                  <span className="cap">{d.spanCount} {tr({ sv: 'textavsnitt', en: 'spans' })}</span>
+                  <span className="cap">{d.factCount || 0} {tr({ sv: 'myntade fakta', en: 'facts minted' })}</span>
+                  <button className="ll-link ll-link--text" style={{ background: 'none', border: 'none', cursor: 'pointer', marginLeft: 'auto' }}
+                    onClick={() => deleteDocument(d.id).then(refreshDocs)}>
+                    {tr({ sv: 'Radera', en: 'Delete' })}
+                  </button>
+                </div>
+              );
+            })}
           </div>
         )}
       </ContentBox>
 
-      {/* Section 4A/4C — draft standing or against an ad */}
-      <ContentBox style={{ display: 'grid', gap: 'var(--sp-3)' }}>
-        <b>{tr({ sv: 'Föreslå CV-rader ur materialet', en: 'Draft CV lines from the material' })}</b>
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-          <select value={caseId} onChange={(e) => setCaseId(e.target.value)}>
-            <option value="">{tr({ sv: 'Utan annons (stående förslag)', en: 'Without an ad (standing suggestions)' })}</option>
-            {cases.map((c) => <option key={c.meta.id} value={c.meta.id}>{c.meta.company} · {c.meta.role}</option>)}
-          </select>
-          <Button variant="secondary" size="sm" icon="sparkle" onClick={doSuggest} disabled={suggesting || docs.length === 0}>
-            {suggesting ? tr({ sv: 'Lilly läser…', en: 'Lilly is reading…' }) : tr({ sv: 'Föreslå fakta', en: 'Draft proposals' })}
-          </Button>
-        </div>
-        {/* Section 4A — the pre-draft thinness face, said plainly */}
-        {target && target.thinTop && target.thinTop.length > 0 && (
-          <div className="loop__res loop__res--gap">
-            <Icon name="bulb" size={16} />
-            <div className="loop__res-b">
-              <div className="loop__res-t">{tr({ sv: 'Annonsen väger krav tungt där ditt underlag är tunt', en: 'The ad weighs requirements your pool is thin on' })}</div>
-              <div className="loop__res-m">
-                {target.thinTop.map((r) => `“${r.requirement}” (${tr({ sv: 'vikt', en: 'weight' })} ${r.weight}/5)`).join(' · ')}
-                {' — '}
-                {tr({ sv: 'ladda upp material eller skriv egna rader ovan, så kan Lilly föreslå därifrån.', en: 'upload material or type your own lines above, and Lilly can draft from there.' })}
-              </div>
-            </div>
-          </div>
-        )}
-        {suggestNote && suggestNote.error && (
-          <div className="loop__res loop__res--fail"><Icon name="refresh" size={16} /><div className="loop__res-b"><div className="loop__res-m">{suggestNote.error}</div></div></div>
-        )}
-        {suggestNote && !suggestNote.error && (
-          <div className="cap">
-            {tr({ sv: 'Utkast', en: 'Drafted' })}: <b>{suggestNote.drafted}</b>
-            {suggestNote.barredSpans.length > 0 && <> · {tr({ sv: 'avvisade avsnitt', en: 'barred spans' })}: {suggestNote.barredSpans.map((s) => s.detectedClass).join(', ')}</>}
-            {suggestNote.barredDocuments.length > 0 && <> · {tr({ sv: 'spärrade dokument (annons/tredje part)', en: 'barred documents (ad/third-party)' })}: {suggestNote.barredDocuments.length}</>}
-            {suggestNote.skippedSpans > 0 && <> · {tr({ sv: 'väntande avsnitt', en: 'spans left for a later run' })}: {suggestNote.skippedSpans}</>}
-          </div>
-        )}
-      </ContentBox>
-
-      {/* the review queue */}
+      {/* the review queue (standing suggestions stay reachable via API; per-job drafting lives in Matchanalys) */}
       {proposals.length > 0 && (
         <ContentBox style={{ display: 'grid', gap: 'var(--sp-3)' }}>
           <b>{tr({ sv: 'Förslag att granska', en: 'Proposals to review' })} ({proposals.length})</b>

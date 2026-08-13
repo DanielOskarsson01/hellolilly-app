@@ -9,6 +9,7 @@ const assert = require('node:assert');
 const {
   ATTESTED_CLASSES, isBarredAsExperienceSource, spanise, createDocument,
   storeDocument, deleteDocument, MAX_DOCUMENT_BYTES, SPAN_SCHEMA,
+  findDuplicate, factsMintedByDocument,
 } = require('./skeleton/documents/index.cjs');
 const { validate } = require('./skeleton/prompt-assembly/index.cjs');
 const { createStore } = require('./skeleton/store/index.cjs');
@@ -94,6 +95,32 @@ test('storeDocument + deleteDocument: deleting a document purges its (unminted) 
   const left = store.listRecords('spans');
   assert.strictEqual(left.length, b.spans.length);
   assert.ok(left.every((s) => s.documentId === b.doc.id), 'only the other document’s spans remain');
+});
+
+test('findDuplicate: matches an existing document by content hash OR by name', () => {
+  const store = createStore();
+  const a = createDocument({ name: 'CV 2019.txt', text: 'BETCLIC\n\nGrew revenue.', attestedClass: 'old_cv', ownership: 'mine' });
+  storeDocument(store, a.doc, a.spans);
+  // same content, different name -> caught by hash
+  assert.strictEqual(findDuplicate(store, { name: 'renamed.txt', sha256: a.doc.sha256 }).id, a.doc.id);
+  // same name, different content -> caught by name
+  assert.strictEqual(findDuplicate(store, { name: 'CV 2019.txt', sha256: 'deadbeef' }).id, a.doc.id);
+  // neither -> no duplicate
+  assert.strictEqual(findDuplicate(store, { name: 'new.txt', sha256: 'deadbeef' }), null);
+  // a document never duplicates itself (excludeId)
+  assert.strictEqual(findDuplicate(store, { name: a.doc.name, sha256: a.doc.sha256, excludeId: a.doc.id }), null);
+});
+
+test('factsMintedByDocument: counts accepted facts by their span snapshot documentId; person-typed count toward none', () => {
+  const store = createStore();
+  const a = createDocument({ name: 'A', text: 'Alpha.', attestedClass: 'old_cv', ownership: 'mine' });
+  storeDocument(store, a.doc, a.spans);
+  store.ingestDatafact({ id: 'datafact_1', kind: 'datafact', text: 'x', spanSnapshot: { documentId: a.doc.id } });
+  store.ingestDatafact({ id: 'datafact_2', kind: 'datafact', text: 'y', spanSnapshot: { documentId: a.doc.id } });
+  store.ingestDatafact({ id: 'datafact_3', kind: 'datafact', text: 'typed' }); // person-typed: no snapshot
+  const counts = factsMintedByDocument(store);
+  assert.strictEqual(counts.get(a.doc.id), 2);
+  assert.strictEqual([...counts.values()].reduce((n, v) => n + v, 0), 2, 'person-typed fact counts toward no document');
 });
 
 // ---- 3.1 stop the discard: the gap-fill loop retains the person's typed answer ----
