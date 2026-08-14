@@ -16,3 +16,6 @@ data/cv_data.json
 
 # Wave 1 Phase 0 LOCAL PARITY REFERENCES - real content, never committed (FIXTURE LAW)
 harness/phase0/local/
+
+# Wave 2 live eval run artifact (produced by npm run eval:wave2:live; uploaded by CI)
+harness/wave2/eval-live-manifest.json

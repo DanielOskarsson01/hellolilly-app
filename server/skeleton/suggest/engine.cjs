@@ -41,8 +41,11 @@ function placementLabel(type, jobKey) {
     if (j) return `${j.company} — ${j.role}, ${j.period}`;
   }
   return {
+    // skill lands in Core Competencies too (the frozen template has no separate Skills
+    // section) — the reviewed label must name where the fact actually renders (finding:
+    // reviewed placement == recorded placement).
     value_proposition: 'Career Highlights', competency: 'Core Competencies',
-    skill: 'Skills', other_work: 'Other Experience', job_result: 'Professional Experience (job not yet chosen)',
+    skill: 'Core Competencies', other_work: 'Other Experience', job_result: 'Professional Experience (job not yet chosen)',
   }[type] || type;
 }
 
@@ -201,6 +204,9 @@ async function propose({ store, llm, caseId = null, documentIds = null, spanIds 
     const semanticDefect = (judgeA.claims || []).some((cl) => cl.origin === 'draft');
     const record = {
       id: mintId('proposal'), kind: 'proposal',
+      // model-drafted from an untrusted span -> untrusted-derived at storage (finding: stamp
+      // provenance on proposals). The minted fact carries its own machine provenance.
+      provenance: 'untrusted-derived',
       status: grounding.ok && !semanticDefect ? 'open' : 'defective',
       text: p.text, type: p.type,
       jobKey, placementEvidence: jobKey ? 'span' : 'none',
@@ -233,22 +239,40 @@ function serveProposals({ store }) {
     proposals: out,
     placementOptions: tailor.FIXED_JOBS.map((j) => ({ jobKey: j.key, label: `${j.company} — ${j.role}, ${j.period}` })),
     factTypes: FACT_TYPES,
+    // the competency-category taxonomy a competency/skill fact must join to reach the CV
+    // (the UI shows it as a required picker for those two types).
+    competencyCategories: [...knownCategories(store).values()].map((c) => ({ id: c.id, title: c.title })),
   };
 }
 
-// attribution -> validated { type, tags, jobKey, personPlaced } or a refusal string.
-// Deterministic misattribution defence: a job placement must actually ROUTE there.
-function validateAttribution(attribution, proposal) {
+// The competency-category taxonomy the store currently knows (from curated competency
+// facts). A minted competency/skill must join ONE of these so it renders in the frozen
+// Core Competencies table (a new sparse category would fail the 4-6 cardinality gate).
+function knownCategories(store) {
+  const m = new Map();
+  for (const f of store.listDatafacts()) if (f.type === 'competency' && f.category && f.category.id) m.set(f.category.id, f.category);
+  return m;
+}
+
+// attribution -> validated { type, tags, jobKey, personPlaced, category } or a refusal string.
+// Two review fixes:
+//  - REVIEWED PLACEMENT == RECORDED PLACEMENT: tags are DERIVED from jobKey here, never
+//    trusted from the caller — a caller-supplied routing tag can no longer smuggle a fact
+//    into a job while jobKey stays null (the recorded placement would then contradict the
+//    label the person reviewed).
+//  - NO SILENT SCHEMA DROP: a competency/skill carries a category (an existing taxonomy id),
+//    so cv-tailor can place it in Core Competencies instead of dropping it.
+function validateAttribution(attribution, proposal, categories = null) {
   if (!attribution || typeof attribution !== 'object') return { error: 'reviewed attribution is required (type + placement) — acceptance records attribution, not only wording' };
   const type = attribution.type;
   if (!FACT_TYPES.includes(type)) return { error: `attribution.type must be one of ${FACT_TYPES.join(', ')}` };
   const jobKey = attribution.jobKey || null;
-  let tags = Array.isArray(attribution.tags) ? attribution.tags.filter((t) => typeof t === 'string') : [];
+  let tags = [];
   if (jobKey) {
     const j = tailor.FIXED_JOBS.find((x) => x.key === jobKey);
     if (!j) return { error: `unknown jobKey: ${jobKey}` };
     if (type !== 'job_result') return { error: 'a job placement requires type job_result' };
-    if (!tags.includes(j.matchTags[0])) tags = [...tags, j.matchTags[0]];
+    tags = [j.matchTags[0]]; // derived from the reviewed placement, not the caller
     const routed = tailor.jobOfFact({ type, tags });
     if (routed !== jobKey) return { error: `attribution does not route to ${jobKey} (routes to ${routed || 'nowhere'})` };
   }
@@ -256,7 +280,19 @@ function validateAttribution(attribution, proposal) {
   if (proposal && proposal.placementEvidence === 'none' && jobKey && !personPlaced) {
     return { error: 'the source span does not evidence this employer — placement must be the person\'s explicit choice (set personPlaced)' };
   }
-  return { type, tags, jobKey, personPlaced };
+  let category = null;
+  if (type === 'competency' || type === 'skill') {
+    const c = attribution.category;
+    if (!c || !c.id) return { error: `a ${type} needs a category so it can appear under Core Competencies — choose one` };
+    if (categories && categories.size) {
+      if (!categories.has(c.id)) return { error: `unknown competency category '${c.id}' — pick one of: ${[...categories.keys()].join(', ')}` };
+      category = categories.get(c.id); // canonical {id,title,source}
+    } else {
+      if (!c.title) return { error: 'a competency/skill category needs an id and a title' };
+      category = { id: c.id, title: c.title, ...(c.source ? { source: c.source } : {}) };
+    }
+  }
+  return { type, tags, jobKey, personPlaced, category };
 }
 
 function refusal(reason, extra = {}) { return { outcome: 'refused', reason, ...extra }; }
@@ -266,17 +302,19 @@ async function accept({ store, llm, proposalId, nonce, finalText, attribution, s
   if (!checkCeiling()) return refusal('rate ceiling: too many acceptances in the window — slow down', { rateLimited: true });
   const proposal = store.getRecord('proposals', proposalId);
   if (!proposal) return refusal('no such proposal');
-  if (proposal.status === 'accepted' || proposal.status === 'rejected') return refusal(`proposal already ${proposal.status}`);
+  // only an open/defective proposal is acceptable; accepted/rejected are terminal and an
+  // 'invalidated' one lost its source document (deleteDocument) — none can mint.
+  if (proposal.status !== 'open' && proposal.status !== 'defective') return refusal(`proposal is ${proposal.status}, not open for acceptance`);
   if (!nonce || nonce !== proposal.nonce) {
     return refusal('acceptance must present the single-use nonce minted when this proposal was served for review (5.4)');
   }
   const text = String(finalText || '').trim();
   if (!text) return refusal('final wording is required');
 
-  const att = validateAttribution(attribution, proposal);
+  const att = validateAttribution(attribution, proposal, knownCategories(store));
   if (att.error) return refusal(att.error);
 
-  // INVARIANT 4 + the authorship discriminator on the FINAL wording.
+  // INVARIANT 4 + the authorship discriminator on the FINAL wording (deterministic DIGIT core).
   const grounding = classifyGrounding({ finalText: text, draftText: proposal.text, spanTexts: [proposal.span.text] });
   if (!grounding.ok) {
     return refusal('defective proposal: unsupported content originating in the model\'s draft cannot mint on accept — reject it, or state the claim in your own words as a person-typed fact', { defectiveTokens: grounding.defectiveTokens });
@@ -290,11 +328,28 @@ async function accept({ store, llm, proposalId, nonce, finalText, attribution, s
     return refusal(`the model's wording failed the writing rules (${gate.violations.map((x) => x.phrase).join(', ')}) — edit it into your own words or reject`, { gateViolations: gate.violations });
   }
 
-  // DISCIPLINE 1 re-run on the final wording — classification, never a block.
+  // DISCIPLINE 1 (Judge A) as a SECOND, INDEPENDENT accept-time gate — the semantic
+  // counterpart to grounding's digit core (the digit core misses a fabricated job title
+  // like "as Chief Marketing Officer"). For a BARE accept, the model's own unedited wording
+  // mints ONLY if Judge A clears it: a schema-valid verdict with NO model-originated
+  // ('draft') unsupported additions. A model-originated addition, a malformed/out-of-vocab
+  // verdict, or an unavailable checker all BLOCK the bare accept — the person edits it into
+  // their own words (person-attested, D22) or rejects. Editing transfers authorship, so a
+  // non-bare accept is the person's own statement and mints freely.
   let judgeA = null;
+  let judgeAError = null;
   if (llm) {
     try { judgeA = await judgeClaimAddition({ spanTexts: [proposal.span.text], candidateWording: text, modelDraft: proposal.text }, llm); }
-    catch (err) { judgeA = { error: `judge A unavailable: ${err.message}` }; }
+    catch (err) { judgeAError = err.message; }
+  }
+  if (bareAccept && llm) {
+    if (!judgeA) {
+      return refusal(`the model's wording could not be verified against the source (${judgeAError || 'checker unavailable'}) — edit it into your own words or reject`, { judgeAError: judgeAError || 'unavailable' });
+    }
+    const modelAdditions = judgeA.claims.filter((c) => c.origin === 'draft');
+    if (modelAdditions.length) {
+      return refusal(`the model's wording adds claims the source does not support: ${modelAdditions.map((c) => `"${c.text}" (${c.type})`).join('; ')} — edit it into your own words to make it yours, or reject`, { judgeAAdditions: modelAdditions });
+    }
   }
 
   const now = new Date().toISOString();
@@ -304,6 +359,7 @@ async function accept({ store, llm, proposalId, nonce, finalText, attribution, s
     origin: 'accepted',
     // 3.5: prompt provenance NEVER converts — machine provenance, always enveloped.
     provenance: 'person-approved-derived',
+    ...(att.category ? { category: att.category } : {}), // competency/skill placement (finding: no silent drop)
     grounding: grounding.grounding,
     spanSnapshot: { ...proposal.span }, // deletion of the document stays real (3.4)
     acceptance: {
@@ -311,8 +367,8 @@ async function accept({ store, llm, proposalId, nonce, finalText, attribution, s
       session: String(session.sessionId || 'local'), device: String(session.device || 'unknown'),
       attested: true, authenticated: false, // D23: attested, NOT authenticated, until D13 fires
       reviewedWording: text,
-      reviewedAttribution: { type: att.type, tags: att.tags, jobKey: att.jobKey, personPlaced: att.personPlaced, placementLabel: placementLabel(att.type, att.jobKey) },
-      judgeA,
+      reviewedAttribution: { type: att.type, tags: att.tags, jobKey: att.jobKey, personPlaced: att.personPlaced, ...(att.category ? { category: att.category } : {}), placementLabel: placementLabel(att.type, att.jobKey) },
+      judgeA: judgeA || (judgeAError ? { error: judgeAError } : null),
       gateWarnings: gate.ok ? [] : gate.violations,
     },
   };
@@ -368,7 +424,7 @@ async function personMint({ store, llm, text, attribution, session = {} }) {
   if (!checkCeiling()) return refusal('rate ceiling: too many acceptances in the window — slow down', { rateLimited: true });
   const wording = String(text || '').trim();
   if (!wording) return refusal('some wording is required');
-  const att = validateAttribution({ personPlaced: true, ...attribution }, null);
+  const att = validateAttribution({ personPlaced: true, ...attribution }, null, knownCategories(store));
   if (att.error) return refusal(att.error);
   const gate = gateCheck({ text: wording }); // advisory — recorded, never blocking (D22)
   const now = new Date().toISOString();
@@ -376,6 +432,7 @@ async function personMint({ store, llm, text, attribution, session = {} }) {
     id: mintId('datafact'), kind: 'datafact',
     type: att.type, text: wording, tags: att.tags, language: 'en',
     origin: 'person-attested',
+    ...(att.category ? { category: att.category } : {}), // competency/skill placement (finding: no silent drop)
     grounding: 'person-attested', // asserted directly by the person, dated — the honest record
     authorship: 'person',
     acceptance: {
@@ -383,7 +440,7 @@ async function personMint({ store, llm, text, attribution, session = {} }) {
       session: String(session.sessionId || 'local'), device: String(session.device || 'unknown'),
       attested: true, authenticated: false, // D23
       reviewedWording: wording,
-      reviewedAttribution: { type: att.type, tags: att.tags, jobKey: att.jobKey, personPlaced: true, placementLabel: placementLabel(att.type, att.jobKey) },
+      reviewedAttribution: { type: att.type, tags: att.tags, jobKey: att.jobKey, personPlaced: true, ...(att.category ? { category: att.category } : {}), placementLabel: placementLabel(att.type, att.jobKey) },
       judgeA: null, // nothing to compare a from-memory line against — classification is person-attested by construction
       gateWarnings: gate.ok ? [] : gate.violations,
     },

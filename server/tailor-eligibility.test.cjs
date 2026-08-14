@@ -59,6 +59,32 @@ test('the trusted block withholds minted text; the enveloped block carries it (p
   assert.ok(trustedPart.includes(PERSON.text), 'person-attested text is offered plainly (D22)');
 });
 
+test('finding 4: every mintable fact type reaches the tailor pool — none (competency/skill included) silently vanishes', () => {
+  const CAT = { id: 'cat_ops', title: 'Operations', source: 'master' };
+  let n = 0;
+  const mint = (type, text, { tags = [], jobKey = null, category = null } = {}) => ({
+    id: `df_${type}`, kind: 'datafact', type, text, tags, language: 'en',
+    origin: 'accepted', provenance: 'person-approved-derived', grounding: 'span-grounded',
+    ...(category ? { category } : {}),
+    acceptance: { id: `acc_${++n}`, at: 't', reviewedWording: text, reviewedAttribution: { type, jobKey, ...(category ? { category } : {}) } },
+  });
+  const facts = [
+    mint('job_result', 'Closed the first 3 launch partners', { tags: ['Betclic'], jobKey: 'betclic' }),
+    mint('value_proposition', 'Built two businesses from zero', {}),
+    mint('competency', 'Cross-functional leadership', { category: CAT }),
+    mint('skill', 'SAP implementation', { category: CAT }),
+    mint('other_work', 'Advisor at a fintech startup', {}),
+  ];
+  const pool = tailor.candidatePool(facts);
+  const ids = new Set();
+  for (const b of [...pool.summary, ...pool.highlights, ...pool.derivedHighlights, ...pool.other]) ids.add(b.id);
+  for (const c of pool.competencyCategories) for (const b of c.items) ids.add(b.id);
+  for (const j of Object.values(pool.jobs)) for (const b of [...j.summary, ...j.results]) ids.add(b.id);
+  for (const f of facts) assert.ok(ids.has(f.id), `${f.type} must reach the pool (finding: no silent schema drop)`);
+  const catItems = pool.competencyCategories.flatMap((c) => c.items).map((b) => b.id);
+  assert.ok(catItems.includes('df_competency') && catItems.includes('df_skill'), 'competency AND skill land in Core Competencies via their category');
+});
+
 test('assembleDraft renders a selected minted id with its verbatim text and datafact ref', () => {
   const facts = [MINTED, PERSON, CURATED];
   const byId = new Map(facts.map((f) => [f.id, f]));

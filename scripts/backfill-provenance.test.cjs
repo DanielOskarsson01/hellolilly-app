@@ -6,6 +6,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
 const { classifyFacts, stampFact, COINHERO_SOURCE, stripOrigin } = require('./backfill-provenance.cjs');
+const { isVerifiedFact } = require('../server/skeleton/store/index.cjs');
 
 const F = (id, type, text, extra = {}) => ({ id, kind: 'datafact', type, text, tags: [], language: 'en', ...extra });
 
@@ -58,4 +59,15 @@ test('stampFact: only origin/originDetail are added; every prior field is byte-i
   // the legacy class is never curated (3.3: recreation, not promotion)
   const l = stampFact(LIVE[3], 'legacy-model-authored', { cvDataSha256: 'sha', classifiedAt: 't' });
   assert.notStrictEqual(l.origin, 'curated');
+});
+
+test('finding 5: a pending mapper-replay fact is NOT verified; --attest is the ONLY way to clear it', () => {
+  // default (no re-attestation): curated but pending -> the datalayer root treats it as UNVERIFIED
+  const pending = stampFact(LIVE[0], 'curated-mapper-replay', { cvDataSha256: 'sha', classifiedAt: 't' });
+  assert.strictEqual(pending.originDetail.attestation, 'pending-daniel-reattestation');
+  assert.strictEqual(isVerifiedFact(pending), false, 'curated-while-pending must read as unverified');
+  // explicit re-attestation: a recorded human confirmation -> non-pending -> verified
+  const attested = stampFact(LIVE[0], 'curated-mapper-replay', { cvDataSha256: 'sha', classifiedAt: 't', attested: true });
+  assert.match(attested.originDetail.attestation, /^attested-daniel-/);
+  assert.strictEqual(isVerifiedFact(attested), true, 're-attested curated is verified');
 });

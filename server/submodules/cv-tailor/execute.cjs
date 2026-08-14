@@ -79,9 +79,10 @@ function jobOfFact(f) {
 
 // candidatePool -> the facts offered to the model for SELECTION, grouped by template node.
 // Gap-answer facts (type 'fill-gap') remain selectable as highlights (pool compounding survives).
-// Competencies are grouped into their imported categories (the enriched `category` field); flat
-// `skill` facts carry no category and are NOT part of the reference's categorised table, so they
-// are not offered here. Category order = seed order (deterministic).
+// Competency AND skill facts are grouped into their categories (the enriched `category` field —
+// curated facts carry it from the master pool; minted facts capture it at accept). A minted
+// competency/skill therefore reaches Core Competencies instead of silently vanishing. Category
+// order = seed order (deterministic).
 //
 // Wave 2 (3.5): a MINTED fact (person-approved-derived) IS eligible for its job section —
 // section eligibility loosened on the INV5 recorded gate — but its TEXT never enters the
@@ -100,7 +101,10 @@ function candidatePool(facts) {
     // Highlights: trusted value props go in the trusted pool; model-authored gap answers
     // (untrusted-derived) go to derivedHighlights so execute() ENVELOPES them (finding 1).
     if (['value_proposition', 'fill-gap'].includes(f.type)) (b.derived ? pool.derivedHighlights : pool.highlights).push(b);
-    if (f.type === 'competency' && f.category) {
+    // competency AND skill facts both live in Core Competencies: a minted skill/competency
+    // carries a category (captured at accept, finding: no silent schema drop) and joins that
+    // category's items instead of vanishing.
+    if ((f.type === 'competency' || f.type === 'skill') && f.category) {
       const c = f.category;
       if (!catIndex.has(c.id)) { const bucket = { id: c.id, title: c.title, source: c.source, items: [] }; catIndex.set(c.id, bucket); pool.competencyCategories.push(bucket); }
       catIndex.get(c.id).items.push(b);
@@ -123,10 +127,10 @@ function collectDerived(pool) {
   return out;
 }
 
-// category id -> {id,title,source} taxonomy, from the enriched competency facts.
+// category id -> {id,title,source} taxonomy, from the enriched competency AND skill facts.
 function categoryInfo(facts) {
   const m = new Map();
-  for (const f of facts) if (f.type === 'competency' && f.category) m.set(f.category.id, f.category);
+  for (const f of facts) if ((f.type === 'competency' || f.type === 'skill') && f.category) m.set(f.category.id, f.category);
   return m;
 }
 

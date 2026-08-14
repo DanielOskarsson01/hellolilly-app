@@ -50,6 +50,33 @@ test('POST /api/documents ingests, attests, spanises; GET lists with span counts
   assert.equal(res._body.documents.length, 1);
   assert.equal(res._body.documents[0].id, docId);
   assert.equal(res._body.documents[0].spanCount, 2);
+  assert.equal(res._body.documents[0].factCount, 0, 'library view: facts minted from this document');
+});
+
+test('finding 7: blank / heading-only content is the explicit 422 parse_failed envelope, nothing stored', async () => {
+  const { host, handle } = fixture();
+  for (const text of ['', '   \n\t ', 'SUMMARY']) {
+    const res = mockRes();
+    await handle(makeReq('POST', '/api/documents', { name: 'x', text, attestedClass: 'other' }), res);
+    assert.equal(res._status, 422, `blank ${JSON.stringify(text)}`);
+    assert.equal(res._body.failure, 'parse_failed', 'a zero-span extraction fails explicitly');
+  }
+  assert.equal(host.store.listRecords('documents').length, 0, 'nothing stored for blank content');
+});
+
+test('finding 7: DELETE /api/documents/:id INVALIDATES the document\'s open proposals (deleted source text cannot mint)', async () => {
+  const { host, handle } = fixture();
+  let res = mockRes();
+  await handle(makeReq('POST', '/api/documents', { name: 'A', text: 'BETCLIC\n\n- Grew casino revenue', attestedClass: 'old_cv' }), res);
+  const docId = res._body.document.id;
+  const spanId = res._body.spans[0].id;
+  // a server-minted proposal referencing that document (host-level putRecord — the client route is closed)
+  host.store.putRecord('proposals', { id: 'proposal_x', kind: 'proposal', status: 'open', nonce: 'n', span: { spanId, documentId: docId, text: 'Grew casino revenue' } });
+  res = mockRes();
+  await handle(makeReq('DELETE', `/api/documents/${docId}`), res);
+  assert.equal(res._status, 200);
+  assert.equal(host.store.getRecord('proposals', 'proposal_x').status, 'invalidated');
+  assert.equal(host.store.getRecord('proposals', 'proposal_x').nonce, null);
 });
 
 test('POST /api/documents: bad attestation and non-text content fail with an explicit envelope, nothing stored', async () => {

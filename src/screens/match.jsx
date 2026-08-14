@@ -89,7 +89,7 @@ function FillGap({ gap, reqLabel, onAnswer, onSkip }) {
       try {
         const served = await listProposals();
         const mine = (served.proposals || []).find((p) => p.id === r.proposals[0].id);
-        if (mine) setReview({ proposal: mine, placementOptions: served.placementOptions || [], factTypes: served.factTypes || [] });
+        if (mine) setReview({ proposal: mine, placementOptions: served.placementOptions || [], factTypes: served.factTypes || [], competencyCategories: served.competencyCategories || [] });
         else setRes({ outcome: 'save_failed', reason: 'proposal vanished before review' });
       } catch (err) {
         setRes({ outcome: 'save_failed', reason: err.message });
@@ -151,6 +151,7 @@ function FillGap({ gap, reqLabel, onAnswer, onSkip }) {
             proposal={review.proposal}
             placementOptions={review.placementOptions}
             factTypes={review.factTypes}
+            competencyCategories={review.competencyCategories}
             onDone={({ accepted }) => {
               setReview(null);
               if (accepted) setRes({ outcome: 'accepted' }); // the case refetch (ll:case:changed) drops the gap

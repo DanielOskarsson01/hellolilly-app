@@ -7,6 +7,6 @@ module.exports = {
   description: 'A2: reads decodedRole + datafact pool (+ optional preferences) and writes an honest fit (match/partial/missing, each match cited) and gaps (each with a bridge + material).',
   reads: ['meta', 'decodedRole'],
   writes: ['fit', 'gaps'],
-  capabilities: ['store', 'logger', 'llm', 'datalayer'],
+  capabilities: ['store', 'logger', 'llm', 'datalayer', 'assembly'],
   options: { model: 'claude-opus-4-8' },
 };

@@ -6,6 +6,7 @@
     "preview": "vite preview",
     "test": "node --test \"server/**/*.test.cjs\" \"scripts/**/*.test.cjs\" \"src/**/*.test.mjs\"",
     "verify": "npm test && npm run build",
+    "eval:wave2:live": "node --env-file-if-exists=.env harness/wave2/run-eval-live.cjs",
     "parity": "node --env-file-if-exists=.env harness/phase0/run-parity.cjs",
     "verify:a1": "node --env-file=.env server/verify-a1.cjs",
     "discover": "node server/run-discovery.cjs",

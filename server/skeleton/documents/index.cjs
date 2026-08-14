@@ -117,9 +117,16 @@ function createDocument({ name, text, attestedClass, ownership = 'mine', context
     name: String(name || 'Untitled').slice(0, 160),
     attestedClass, ownership, attestedAt: now, createdAt: now,
     bytes, sha256: crypto.createHash('sha256').update(text, 'utf8').digest('hex'),
+    // uploaded external content -> untrusted at storage (finding: stamp provenance on
+    // documents/spans). Spans are verbatim slices, so they inherit it.
+    provenance: 'untrusted',
     text, context,
   };
-  const spans = spanise(text).map((s) => ({ id: mintId('span'), kind: 'span', documentId: doc.id, ...s }));
+  const spans = spanise(text).map((s) => ({ id: mintId('span'), kind: 'span', documentId: doc.id, provenance: 'untrusted', ...s }));
+  // Blank/heading-only content yields zero spans — exactly the "silent empty span set" the
+  // ParseError discipline forbids (finding: empty TXT/HTML/pasted must fail explicitly, not
+  // store as an empty document). The dedicated route turns this into the 422 failed envelope.
+  if (spans.length === 0) throw new ParseError('no spans could be extracted (blank or heading-only content) — nothing to store');
   for (const s of spans) {
     const v = validate(s, SPAN_SCHEMA);
     if (!v.ok) throw new Error(`span failed INV2 schema validation: ${v.errors.join('; ')}`);
@@ -135,9 +142,20 @@ function storeDocument(store, doc, spans) {
 
 // Span lifecycle (3.4): deleting a document purges its spans from the collection. Minted
 // facts are untouched — their snapshot lives on the fact, so the deletion is real.
+//
+// A proposal EMBEDS its source span's text (span.text) and is still mintable while open, so
+// deleting the document must also INVALIDATE its still-open (open/defective) proposals —
+// otherwise the deleted source text could still be accepted into a fact (finding: lifecycle).
+// Accepted/rejected proposals are terminal and keep their audit trail; the minted fact keeps
+// its own span snapshot, so the deletion stays real.
 function deleteDocument(store, documentId) {
   for (const s of store.listRecords('spans')) {
     if (s.documentId === documentId) store.removeRecord('spans', s.id);
+  }
+  for (const p of store.listRecords('proposals')) {
+    if (p.span && p.span.documentId === documentId && (p.status === 'open' || p.status === 'defective')) {
+      store.putRecord('proposals', { ...p, status: 'invalidated', nonce: null, invalidatedReason: 'source document deleted', invalidatedAt: new Date().toISOString() });
+    }
   }
   return store.removeRecord('documents', documentId);
 }

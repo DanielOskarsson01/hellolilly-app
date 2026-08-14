@@ -11,7 +11,7 @@ const assert = require('node:assert');
 const { createStore } = require('./skeleton/store/index.cjs');
 const { createDocument, storeDocument } = require('./skeleton/documents/index.cjs');
 const engine = require('./skeleton/suggest/engine.cjs');
-const { VOICE_TRAPS, THIRD_PARTY_CV, INJECTION_DOCS, NUMERAL_TRAP, COHERENCE_TRAP } = require('../harness/wave2/trap-corpus.cjs');
+const { VOICE_TRAPS, THIRD_PARTY_CV, INJECTION_DOCS, NUMERAL_TRAP, COHERENCE_TRAP, JUDGE_A_ADDITIONS, MISATTRIBUTION_TRIALS } = require('../harness/wave2/trap-corpus.cjs');
 
 beforeEach(() => engine._resetCeiling(1000));
 
@@ -84,7 +84,7 @@ test('eval (DISCIPLINE 2 mechanism): each named voice trap, once detected, bars 
     const store = createStore();
     seed(store, trap);
     const llm = stubLlm({
-      judgeB: () => ({ isExperienceClaim: false, detectedClass: trap.id.replace(/-/g, '_'), reason: 'trap detected' }),
+      judgeB: () => ({ isExperienceClaim: false, detectedClass: trap.detectedClass, reason: 'trap detected' }),
       drafter: () => { throw new Error('drafter must not run when every span is barred'); },
     });
     const r = await engine.propose({ store, llm });
@@ -111,8 +111,56 @@ test('eval (drafter quality, 2026-08-04): the coherence rule + house voice ride 
   const trusted = prompt.slice(0, prompt.indexOf('BEGIN UNTRUSTED_DATA'));
   assert.ok(trusted.includes('VOICE EXAMPLES'), 'voice examples block present');
   assert.ok(trusted.includes('Built brand from ground up'), 'curated bullet mirrored as register reference');
-  // and the exact live coherence span is what travels enveloped
-  assert.ok(prompt.includes('27+ years') && prompt.includes('25 years'), 'the disagreeing-figures span is the drafted material');
+  // and the (synthetic) coherence span with its disagreeing figures is what travels enveloped
+  assert.ok(COHERENCE_TRAP.disagreeingRuns.every((r) => prompt.includes(r)), 'the disagreeing-figures span is the drafted material');
+});
+
+test('eval (findings 1+2): each Judge-A worded-addition class blocks a BARE accept and mints nothing (the digit core alone would miss it)', async () => {
+  for (const a of JUDGE_A_ADDITIONS) {
+    const store = createStore();
+    const doc = createDocument({ name: 'src', text: `NOTES\n\n${a.spanText}`, attestedClass: 'old_cv', ownership: 'mine' });
+    storeDocument(store, doc.doc, doc.spans);
+    const span = doc.spans[0];
+    const llm = stubLlm({
+      judgeB: () => ({ isExperienceClaim: true, detectedClass: 'experience', reason: '' }),
+      drafter: () => ({ proposals: [{ spanId: span.id, text: a.draftText, type: 'value_proposition', jobKey: null }] }),
+    });
+    // Judge A returns the worded addition as model-originated ('draft'), of the contracted type
+    const judgeALlm = { completeJSON: async ({ system, prompt }) => {
+      if (/claim-addition checker/.test(system)) return { claims: [{ text: a.additionText || 'added claim', type: a.additionType, origin: 'draft' }] };
+      return llm.completeJSON({ system, prompt });
+    } };
+    await engine.propose({ store, llm: judgeALlm });
+    const p = engine.serveProposals({ store }).proposals[0];
+    assert.strictEqual(p.grounding.classification, 'span-grounded', `${a.id}: no digit -> the DIGIT core sees nothing`);
+    const r = await engine.accept({ store, llm: judgeALlm, proposalId: p.id, nonce: p.nonce, finalText: p.text, attribution: { type: 'value_proposition' } });
+    assert.strictEqual(r.outcome, 'refused', `${a.id}: bare accept of the model's worded addition must be refused`);
+    assert.strictEqual(store.listDatafactsRaw().length, 0, `${a.id}: nothing minted`);
+  }
+});
+
+test('eval (finding 4b): misattribution trials — reviewed placement == recorded placement (tags cannot smuggle a job)', async () => {
+  for (const t of MISATTRIBUTION_TRIALS) {
+    const store = createStore();
+    const doc = createDocument({ name: 'src', text: 'BETCLIC\n\n- Grew casino revenue', attestedClass: 'old_cv', ownership: 'mine' });
+    storeDocument(store, doc.doc, doc.spans);
+    const span = doc.spans.find((s) => s.text.includes('Grew'));
+    const llm = stubLlm({
+      judgeB: () => ({ isExperienceClaim: true, detectedClass: 'experience', reason: '' }),
+      drafter: () => ({ proposals: [{ spanId: span.id, text: 'Grew casino revenue', type: 'job_result', jobKey: 'betclic' }] }),
+    });
+    await engine.propose({ store, llm });
+    const p = engine.serveProposals({ store }).proposals[0];
+    const r = await engine.accept({ store, llm, proposalId: p.id, nonce: p.nonce, finalText: p.text, attribution: t.attribution });
+    if (t.expectRefused) {
+      assert.strictEqual(r.outcome, 'refused', `${t.id}: ${t.note}`);
+    } else {
+      assert.strictEqual(r.outcome, 'accepted', `${t.id}: ${t.note}`);
+      const rec = r.fact.acceptance.reviewedAttribution;
+      assert.deepStrictEqual(rec.tags, [], `${t.id}: no smuggled routing tag is recorded`);
+      assert.strictEqual(rec.placementLabel, 'Professional Experience (job not yet chosen)', `${t.id}: recorded label matches jobKey=null`);
+    }
+  }
 });
 
 test('eval (INV4 net): a drafter inventing figures yields DEFECTIVE proposals; bare accept refused; misattribution refused', async () => {

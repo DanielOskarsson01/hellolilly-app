@@ -82,6 +82,9 @@ function assemble({ task, sources = [], envelopes }) {
 // (INVARIANT-output-side): stops malformed SHAPE from driving the store or the UI. It does not
 // judge semantics — that is the honesty gate + judge isolation (Rules 1/3). Supported schema:
 // { type:'object', required:[], props:{} } | { type:'array', items } | 'string'|'number'|'boolean'.
+// A scalar node may carry `enum: [...]`: a value outside the CONTRACTED vocabulary is a schema
+// FAILURE, never a pass (review finding: an out-of-vocab origin/detectedClass must not validate
+// and slip past an `=== 'draft'` gate).
 function validate(value, schema, path = '$') {
   const errors = [];
   (function check(val, sch, p) {
@@ -95,11 +98,12 @@ function validate(value, schema, path = '$') {
         if (!Array.isArray(val)) { errors.push(`${p}: expected array`); return; }
         if (sch.items) val.forEach((it, i) => check(it, sch.items, `${p}[${i}]`));
         break;
-      case 'string': if (typeof val !== 'string') errors.push(`${p}: expected string`); break;
-      case 'number': if (typeof val !== 'number') errors.push(`${p}: expected number`); break;
-      case 'boolean': if (typeof val !== 'boolean') errors.push(`${p}: expected boolean`); break;
-      default: errors.push(`${p}: unknown schema type ${sch.type}`);
+      case 'string': if (typeof val !== 'string') { errors.push(`${p}: expected string`); return; } break;
+      case 'number': if (typeof val !== 'number') { errors.push(`${p}: expected number`); return; } break;
+      case 'boolean': if (typeof val !== 'boolean') { errors.push(`${p}: expected boolean`); return; } break;
+      default: errors.push(`${p}: unknown schema type ${sch.type}`); return;
     }
+    if (Array.isArray(sch.enum) && !sch.enum.includes(val)) errors.push(`${p}: ${JSON.stringify(val)} is not one of [${sch.enum.join(', ')}]`);
   })(value, schema, path);
   return { ok: errors.length === 0, errors };
 }

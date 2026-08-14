@@ -31,9 +31,14 @@ const JUDGE_A_SYSTEM = [
   'An empty claims array means the wording is span-grounded.',
 ].join(' ');
 
+// Contracted vocabularies (finding: enum validation). An out-of-vocab value — e.g. an
+// origin of "model" — is a SCHEMA FAILURE, so it can never validate and then evade the
+// `origin === 'draft'` accept gate.
+const ADDITION_TYPES = ['entity', 'number', 'seniority', 'scope', 'duration', 'outcome'];
+const ADDITION_ORIGINS = ['draft', 'person'];
 const JUDGE_A_SCHEMA = {
   type: 'object', required: ['claims'],
-  props: { claims: { type: 'array', items: { type: 'object', required: ['text', 'type', 'origin'], props: { text: { type: 'string' }, type: { type: 'string' }, origin: { type: 'string' } } } } },
+  props: { claims: { type: 'array', items: { type: 'object', required: ['text', 'type', 'origin'], props: { text: { type: 'string' }, type: { type: 'string', enum: ADDITION_TYPES }, origin: { type: 'string', enum: ADDITION_ORIGINS } } } } },
 };
 
 async function judgeClaimAddition({ spanTexts, candidateWording, modelDraft }, llm) {
@@ -68,9 +73,10 @@ const JUDGE_B_SYSTEM = [
   '{ "isExperienceClaim": boolean, "detectedClass": "experience"|"interviewer_question"|"negation"|"ad_mirroring"|"aspirational"|"other", "reason": string }',
 ].join(' ');
 
+const DETECTED_CLASSES = ['experience', 'interviewer_question', 'negation', 'ad_mirroring', 'aspirational', 'other'];
 const JUDGE_B_SCHEMA = {
   type: 'object', required: ['isExperienceClaim', 'detectedClass'],
-  props: { isExperienceClaim: { type: 'boolean' }, detectedClass: { type: 'string' }, reason: { type: 'string' } },
+  props: { isExperienceClaim: { type: 'boolean' }, detectedClass: { type: 'string', enum: DETECTED_CLASSES }, reason: { type: 'string' } },
 };
 
 async function judgeVoiceOwnership({ spanText, structuralContext, attestedClass }, llm) {
@@ -87,4 +93,4 @@ async function judgeVoiceOwnership({ spanText, structuralContext, attestedClass 
   return out;
 }
 
-module.exports = { judgeClaimAddition, judgeVoiceOwnership, JUDGE_MODEL, JUDGE_A_SYSTEM, JUDGE_B_SYSTEM, JUDGE_A_SCHEMA, JUDGE_B_SCHEMA };
+module.exports = { judgeClaimAddition, judgeVoiceOwnership, JUDGE_MODEL, JUDGE_A_SYSTEM, JUDGE_B_SYSTEM, JUDGE_A_SCHEMA, JUDGE_B_SCHEMA, ADDITION_TYPES, ADDITION_ORIGINS, DETECTED_CLASSES };

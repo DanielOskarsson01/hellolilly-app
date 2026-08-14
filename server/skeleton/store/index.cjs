@@ -29,12 +29,29 @@ const { createCase, setPartData, setPartStatus, PARTS } = require('../contract/c
 const { enforce } = require('../writing-rules/gate.cjs');
 
 // INVARIANT 1 (Wave 2) — verified status. A fact is VERIFIED iff it is curated-origin
-// (stamped at ingest or by the 3.2 backfill) OR it carries a recorded acceptance event.
-// Everything else — including missing or unknown provenance — is UNVERIFIED and cannot
-// enter generation or a CV. Enforced HERE, at the single datalayer root, so every
-// consumer (cv-tailor, writer, cv-builder, the ledgered letter writer) inherits it;
-// per-caller enforcement is exactly what the review rejected.
-const isVerifiedFact = (f) => !!f && (f.origin === 'curated' || !!(f.acceptance && f.acceptance.id));
+// (stamped at ingest against an ATTESTED source) OR it carries a COMPLETE recorded
+// acceptance event. Everything else — missing/unknown provenance, an acceptance.id with no
+// reviewed wording+attribution, or a curated stamp whose attestation is still pending — is
+// UNVERIFIED and cannot enter generation or a CV. Enforced HERE, at the single datalayer
+// root, so every consumer (cv-tailor, writer, cv-builder, the ledgered letter writer)
+// inherits it; per-caller enforcement is exactly what the review rejected.
+//
+// Two hardenings the review demanded (data-layer root):
+//  - the acceptance disjunct requires the FULL event: an id ALONE is not proof a human
+//    reviewed anything — reviewed wording AND reviewed attribution must both be present.
+//  - the curated disjunct honours the 3.2 backfill's pending flag: a fact classified by
+//    mapper-replay against a drifted, un-re-attested source records
+//    originDetail.attestation:'pending-…' — that flag IS the honest record, so it must NOT
+//    read as verified until the person re-attests.
+const isVerifiedFact = (f) => {
+  if (!f) return false;
+  if (f.origin === 'curated') {
+    const att = f.originDetail && f.originDetail.attestation;
+    return !(typeof att === 'string' && att.startsWith('pending'));
+  }
+  const a = f.acceptance;
+  return !!(a && a.id && a.reviewedWording && a.reviewedAttribution);
+};
 
 // Transitive taint enforced at the WRITE BOUNDARY (finding 3), not a one-time stamp: once a part's
 // data is untrusted-derived, every later write to that part must stay untrusted-derived. A write

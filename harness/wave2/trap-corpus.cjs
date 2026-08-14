@@ -14,6 +14,7 @@ const VOICE_TRAPS = [
     name: 'Interview notes',
     text: 'INTERVIEW NOTES\n\nDo you have hands-on SAP implementation experience from a large rollout?',
     expectBarred: true,
+    detectedClass: 'interviewer_question', // the contracted Judge-B vocabulary (judges.cjs DETECTED_CLASSES)
   },
   {
     id: 'in-sentence-negation',
@@ -21,6 +22,7 @@ const VOICE_TRAPS = [
     name: 'Cover letter',
     text: 'MY DELIVERY EXPERIENCE\n\nWhile I have never led hands-on delivery myself, I have always admired teams that do.',
     expectBarred: true,
+    detectedClass: 'negation',
   },
   {
     id: 'ad-mirroring',
@@ -28,6 +30,7 @@ const VOICE_TRAPS = [
     name: 'Cover letter',
     text: 'WHY ME\n\nYou need deep SAP experience. I am that person because your ad speaks to me.',
     expectBarred: true,
+    detectedClass: 'ad_mirroring',
   },
   {
     id: 'aspirational-future',
@@ -35,6 +38,7 @@ const VOICE_TRAPS = [
     name: 'Goals note',
     text: 'GOALS\n\nIn this role I would build a best-in-class analytics function within a year.',
     expectBarred: true,
+    detectedClass: 'aspirational',
   },
 ];
 
@@ -81,18 +85,40 @@ const NUMERAL_TRAP = {
   text: 'EXPERIENCE\n\n- Grew the subscription business substantially over several years',
 };
 
-// COHERENCE trap (drafter quality rule, 2026-08-04 — NOT an invariant): the span's OWN
-// figures disagree ("~25 years total career" vs "27+ years marketing"). Reproduces the
-// exact live span that produced "27+ years of marketing experience across a ~25-year
-// career" — internally contradictory yet fully span-grounded, so INV4 rightly passes it.
-// The corrected drafter must pick ONE defensible figure or omit the number; it must never
-// combine the disagreeing figures (25 AND 27) into a single claim.
+// COHERENCE trap (drafter quality rule — NOT an invariant): the span's OWN figures disagree,
+// yet every token is span-grounded so INV4 rightly passes it. The corrected drafter must pick
+// ONE defensible figure or omit the number; it must never combine the disagreeing figures
+// into a single claim. Rule 4 (fixture law): this is SYNTHETIC person data — it preserves the
+// linguistic shape of the original bug (two disagreeing tenure figures in one span) WITHOUT
+// committing any real MASTER_CV span. The biography exception covers docs/structural
+// constants, never eval-case person data.
 const COHERENCE_TRAP = {
   id: 'coherence-disagreeing-figures',
   attestedClass: 'cover_letter',
   name: 'Evidence library (tenure line)',
-  text: 'TENURE\n\n- **~25 years** total career (since ~1997). **27+ years** marketing (MASTER_CV).',
-  disagreeingRuns: ['25', '27'], // a single draft containing BOTH runs = the contradiction combined
+  text: 'TENURE\n\n- **~18 years** total career (since ~2007). **21+ years** in product (SOURCE_CV).',
+  disagreeingRuns: ['18', '21'], // a single draft containing BOTH runs = the contradiction combined
 };
 
-module.exports = { VOICE_TRAPS, THIRD_PARTY_CV, INJECTION_DOCS, NUMERAL_TRAP, COHERENCE_TRAP };
+// DISCIPLINE 1 (Judge A) addition classes — SYNTHETIC. Each draft adds an unsupported claim
+// of one contracted addition type that the span does NOT state. Judge A must return that
+// claim with origin 'draft'; a BARE accept of the draft must be REFUSED (findings 1+2 —
+// the digit-only core misses these worded additions). `number` is the digit core's own
+// territory (NUMERAL_TRAP); these cover the WORDED classes Judge A owns.
+const JUDGE_A_ADDITIONS = [
+  { id: 'add-entity',    additionType: 'entity',    spanText: 'Led the launch of a new payments product.', draftText: 'Led the launch of a new payments product at Google.', marker: /google/i },
+  { id: 'add-seniority', additionType: 'seniority', spanText: 'Ran the marketing campaigns.',               draftText: 'Ran the marketing campaigns as Chief Marketing Officer.', marker: /chief marketing officer/i },
+  { id: 'add-scope',     additionType: 'scope',     spanText: 'Managed a delivery project.',                draftText: 'Managed a company-wide, global delivery project.', marker: /company-wide|global/i },
+  { id: 'add-outcome',   additionType: 'outcome',   spanText: 'Worked on customer retention.',              draftText: 'Worked on customer retention, doubling it.', marker: /doubling/i },
+];
+
+// Misattribution trials — DETERMINISTIC (validateAttribution). The reviewed placement and the
+// recorded placement must be identical: an attribution that routes to a job while the label
+// says otherwise, or a non-job type wearing a jobKey, must be REFUSED.
+const MISATTRIBUTION_TRIALS = [
+  { id: 'tag-smuggle-to-job',   attribution: { type: 'job_result', jobKey: null, tags: ['Betclic'], personPlaced: true }, expectRefused: false, note: 'caller tags are ignored for routing; with no jobKey it lands honestly at "job not yet chosen"' },
+  { id: 'nonjob-type-with-job', attribution: { type: 'value_proposition', jobKey: 'betclic' },                            expectRefused: true,  note: 'a job placement requires type job_result' },
+  { id: 'unknown-jobkey',       attribution: { type: 'job_result', jobKey: 'no_such_job', personPlaced: true },           expectRefused: true,  note: 'unknown jobKey' },
+];
+
+module.exports = { VOICE_TRAPS, THIRD_PARTY_CV, INJECTION_DOCS, NUMERAL_TRAP, COHERENCE_TRAP, JUDGE_A_ADDITIONS, MISATTRIBUTION_TRIALS };

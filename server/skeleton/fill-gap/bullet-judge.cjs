@@ -44,19 +44,29 @@ async function applyAnswer(store, llm, { caseId, gapId, answer, requirementId })
   const reqs = ((theCase.decodedRole && theCase.decodedRole.data && theCase.decodedRole.data.requirements) || []);
   const requirement = (reqs.find((r) => r.id === requirementId) || {}).requirement || '';
 
+  // A blank / no-usable-content answer can't be spanised (createDocument now rejects the
+  // empty span set); that is a legitimate honest-failure, not an error — the gap stays open.
+  if (!answer || !String(answer).trim()) return { outcome: 'stays_gap', reason: 'no answer was typed — the gap stays open' };
+
   // 3.1 STOP THE DISCARD — retain the person's typed answer BEFORE any judging, whatever
   // the verdict. It is a DOCUMENT CLASS (auto-attested 'gap_answer'), NOT pre-trusted
   // source material: it carries its gap and requirement as structural context and goes
   // through the same spanisation/attestation/context handling as an upload (MEDIUM 3 —
   // gap answers habitually echo the requirement they answer, so employer-voice and
   // negation must not arrive trusted).
-  const retained = createDocument({
-    name: `Gap answer — ${(gap.what || gapId)}`.slice(0, 160),
-    text: answer,
-    attestedClass: 'gap_answer',
-    ownership: 'mine',
-    context: { caseId, gapId, gap: gap.what || '', requirementId, requirement },
-  });
+  let retained;
+  try {
+    retained = createDocument({
+      name: `Gap answer — ${(gap.what || gapId)}`.slice(0, 160),
+      text: answer,
+      attestedClass: 'gap_answer',
+      ownership: 'mine',
+      context: { caseId, gapId, gap: gap.what || '', requirementId, requirement },
+    });
+  } catch (err) {
+    if (err && err.name === 'ParseError') return { outcome: 'stays_gap', reason: 'the answer had no usable content — the gap stays open' };
+    throw err;
+  }
   storeDocument(store, retained.doc, retained.spans);
 
   const r = await engine.propose({ store, llm, documentIds: [retained.doc.id] });

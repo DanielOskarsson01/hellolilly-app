@@ -9,7 +9,7 @@ const assert = require('node:assert');
 const {
   ATTESTED_CLASSES, isBarredAsExperienceSource, spanise, createDocument,
   storeDocument, deleteDocument, MAX_DOCUMENT_BYTES, SPAN_SCHEMA,
-  findDuplicate, factsMintedByDocument,
+  findDuplicate, factsMintedByDocument, ParseError,
 } = require('./skeleton/documents/index.cjs');
 const { validate } = require('./skeleton/prompt-assembly/index.cjs');
 const { createStore } = require('./skeleton/store/index.cjs');
@@ -121,6 +121,29 @@ test('factsMintedByDocument: counts accepted facts by their span snapshot docume
   const counts = factsMintedByDocument(store);
   assert.strictEqual(counts.get(a.doc.id), 2);
   assert.strictEqual([...counts.values()].reduce((n, v) => n + v, 0), 2, 'person-typed fact counts toward no document');
+});
+
+test('finding 7: blank / heading-only content yields the explicit ParseError, never a stored empty span set', () => {
+  for (const text of ['', '   \n\t  ', 'SUMMARY']) { // '' , whitespace, heading-only all spanise to zero spans
+    assert.throws(() => createDocument({ name: 'x', text, attestedClass: 'other', ownership: 'mine' }),
+      (e) => e instanceof ParseError && /no spans|blank|heading-only/i.test(e.message), `blank text ${JSON.stringify(text)} must fail explicitly`);
+  }
+});
+
+test('finding 7: deleting a document INVALIDATES its still-open proposals (deleted source text cannot mint); accepted are left', () => {
+  const store = createStore();
+  const a = createDocument({ name: 'A', text: 'ALPHA\n\n- Alpha content here.', attestedClass: 'old_cv', ownership: 'mine' });
+  storeDocument(store, a.doc, a.spans);
+  store.putRecord('proposals', { id: 'proposal_open', kind: 'proposal', status: 'open', nonce: 'n1', span: { documentId: a.doc.id, text: 'Alpha content here.' } });
+  store.putRecord('proposals', { id: 'proposal_defective', kind: 'proposal', status: 'defective', nonce: 'n2', span: { documentId: a.doc.id, text: 'Alpha content here.' } });
+  store.putRecord('proposals', { id: 'proposal_accepted', kind: 'proposal', status: 'accepted', nonce: null, mintedFactId: 'df_x', span: { documentId: a.doc.id, text: 'Alpha content here.' } });
+  store.putRecord('proposals', { id: 'proposal_other', kind: 'proposal', status: 'open', nonce: 'n3', span: { documentId: 'document_other', text: 'unrelated' } });
+  deleteDocument(store, a.doc.id);
+  assert.strictEqual(store.getRecord('proposals', 'proposal_open').status, 'invalidated');
+  assert.strictEqual(store.getRecord('proposals', 'proposal_open').nonce, null, 'the nonce is burned so it cannot be accepted');
+  assert.strictEqual(store.getRecord('proposals', 'proposal_defective').status, 'invalidated');
+  assert.strictEqual(store.getRecord('proposals', 'proposal_accepted').status, 'accepted', 'a minted (accepted) proposal keeps its audit trail — the fact holds its own snapshot');
+  assert.strictEqual(store.getRecord('proposals', 'proposal_other').status, 'open', 'another document\'s proposal is untouched');
 });
 
 // ---- 3.1 stop the discard: the gap-fill loop retains the person's typed answer ----
