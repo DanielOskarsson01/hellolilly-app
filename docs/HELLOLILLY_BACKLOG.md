@@ -2,7 +2,7 @@
 
 Parked work and deferred decisions. None blocking. Kept here so they survive (chat-only items get lost - the recurring lesson). Commit this to `docs/` so it's durable in the repo.
 
-Last updated: 2026-07-16 (PDF-as-first-class-output requirement added to the CV-builder wave). 2026-07-14: Wave A merged; first real-user walkthrough complete; North Star adopted, D14-D18.
+Last updated: 2026-08-14 (Wave 2: attestation "Vet inte / blandat" ask-flow recorded as owed). 2026-07-16 (PDF-as-first-class-output requirement added to the CV-builder wave). 2026-07-14: Wave A merged; first real-user walkthrough complete; North Star adopted, D14-D18.
 
 ---
 
@@ -19,6 +19,12 @@ Last updated: 2026-07-16 (PDF-as-first-class-output requirement added to the CV-
 - No push/service-worker/email/cron/queue anywhere; static deploy; local-only server = nowhere for a background nudge to fire from.
 - The **in-app** "due/overdue/next-step" surface (built in the Progress Support wave) stands in for now.
 - **If ever needed:** requires a hosted always-on service + a push/email channel + a scheduler. Pairs naturally with the hosted-persistence bundle above.
+
+### Attestation "Vet inte / blandat" ask-flow (Wave 2, owed)
+- **Status:** deferred - the option exists; the ask-flow behind it does not yet.
+- **What:** on the Källmaterial intake, the third attestation option is "Vet inte / blandat". Today it is stored as `other` + ownership `third_party`, so it is **barred as an experience source** (deterministic, same protection as declared third-party material). The copy now states exactly that ("används inte som din erfarenhet förrän du sagt vad det är") - it no longer promises "Lilly frågar innan något används", because there is no ask-flow to honour that promise. A label must not promise behaviour the system lacks.
+- **Owed:** the actual ask-flow - Lilly prompts the person to clarify what an uncertain/mixed document is (or which parts are theirs), and on clarification the document/spans are re-attested to a usable class so the real experience inside a mixed doc stops being silently barred. Until then, uncertain material is safely parked, not used.
+- **Where:** `src/screens/sourceMaterial.jsx` (`CLASS_OPTIONS`, the `unknown` bucket) + `server/skeleton/documents/index.cjs` (would need a re-attestation path). The bucket is already distinguishable at rest (class `other` + ownership `third_party`) so a future flow can find exactly these documents.
 
 ---
 

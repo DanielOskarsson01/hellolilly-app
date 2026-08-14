@@ -17,14 +17,16 @@ import {
 // onto the existing attested classes. Deterministic barring (isBarredAsExperienceSource) is
 // UNCHANGED: 'mine' is usable experience; the other two set ownership 'third_party', which
 // bars them from ever being read as the person's experience. 'unknown' keeps class 'other'
-// so the uncertain/mixed bucket stays distinguishable from declared third-party material.
+// so the uncertain/mixed bucket stays distinguishable. Its copy promises ONLY what the code
+// does — barred until the person re-attests; there is no ask-flow yet (owed, see
+// HELLOLILLY_BACKLOG). A label must never promise behaviour the system does not have.
 const CLASS_OPTIONS = () => ([
   { v: 'mine', attestedClass: 'old_cv', ownership: 'mine',
     t: tr({ sv: 'Mitt eget material – brev, CV, anteckningar (används som din erfarenhet)', en: 'My own material – letter, CV, notes (used as your experience)' }) },
   { v: 'not_mine', attestedClass: 'third_party', ownership: 'third_party',
     t: tr({ sv: 'Något jag inte skrivit – jobbannons, mall, någon annans CV (läses aldrig som din erfarenhet)', en: "Something I didn't write – a job ad, template, someone else's CV (never read as your experience)" }) },
   { v: 'unknown', attestedClass: 'other', ownership: 'third_party',
-    t: tr({ sv: 'Vet inte / blandat (Lilly frågar innan något används)', en: 'Not sure / mixed (Lilly asks before anything is used)' }) },
+    t: tr({ sv: 'Vet inte / blandat (används inte som din erfarenhet förrän du sagt vad det är)', en: "Not sure / mixed (not used as your experience until you say what it is)" }) },
 ]);
 
 // How a STORED document's class reads in the library list (covers legacy classes too). The
