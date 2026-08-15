@@ -40,6 +40,17 @@ const VOICE_TRAPS = [
     expectBarred: true,
     detectedClass: 'aspirational',
   },
+  {
+    // SYNTHETIC. A line recounting ANOTHER person's experience sitting inside a MINE-attested
+    // doc: INV3 does not bar it (the document is the owner's), so Judge B must catch it as
+    // third-party material — the output class the vocabulary previously omitted (finding 2).
+    id: 'third-party-in-mine-doc',
+    attestedClass: 'old_cv',
+    name: 'Mixed notes',
+    text: 'TEAM\n\nMy colleague Anna led the Nordic expansion and grew ARR 60% in two years.',
+    expectBarred: true,
+    detectedClass: 'third_party',
+  },
 ];
 
 // The third-party CV whose every heading is normal — INVARIANT 3 territory, deterministic.

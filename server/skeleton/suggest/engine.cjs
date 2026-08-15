@@ -139,7 +139,9 @@ async function propose({ store, llm, caseId = null, documentIds = null, spanIds 
     const doc = docsById.get(s.documentId);
     const verdict = await judgeVoiceOwnership({
       spanText: s.text,
-      structuralContext: { heading: s.heading, section: s.section, location: s.location, documentContext: doc.context || {} },
+      // Judge B's contract is exhaustive: structural position only, never the document's
+      // case/gap/requirement context (that belongs to the drafter's targeting, not the judge).
+      structuralContext: { heading: s.heading, section: s.section, location: s.location },
       attestedClass: doc.attestedClass,
     }, llm);
     if (verdict.isExperienceClaim) eligibleSpans.push(s);
