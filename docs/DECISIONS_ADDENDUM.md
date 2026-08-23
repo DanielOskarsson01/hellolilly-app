@@ -214,6 +214,10 @@ What the person types is saved as truth — the SAME trust class as his curated 
 
 Accepted as a stated residual for the single-user local product: acceptance events carry nonce binding (accept bound to a served review) and a server-side rate ceiling, but the recorded "who" is attested, not authenticated, until the D13 identity trigger fires. Re-opened the moment a second person or a hosted surface exists.
 
+## D24 - CV-byggaren re-scope (building-only) plus the reconciliation's DECISION 1/2/3
+
+Recorded 2026-08-23 by folding docs/reviews/cv-byggaren/D19_CV_BYGGAREN_RECONCILIATION.md into this log. The reconciliation doc proposed this as 'D23' (2026-07-27) without visibility of the D23 recorded here 2026-07-25; renumbered on folding, per the D14→D21 precedent. The reconciliation doc is preserved as written; this entry is canonical for the number.
+
 ## Persona note (already in the seed, restated because it interacts with D3)
 New/rebuilt screens use the real persona (Daniel Oskarsson, iGaming/marketing) with real data. The Amir Hassan fixture persona survives ONLY inside labelled demo screens. No new Amir content.
 
