@@ -1,6 +1,6 @@
 # HelloLilly — Phase State
 
-**Date: 2026-07-24.**
+**Phase state as of 2026-07-24 · verified against the repo and written 2026-08-23.**
 
 The single board of **what this phase needs** — the answer to "what needs doing." It is built by reading the decisions, the ledger, and the reconciled design, and it **points at those as the authoritative sources** rather than duplicating them.
 
