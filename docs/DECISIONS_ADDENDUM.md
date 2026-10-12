@@ -218,6 +218,25 @@ Accepted as a stated residual for the single-user local product: acceptance even
 
 Recorded 2026-08-23 by folding docs/reviews/cv-byggaren/D19_CV_BYGGAREN_RECONCILIATION.md into this log. The reconciliation doc proposed this as 'D23' (2026-07-27) without visibility of the D23 recorded here 2026-07-25; renumbered on folding, per the D14→D21 precedent. The reconciliation doc is preserved as written; this entry is canonical for the number.
 
+## D25 - Prototype Mode
+
+**Date:** October 2026 (recorded 2026-10-12). **Status:** decided by Daniel. (D25 is the next decision number after D24.)
+
+**Diagnosis.** After about four months, the failure mode is the method, not the codebase. Infrastructure-first development behind adversarial review gates that cannot converge stopped anything from shipping.
+
+**Verdict.** Salvage `main`. Park `wave2-suggestion-engine`: it is not merged and not deleted, and it is tagged **`wave2-parked`** so it can be found. Adopt Prototype Mode.
+
+Prototype Mode ships working slices that a person can use, modelled on the two tools Daniel already uses successfully (CV and cover-letter tailoring, and interview preparation). It does not first build infrastructure for everything.
+
+**The three slices, in order:**
+1. **Ansökningskoll** — post-send application tracking with download and export. Shipped screens already link to its missing route.
+2. **Interview preparation** — the real tool, ported from Daniel's working skill.
+3. **An honesty and UI clean-up pass** across what is on `main`.
+
+**What stays:** the honesty rules (the person decides what is true; no fabrication; the writer never checks its own work) and the privacy boundaries in the product-vision Addendum A (`docs/product-vision/HelloLilly_Addendum_A_Principles_and_Boundaries.md`).
+
+**What changes:** review gates are proportionate to each slice and must converge. A slice is done when Daniel can use it on his own real search.
+
 ## Persona note (already in the seed, restated because it interacts with D3)
 New/rebuilt screens use the real persona (Daniel Oskarsson, iGaming/marketing) with real data. The Amir Hassan fixture persona survives ONLY inside labelled demo screens. No new Amir content.
 

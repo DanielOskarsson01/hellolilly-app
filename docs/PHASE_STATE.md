@@ -1,12 +1,22 @@
 # HelloLilly — Phase State
 
-**Phase state as of 2026-07-24 · verified against the repo and written 2026-08-23.**
+**Phase state as of 2026-10-12 · verified against the repo and written 2026-10-12.**
 
 The single board of **what this phase needs** — the answer to "what needs doing." It is built by reading the decisions, the ledger, and the reconciled design, and it **points at those as the authoritative sources** rather than duplicating them.
 
 > **This file is a map. The decisions and the ledger are the territory.** See `docs/DECISIONS_ADDENDUM.md` and `docs/RETROFIT_LEDGER.md`.
 
 ---
+
+## CURRENT PHASE — Prototype Mode (D25)
+
+Ship working slices a person can use, in this order. A slice is done when Daniel can use it on his own real search. See **D25** in `docs/DECISIONS_ADDENDUM.md`.
+
+1. **Ansökningskoll** — post-send application tracking with download and export. **← the next unit.**
+2. **Interview preparation** — the real tool, ported from Daniel's working skill.
+3. **Honesty and UI clean-up pass** across what is on `main`.
+
+**Parked:** `wave2-suggestion-engine` — not merged, not deleted; tagged **`wave2-parked`** (@ `70e986a`).
 
 ## BUILT AND MERGED (on `main`)
 
@@ -18,6 +28,7 @@ The single board of **what this phase needs** — the answer to "what needs doin
   - **Innan du skickar** — `src/screens/presend.jsx` (nav `innan-du-skickar`)
 - **Progress Support Wave A** — the single activity emitter, `server/activity-log.cjs`.
 - **The collections substrate** — the generic named-collection CRUD (D5), `server/dev-server.cjs`.
+- **The product-vision v4 document set** — `docs/product-vision/` (PR #4): the v4 vision and magazine edition, the deep-dives, Addendum A (principles and boundaries), and the research evidence base. Earlier drafts under `docs/product-vision/archive/`.
 
 ## BUILT, MERGE-PENDING
 
@@ -37,7 +48,7 @@ The single board of **what this phase needs** — the answer to "what needs doin
 
 ## KNOWN HOLES
 
-- **(a) Ansökningskoll / post-send application tracking** — specced nowhere, yet **shipped screens link to its dead route** (`#ansokningskoll` is linked from `match.jsx`, `cvActivity.jsx`, `coverLetter.jsx`, and is a nav item, but there is no `src/screens/ansokningskoll.jsx`). **The next design target.**
+- **(a) Ansökningskoll / post-send application tracking** — specced nowhere, yet **shipped screens link to its dead route** (`#ansokningskoll` is linked from `match.jsx` and `cvActivity.jsx`, and is a nav item; `coverLetter.jsx` carries a deep-open hook expecting it; but there is no `src/screens/ansokningskoll.jsx`). **Now Prototype Mode slice 1 (D25) — see CURRENT PHASE.**
 - **(b) The Valvet nav finding** — the Valvet nav item is reportedly not visible in the running app despite the screen existing on `valvet-slice-1`; confirm before merge. See `docs/VALVET_STATE.md`.
 - **(c) The E1/E2/B2 verdict-discipline UI states** — decided (**D10**) but **not drawn**.
 
@@ -49,7 +60,7 @@ The single board of **what this phase needs** — the answer to "what needs doin
 
 ## THE DECISION AND DEBT SOURCES (authoritative)
 
-- **`docs/DECISIONS_ADDENDUM.md`** — the decision log, **through D24** (D24 = the CV-byggaren re-scope folded from the D19 reconciliation, resolving the D23 number collision).
+- **`docs/DECISIONS_ADDENDUM.md`** — the decision log, **through D25** (D24 = the CV-byggaren re-scope folded from the D19 reconciliation, resolving the D23 number collision; D25 = Prototype Mode).
 - **`docs/RETROFIT_LEDGER.md`** — the owed gates (the pre-D12 retrofit debt and, on `valvet-slice-1`, the two vault gates).
 
 This file is a **map**; those two are the **territory**. When they disagree with this board, they win — update this board to match.
