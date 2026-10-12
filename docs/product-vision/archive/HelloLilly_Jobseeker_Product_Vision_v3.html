@@ -1,0 +1,873 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>HelloLilly Product Vision v3</title><style>/* ============================================================
+   PREMIUM REPORT DESIGN SYSTEM  ·  v1.0
+   A paged, magazine-grade stylesheet for A4 strategy documents,
+   whitepapers, pitch reports, and briefs rendered to PDF via headless Chrome.
+
+   Fonts:  Fraunces (display serif) · Inter (body) · JetBrains Mono (labels)
+   Page:   A4, each <section class="page"> starts on a fresh sheet.
+   Print:  designed for Chromium/Puppeteer PDF with printBackground:true.
+
+   NO em/en dashes anywhere in rendered output - use hyphens.
+   ============================================================ */
+
+/* ============ FONTS ============ */
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700;9..144,900&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+/* ============ TOKENS ============ */
+:root{
+  --ink:#15181C;
+  --ink2:#3B424B;
+  --muted:#6A7280;
+  --faint:#9AA1AB;
+  --line:#E4E7EC;
+  --line2:#EEF0F3;
+  --paper:#FFFFFF;
+  --wash:#F7F8FA;
+  --wash2:#F1F3F6;
+
+  --brand:#0A66C2;      /* OIG blue */
+  --brand-d:#084C92;
+  --brand-wash:#EAF2FB;
+  --teal:#0E7A72;       /* Danne / verified */
+  --teal-wash:#E6F2F1;
+  --amber:#B45309;      /* Mihail / commercial */
+  --amber-wash:#FBF0E2;
+  --violet:#6D28D9;     /* newsletter / status */
+  --violet-wash:#F1EAFB;
+  --green:#1F7A44;      /* good / live */
+  --green-wash:#E7F4EC;
+  --red:#B42318;        /* stop / not building */
+  --red-wash:#FDECEA;
+  --gold:#B7791F;
+
+  --r:14px;
+  --r-sm:9px;
+  --shadow:0 1px 2px rgba(16,24,40,.05), 0 6px 20px rgba(16,24,40,.05);
+  --shadow-lift:0 10px 34px rgba(16,24,40,.10);
+}
+
+/* ============ PAGE / PRINT ============ */
+@page{
+  size:A4;
+  margin:18mm 20mm 16mm 20mm;
+  background:#fff;
+}
+*{ box-sizing:border-box; margin:0; padding:0; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+html{ font-size:15px; }
+body{
+  font-family:'Inter',system-ui,sans-serif;
+  color:var(--ink);
+  background:#fff;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* A .page is a section that always starts on a fresh sheet, then flows naturally */
+.page{
+  page-break-before:always;
+  break-before:page;
+  position:relative;
+  padding-top:2mm;
+}
+.page:first-child{ page-break-before:avoid; break-before:avoid; }
+
+/* full-bleed cover overrides the margin box */
+.cover{
+  page-break-before:avoid;
+  margin:-18mm -20mm 0 -20mm;
+  padding:0;
+}
+
+/* keep figures, cards, tables, mockups from splitting across a page break */
+.fig, .card, .darkbox, .callout, .stat, .mock, table.t, .toc-row, .stagecard, .featurecard, .ladder-row, .flowstep{
+  break-inside:avoid;
+  page-break-inside:avoid;
+}
+h2,h3,h4{ break-after:avoid; page-break-after:avoid; }
+
+/* running foot is drawn per-page via the @page bottom-center using a fixed element trick is unreliable in chromium;
+   instead we place a lightweight footer at the end of each section */
+.foot{
+  display:flex; justify-content:space-between; align-items:center;
+  font:500 10px/1 'JetBrains Mono',monospace; color:var(--faint);
+  letter-spacing:.04em; border-top:1px solid var(--line2); padding-top:8px; margin-top:26px;
+}
+.foot .dot{ width:5px;height:5px;border-radius:50%;background:var(--brand);display:inline-block;margin-right:7px;vertical-align:middle; }
+.rhead{ display:none; } /* running head handled by section eyebrow instead */
+
+/* ============ TYPE ============ */
+h1,h2,h3,h4{ font-family:'Fraunces',Georgia,serif; color:var(--ink); line-height:1.1; letter-spacing:-.01em; }
+.serif{ font-family:'Fraunces',Georgia,serif; }
+.mono{ font-family:'JetBrains Mono',monospace; }
+
+.sec-no{ font:700 12px/1 'JetBrains Mono',monospace; color:var(--brand); letter-spacing:.1em; }
+.sec-kicker{ font:600 11px/1 'JetBrains Mono',monospace; color:var(--muted); letter-spacing:.16em; text-transform:uppercase; margin-bottom:12px; }
+h2.sec-title{ font-size:34px; font-weight:900; margin-bottom:6px; }
+.sec-lede{ font-size:15.5px; color:var(--ink2); max-width:62ch; margin:14px 0 22px; line-height:1.62; }
+.sec-head{ border-bottom:2px solid var(--ink); padding-bottom:16px; margin-bottom:26px; display:flex; align-items:flex-end; justify-content:space-between; gap:20px; }
+.sec-head .l{ flex:1; }
+
+h3.blk{ font-size:20px; font-weight:700; margin:22px 0 8px; letter-spacing:-.01em; }
+h4.blk{ font-size:15px; font-weight:700; font-family:'Inter',sans-serif; margin:16px 0 5px; color:var(--ink); }
+
+p{ font-size:14px; color:var(--ink2); margin-bottom:11px; line-height:1.64; }
+p.tight{ margin-bottom:6px; }
+strong,b{ color:var(--ink); font-weight:700; }
+em{ font-style:italic; }
+a{ color:var(--brand); text-decoration:none; }
+.lead-in{ font-weight:700; color:var(--ink); }
+
+ul.clean,ol.clean{ margin:10px 0 14px; padding-left:0; list-style:none; }
+ul.clean li,ol.clean li{ font-size:14px; color:var(--ink2); margin-bottom:8px; padding-left:26px; position:relative; line-height:1.58; }
+ul.clean li::before{ content:''; position:absolute; left:6px; top:9px; width:6px; height:6px; border-radius:50%; background:var(--brand); }
+ol.clean{ counter-reset:c; }
+ol.clean li{ counter-increment:c; }
+ol.clean li::before{ content:counter(c); position:absolute; left:0; top:0; width:19px; height:19px; border-radius:50%; background:var(--brand); color:#fff; font:700 10px/19px 'JetBrains Mono',monospace; text-align:center; }
+
+/* ============ COMPONENTS ============ */
+.pill{ display:inline-flex; align-items:center; gap:6px; font:700 10.5px/1 'JetBrains Mono',monospace; letter-spacing:.05em; text-transform:uppercase; padding:5px 10px; border-radius:100px; border:1px solid transparent; white-space:nowrap; }
+.pill.blue{ background:var(--brand-wash); color:var(--brand-d); border-color:#CFE2F6; }
+.pill.teal{ background:var(--teal-wash); color:var(--teal); border-color:#C4E3E0; }
+.pill.amber{ background:var(--amber-wash); color:var(--amber); border-color:#EEDBBF; }
+.pill.violet{ background:var(--violet-wash); color:var(--violet); border-color:#DFCEF6; }
+.pill.green{ background:var(--green-wash); color:var(--green); border-color:#C4E5D0; }
+.pill.red{ background:var(--red-wash); color:var(--red); border-color:#F3CFC9; }
+.pill.ink{ background:#20242A; color:#fff; }
+.pill.ghost{ background:var(--wash); color:var(--muted); border-color:var(--line); }
+
+.card{ background:var(--paper); border:1px solid var(--line); border-radius:var(--r); padding:18px 20px; }
+.card.wash{ background:var(--wash); }
+.card.tint-blue{ background:var(--brand-wash); border-color:#CFE2F6; }
+.card.tint-green{ background:var(--green-wash); border-color:#C4E5D0; }
+.card.tint-red{ background:var(--red-wash); border-color:#F3CFC9; }
+.card.tint-amber{ background:var(--amber-wash); border-color:#EEDBBF; }
+.card.tint-violet{ background:var(--violet-wash); border-color:#DFCEF6; }
+
+.grid{ display:grid; gap:14px; }
+.g2{ grid-template-columns:1fr 1fr; }
+.g3{ grid-template-columns:1fr 1fr 1fr; }
+.g4{ grid-template-columns:repeat(4,1fr); }
+
+/* callout / pull */
+.callout{ border-left:4px solid var(--brand); background:var(--wash); border-radius:0 var(--r) var(--r) 0; padding:16px 20px; margin:18px 0; }
+.callout .k{ font:700 10px/1 'JetBrains Mono',monospace; letter-spacing:.14em; text-transform:uppercase; color:var(--brand); margin-bottom:8px; }
+.callout.big{ border-left-color:var(--ink); }
+.callout.big .big-line{ font-family:'Fraunces',serif; font-size:20px; font-weight:700; color:var(--ink); line-height:1.3; }
+
+.darkbox{ background:#181C22; color:#E8EBEF; border-radius:var(--r); padding:22px 24px; }
+.darkbox .k{ font:700 10px/1 'JetBrains Mono',monospace; letter-spacing:.16em; text-transform:uppercase; color:#8B93A0; margin-bottom:10px; }
+.darkbox .q{ font-family:'Fraunces',serif; font-size:20px; font-weight:700; line-height:1.34; }
+.darkbox .q .hl{ color:#6FB2F0; }
+.darkbox p{ color:#C4C9D1; }
+
+/* stat */
+.stat{ background:var(--paper); border:1px solid var(--line); border-radius:var(--r); padding:15px 16px; }
+.stat .v{ font-family:'Fraunces',serif; font-weight:900; font-size:27px; line-height:1; letter-spacing:-.02em; }
+.stat .v.blue{ color:var(--brand); } .stat .v.green{ color:var(--green); } .stat .v.red{ color:var(--red); } .stat .v.violet{ color:var(--violet); }
+.stat .l{ font-size:12px; color:var(--ink2); margin-top:8px; line-height:1.4; font-weight:500; }
+.stat .s{ font:500 9.5px/1.3 'JetBrains Mono',monospace; color:var(--faint); margin-top:8px; }
+
+/* table */
+table.t{ width:100%; border-collapse:collapse; margin:6px 0 14px; font-size:12.5px; }
+table.t th{ text-align:left; font:600 9.5px/1.3 'JetBrains Mono',monospace; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); background:var(--wash); padding:9px 11px; border-bottom:1px solid var(--line); }
+table.t td{ padding:9px 11px; border-bottom:1px solid var(--line2); color:var(--ink2); vertical-align:top; line-height:1.45; }
+table.t tr:last-child td{ border-bottom:none; }
+table.t td.em{ font-weight:600; color:var(--ink); }
+table.t .mono{ font-family:'JetBrains Mono',monospace; font-size:11px; }
+
+/* figure caption */
+.fig{ margin:16px 0 6px; }
+.figcap{ font:500 11px/1.5 'Inter',sans-serif; color:var(--muted); margin-top:9px; padding-left:2px; }
+.figcap b{ color:var(--ink2); }
+.fig-label{ display:inline-flex; align-items:center; gap:7px; font:700 10px/1 'JetBrains Mono',monospace; letter-spacing:.1em; text-transform:uppercase; color:var(--brand); margin-bottom:11px; }
+.fig-label::before{ content:'FIG'; background:var(--brand); color:#fff; padding:3px 6px; border-radius:4px; font-size:9px; }
+
+/* ==== MOCKUP CHROME (fake product UI) ==== */
+.mock{ border:1px solid var(--line); border-radius:12px; overflow:hidden; box-shadow:var(--shadow-lift); background:#fff; }
+.mock-bar{ background:var(--wash2); border-bottom:1px solid var(--line); padding:9px 13px; display:flex; align-items:center; gap:7px; }
+.mock-bar .dot{ width:9px; height:9px; border-radius:50%; }
+.mock-bar .u{ margin-left:10px; font:500 10.5px/1 'JetBrains Mono',monospace; color:var(--faint); background:#fff; border:1px solid var(--line); border-radius:5px; padding:4px 10px; flex:1; }
+.mock-body{ background:#fff; }
+
+/* avatars */
+.av{ border-radius:50%; display:flex; align-items:center; justify-content:center; font-family:'Inter',sans-serif; font-weight:700; color:#fff; flex-shrink:0; }
+.av.sq{ border-radius:9px; }
+
+/* verified tick */
+.vf{ display:inline-flex; align-items:center; gap:4px; font:600 10px/1 'Inter',sans-serif; color:var(--teal); }
+.vf svg{ width:12px; height:12px; }
+
+/* cover */
+.cover-wrap{ height:297mm; display:flex; flex-direction:column; }
+.cover-top{ flex:1; padding:34mm 22mm 0; display:flex; flex-direction:column; }
+.cover-strip{ height:15mm; background:var(--ink); display:flex; align-items:center; padding:0 22mm; gap:22px; }
+.cover-strip .s{ font:600 10px/1 'JetBrains Mono',monospace; letter-spacing:.14em; text-transform:uppercase; color:#9AA1AB; }
+.cover-strip .s b{ color:#fff; }
+
+/* TOC */
+.toc-row{ display:flex; align-items:baseline; gap:12px; padding:9px 0; border-bottom:1px solid var(--line2); }
+.toc-row .n{ font:700 12px/1 'JetBrains Mono',monospace; color:var(--brand); width:26px; flex-shrink:0; }
+.toc-row .t{ font-size:14px; font-weight:600; color:var(--ink); }
+.toc-row .d{ flex:1; border-bottom:1px dotted var(--line); transform:translateY(-4px); }
+.toc-row .p{ font:600 11px/1 'JetBrains Mono',monospace; color:var(--muted); }
+.toc-row .t small{ display:block; font:400 11px/1.3 'Inter',sans-serif; color:var(--muted); margin-top:2px; }
+
+/* misc helpers */
+.row{ display:flex; gap:14px; }
+.mt0{margin-top:0}.mt8{margin-top:8px}.mt14{margin-top:14px}.mt20{margin-top:20px}
+.mb0{margin-bottom:0}.mb6{margin-bottom:6px}.mb14{margin-bottom:14px}
+.center{text-align:center}
+.divider{ height:1px; background:var(--line); margin:20px 0; border:none; }
+</style></head><body><section class="cover"><div class="cover-wrap">
+  <div class="cover-top">
+    <div style="margin-top:44mm">
+      <div class="mono" style="font-size:11px;color:var(--brand);letter-spacing:.2em;text-transform:uppercase;font-weight:700;margin-bottom:20px">HelloLilly · Jobseeker Product Vision</div>
+      <h1 style="font-size:68px;font-weight:900;line-height:0.98;letter-spacing:-.03em">The connected system<br>that turns advice<br>into outcomes</h1>
+      <p style="font-family:'Fraunces',serif;font-size:22px;font-style:italic;color:var(--ink2);max-width:32ch;margin-top:26px">Agents prepare. The person decides, approves every word, and sends.</p>
+    </div>
+    <div style="margin-top:auto;margin-bottom:20mm"><span class="pill blue">Strategy paper</span> <span class="pill violet">Version 3</span> <span class="pill ghost">Replaces July 2026</span></div>
+  </div>
+  <div class="cover-strip"><div class="s">VERSION <b>3.0</b></div><div class="s">DATE <b>OCTOBER 2026</b></div><div class="s" style="margin-left:auto">CONFIDENTIAL DRAFT</div></div>
+</div></section><section class="page">
+  <div class="sec-head"><div class="l"><div class="sec-kicker">Contents</div><h2 class="sec-title">What is inside</h2></div><div class="sec-no">·</div></div>
+  <div style="columns:2;column-gap:34px"><div style="break-inside:avoid"><div class="toc-row"><span class="n">01</span><span class="t">Opening</span></div></div><div style="break-inside:avoid"><div class="toc-row"><span class="n">01</span><span class="t">Background</span></div></div><div style="break-inside:avoid"><div class="toc-row"><span class="n">02</span><span class="t">Everyone Is Stuck for a Different Reason</span></div></div><div style="break-inside:avoid"><div class="toc-row"><span class="n">03</span><span class="t">The Problems</span></div></div><div style="break-inside:avoid"><div class="toc-row"><span class="n">04</span><span class="t">Why People Will Engage</span></div></div><div style="break-inside:avoid"><div class="toc-row"><span class="n">05</span><span class="t">The Solution</span></div></div><div style="break-inside:avoid"><div class="toc-row"><span class="n">06</span><span class="t">The Unique Value</span></div></div><div style="break-inside:avoid"><div class="toc-row"><span class="n">07</span><span class="t">How We Build It Responsibly</span></div></div><div style="break-inside:avoid"><div class="toc-row"><span class="n">08</span><span class="t">The Full Vision</span></div></div><div style="break-inside:avoid"><div class="toc-row"><span class="n">09</span><span class="t">Build Order</span></div></div><div style="break-inside:avoid"><div class="toc-row"><span class="n">A</span><span class="t">Why This Works</span></div></div><div style="break-inside:avoid"><div class="toc-row"><span class="n">B</span><span class="t">A Week in the Life</span></div></div><div style="break-inside:avoid"><div class="toc-row"><span class="n">C</span><span class="t">What Changed in Version 3</span></div></div></div>
+  <p style="margin-top:28px;font-size:12.5px;color:var(--muted)">Principles and boundaries are in the separate Addendum A. What changed since the July version is listed in Appendix C.</p>
+</section><section class="page">
+  <div class="sec-head"><div class="l"><div class="sec-kicker">HelloLilly</div><h2 class="sec-title">Opening</h2></div><div class="sec-no">01</div></div>
+  <p>The reason for this tool is simple. Actually succeed at helping each jobseeker with what they really need, on their own terms. One needs help with execution. One needs help with confidence. Others need motivation, energy, connections, research, self-awareness, AI know-how, social-media skills, or a systematic approach. The right help depends on the person, not on which coach they happened to meet.</p>
+<p>Much of what fills a jobseeker&#39;s day is formalia. Building a CV, drafting a cover letter, searching adverts, researching companies, writing outreach, sounding confident in an interview. These are execution and sales skills, not the qualities or expertise the person brings to a job. Where the formalia is necessary, AI agents should carry it, so the jobseeker&#39;s energy goes to showing who they really are. <strong>Agents prepare. The person decides, approves every word, and sends.</strong> And the coaches are freed for what only a human can do: motivate, advise, uplift, and help the person work through whatever is genuinely in the way.</p>
+<p>HelloLilly already has the human infrastructure this work requires: coaches, participants across more than 60 municipalities, employer relationships, and the administrative system that holds it all together. What is missing is the layer above it. A connected, AI-supported system that meets each jobseeker on their own terms, does the preparation work between meetings, gives every coach access to the organisation&#39;s full knowledge, and turns every case into learning for the next person.</p>
+<p>For some people the barrier is different again: not how they present who they are, but a direction not yet found or a skill not yet held. For them, education is a first-class route back to work, standing beside applying directly rather than beneath it. The system treats that route with the same seriousness as the first.</p>
+<p>One has a flawless CV and freezes in every interview. One speaks four languages, just not the one the form is written in. One has applied to two hundred jobs and heard nothing back. One has not managed to open the laptop in a month. One is sixty and sure the phone will never ring. One spent twenty years in a trade that is thinning out, and needs a new direction more than a new CV. Every one of them is stuck, and every one is stuck for a different reason.</p>
+<p>That is the gap. Not a missing feature, but a missing system. The model administers and advises, while the real work is left to the individual, to which coach they happened to meet, and to the gifts that one person happens to have. Nothing connects across people, and nothing accumulates over time.</p>
+<div class="callout big"><div class="big-line">Do not leave outcomes to chance and good fortune.<br>Optimise what can be optimised with technology.<br>Let each jobseeker be part of their own journey, in the way they need and want it.</div></div>
+
+  <div class="foot"><span><span class="dot"></span>HelloLilly · Jobseeker Product Vision v3</span><span>01 · Opening</span></div>
+</section>
+<section class="page">
+  <div class="sec-head"><div class="l"><div class="sec-kicker">Section 01</div><h2 class="sec-title">Background</h2></div><div class="sec-no">01</div></div>
+  <p>HelloLilly is Sweden&#39;s largest provider of matching services, with offices in over 60 municipalities and a stated goal of matching 10,000 people to the right job or education by 2030. The funding is results-based, which means faster and better matches are not a nice-to-have. They are the business.</p>
+<p><strong>But delivering advice is no longer enough.</strong> Much of the actual work, the doing between meetings and reaching the right help at the right moment, still rests on the individual. The advice exists. Almost everything else is left to the person to carry.</p>
+<p><strong>What changed is what AI agents can now do.</strong> A year ago, an AI could help write a paragraph. Today, a set of agents can search for jobs every morning, read every advert, research the employer, tailor a CV, review the application from a recruiter&#39;s point of view, and prepare an interview, all before the person has had breakfast. The hard part is no longer generating the material. It is making sure every word is true, that the person stays in charge, and that the help reaches the people who need it most rather than the ones already confident with technology.</p>
+<p><strong>A connected system is the missing piece.</strong> A system like this turns HelloLilly from a service that tells people what to do into one that does the preparation with them, learns what works, and gets better over time. From guidance into momentum.</p>
+<p><strong>Written from inside the program.</strong> This vision comes from sitting on the participant side while also seeing it through the eyes of someone who builds digital products for a living.</p>
+<p><strong>Several of these ideas are not drawings. They already run, in the author&#39;s own tooling.</strong> A daily pipeline finds jobs, scores them for fit, tailors a CV into the right version, drafts the cover letter, and runs an automated consistency check before anything is sent. A war-room generator has been used to prepare for real interviews, with employer research and a bank of answers. A LinkedIn profile reader and a CSV import tool run in production in a separate content pipeline, and the method for enriching a person&#39;s own network from their contacts has been built and proven. Two pieces are still being worked out rather than running every day: a guided career intake that turns old documents into a clean CV, and the coach&#39;s private contact vault. The underlying tools are therefore not a hope. The work is to turn a process that needs a technical person at a terminal into a form that anyone can use, which is what HelloLilly is for.</p>
+
+  <div class="foot"><span><span class="dot"></span>HelloLilly · Jobseeker Product Vision v3</span><span>01 · Background</span></div>
+</section>
+<section class="page">
+  <div class="sec-head"><div class="l"><div class="sec-kicker">Section 02</div><h2 class="sec-title">Everyone Is Stuck for a Different Reason</h2></div><div class="sec-no">02</div></div>
+  <p>Help for people out of work has historically been built around a working theory of the typical jobseeker, someone with a certain shape of barrier who needs a certain shape of help. That theory holds for some people some of the time. But there is no typical jobseeker. Everyone who has not found work has not found it for their own reasons, and each one needs different help to unblock it.</p>
+<p>That width is the real difficulty, and it is no one&#39;s fault. Coaches are individuals with specific gifts. One has spent years placing nurses and knows the field cold. Another understands what it is to job-hunt with autism. A third has a knack for restoring confidence in people who have lost it. No one person can be the right gift for every life that walks through the door, simply because that is the human limit.</p>
+<p>A system can do something no individual mind ever could: hold the full width of human difference. The idea is a hive of knowledge that quietly absorbs what every coach knows and what every situation teaches, and offers it back, so that any coach has the full library at their fingertips for the moments outside their personal expertise. That is not replacing the coach. It is freeing them to do what they are uniquely good at.</p>
+<p>There is a flip side worth naming. In a high-technology world, the technology itself is often the blocker. For many people the systems, forms and tools are the barrier rather than the bridge. So part of the help is removing that friction entirely, and meeting people regardless of their comfort with technology, including those who fear it.</p>
+<p>And the case is not only logical, it is evidenced. Solid research shows that the right tools and structured assistance raise the likelihood of finding work, and separate research shows that job clubs, built on structure, peers and accountability, do the same. The design here draws deliberately on both.</p>
+<p>What makes the difference is the combination. A hive of knowledge that supports the coaches on one side, and a different set of tools, places and community for the jobseekers on the other. Each is valuable alone. Together they reach the full width that no model has reached yet.</p>
+
+  <div class="foot"><span><span class="dot"></span>HelloLilly · Jobseeker Product Vision v3</span><span>02 · Everyone Is Stuck for a Different Reason</span></div>
+</section>
+<section class="page">
+  <div class="sec-head"><div class="l"><div class="sec-kicker">Section 03</div><h2 class="sec-title">The Problems</h2></div><div class="sec-no">03</div></div>
+  <h3 class="blk">The Execution Problem</h3>
+<ul class="clean">
+<li><strong>How it is:</strong> Coaching, by its nature, delivers advice and leaves the doing to the jobseeker. Advice, seminars and tips all end the same way, with the person still having to execute, alone. For many people the gap may not be advice at all, but execution: either the doing never happens, or it happens the wrong way, as a flood of untailored applications. Getting a job and doing the job are different skills, and yet the first decides access to the second. Sales skills should not decide whether a logistics manager or a truck driver is hired for work they could clearly do.</li>
+<li><strong>What is missing:</strong> Something that does the preparation work alongside the person: finds the jobs, researches the employer, tailors the application and checks it, and leaves the person with decisions rather than blank pages.</li>
+<li><strong>The effect:</strong> Good advice never becomes action. Momentum dies between meetings, and &quot;it is up to you&quot; becomes the exact point where progress stops.</li>
+<li><strong>Scenario:</strong> Your coach said to tailor your CV for each role. Sound advice. It is now Tuesday night, you have three roles open in browser tabs, and you have no idea how to start. So you do not.</li>
+</ul>
+<h3 class="blk">The Consistency Problem</h3>
+<ul class="clean">
+<li><strong>How it is:</strong> When help rests on individuals, what each person experiences inevitably varies, because every coach brings their own gifts and their own limits. It is a feature of the model, not anyone&#39;s fault.</li>
+<li><strong>What is missing:</strong> A consistent operational standard that does not depend on the gifts of the person each jobseeker happens to meet.</li>
+<li><strong>The effect:</strong> People with similar starting points find themselves on very different paths. At scale, that variance becomes the largest hidden cost in any model built on individuals.</li>
+<li><strong>Scenario:</strong> You and a friend both join. You get a coach who is brilliant with CVs, your friend gets one whose gift sits elsewhere. A year later one of you has a job and neither of you knows it came down to who you happened to meet.</li>
+</ul>
+<h3 class="blk">The Confidence Problem</h3>
+<p>This stands for inner barriers in general, not only confidence. Much of confidence is quietly fixed by not leaving the person alone with the work: the CV shaped with help, the cover letter checked, the interview rehearsed, the message reviewed. Each one stops the daily erosion and starts the rebuilding.</p>
+<ul class="clean">
+<li><strong>How it is:</strong> For many long-term jobseekers the real barrier is not knowledge, it is belief. Age, repeated rejection, ADHD, autism and time out of work all erode confidence.</li>
+<li><strong>What is missing:</strong> A way to rebuild self-efficacy and to practise without being judged. Structured job clubs, built on peers and accountability, place far more people than searching alone, and the system should emulate exactly that.</li>
+<li><strong>The effect:</strong> People who know exactly what to do still freeze. The barrier is internal, and more advice does not touch it.</li>
+<li><strong>Scenario:</strong> You have read every interview tip there is. You still feel sick the night before, you have nowhere safe to rehearse, and when the moment comes your mind goes blank.</li>
+</ul>
+<h3 class="blk">The Relevance Problem</h3>
+<ul class="clean">
+<li><strong>How it is:</strong> The help on offer can be genuinely good, and often is. But good is not the same as right for this particular person.</li>
+<li><strong>What is missing:</strong> A diagnosis of the real blocker. Most people do not actually know what is stopping them from finding a job.</li>
+<li><strong>The effect:</strong> Effort pours into the things that are already fine while the real obstacle goes untouched.</li>
+<li><strong>Scenario:</strong> Your CV is polished and your interviews feel okay, and still nothing lands. No one has worked out that the real problem is the roles you are applying for, not the way you are applying.</li>
+</ul>
+<h3 class="blk">The Direction Problem</h3>
+<ul class="clean">
+<li><strong>How it is:</strong> For some people the barrier is not how they present who they are. The work they know is thinning out, or the role they want needs a skill they do not yet have. More applications cannot fix that, and today the honest answer, a new direction or new skills, is exactly where the help usually ends.</li>
+<li><strong>What is missing:</strong> An honest path for changing direction: a realistic new target built on what the person already knows, the true cost of re-training in time and money, the funding that exists for exactly this, and applying directly kept as a real choice beside studying.</li>
+<li><strong>The effect:</strong> People either keep applying into a shrinking corner of the market, or leap into long study on hope rather than evidence. And the people most exposed to the change are the least likely to find the support and the money on their own.</li>
+<li><strong>Scenario:</strong> You have driven a truck for twenty years and the adverts now ask for certificates you do not have. Someone says &quot;maybe retrain?&quot; and hands you a course catalogue. Nobody can tell you which direction is realistic, what it would cost you, or whether applying anyway is the smarter move.</li>
+</ul>
+<h3 class="blk">The Silo Problem</h3>
+<ul class="clean">
+<li><strong>How it is:</strong> In any organisation built on individual expertise, knowledge and contacts live in the heads and address books of the people who hold them. Each coach has a real gift and a real network, but a gift in one head is not yet a gift the organisation can offer everyone.</li>
+<li><strong>What is missing:</strong> A way to make any coach&#39;s expertise, and the reach of their network, available to every jobseeker who needs it, without exposing anyone&#39;s private contacts, and a way for the organisation to keep that expertise when a coach moves on.</li>
+<li><strong>The effect:</strong> A jobseeker may end up with a coach whose gift sits in another area, not because anyone made a mistake but because there is no system to detect the match. And the one introduction that would have mattered never happens.</li>
+<li><strong>Scenario:</strong> You are a nurse, assigned to the coach who used to place senior executives. The coach who has placed forty nurses, and who knows the head of the ward you want, is two desks away, and you will never meet them.</li>
+</ul>
+<h3 class="blk">The Barrier Problem</h3>
+<ul class="clean">
+<li><strong>How it is:</strong> Different people are blocked by different things. Some struggle to write, held back by a second language, dyslexia, or simply hating to sell themselves. Others struggle to search at all. For some the technology itself is the wall.</li>
+<li><strong>What is missing:</strong> Help adapted to the specific barrier, built on collected, quantifiable data rather than one coach&#39;s memory.</li>
+<li><strong>The effect:</strong> Without collected data, the help on offer tends toward the average, and the people furthest from average find the least suitable fit.</li>
+<li><strong>Scenario:</strong> Swedish is not your first language. The advice is good but it is all in fast Swedish, the forms assume fluency, and asking for things to be slowed down feels like admitting you do not belong.</li>
+</ul>
+
+  <div class="foot"><span><span class="dot"></span>HelloLilly · Jobseeker Product Vision v3</span><span>03 · The Problems</span></div>
+</section>
+<section class="page">
+  <div class="sec-head"><div class="l"><div class="sec-kicker">Section 04</div><h2 class="sec-title">Why People Will Engage</h2></div><div class="sec-no">04</div></div>
+  <p>This only works if people use it. Here is what brings each group in and keeps them coming back.</p>
+<h3 class="blk">For jobseekers</h3>
+<ul class="clean">
+<li><strong>You are not alone</strong> - see others in the same situation, and stop feeling like a failure.</li>
+<li><strong>Your morning starts with the work already done</strong> - new jobs found overnight, sorted by how likely you are to want them and how well you fit, each with the reason. You decide; the system prepares.</li>
+<li><strong>Always a clear next step</strong> - never the blank-page paralysis of not knowing what to do.</li>
+<li><strong>Nothing is ever said in your name that you did not approve</strong> - every line in your CV and letter is something you have confirmed, and you press send yourself.</li>
+<li><strong>Every application makes the next one stronger</strong> - each answer you give is saved and reused, so you never explain the same thing twice.</li>
+<li><strong>See people get out</strong> - watching others land jobs is proof there is a way through.</li>
+<li><strong>A real community</strong> - a place to ask, talk and belong, not just a portal you log into.</li>
+<li><strong>Share contacts and vouch</strong> - introductions, references and honest opinions, the mechanic that works so well in startup incubators.</li>
+<li><strong>Works whatever your tech comfort</strong> - talk instead of type, with one question at a time, or take full control if you want it.</li>
+<li><strong>Coach-approved help in one place</strong> - knowledge, links, videos and guides, with Lilly, the assistant, there to explain any of them.</li>
+<li><strong>A real second route</strong> - when the honest answer is a new direction or new skills, the system helps you find it, fund it and test it, with applying directly always kept beside it.</li>
+</ul>
+<h3 class="blk">For coaches</h3>
+<ul class="clean">
+<li><strong>An internal system of their own</strong> - shared presentations, and each coach&#39;s strengths and background searchable by every coach.</li>
+<li><strong>Their network stays theirs</strong> - a coach&#39;s contacts stay on their own computer; the system can still tell when one of them could open a door, and the coach makes the introduction personally.</li>
+<li><strong>Help analysing and answering</strong> - written help for hard questions, transcribed presentations and summaries, feeding a Sweden-specific knowledge base.</li>
+<li><strong>Meeting support</strong> - with consent, sessions are summarised so help continues after the meeting.</li>
+<li><strong>A living picture of every jobseeker</strong> - the shared case record shows goals, activity, applications and plans without chasing.</li>
+<li><strong>More time for the human work</strong> - the report writes itself and the tool carries the mechanical load.</li>
+</ul>
+<h3 class="blk">For HelloLilly</h3>
+<ul class="clean">
+<li><strong>Faster, better matches</strong> - directly tied to funding and the 2030 goal.</li>
+<li><strong>A consistent standard</strong> across every office.</li>
+<li><strong>Documented activity</strong> generated as a byproduct, not chased after the fact.</li>
+<li><strong>Durable IP</strong> - coaching expertise captured as a company asset rather than lost when people leave.</li>
+<li><strong>Easier to attract expertise</strong>, and <strong>a new kind of hire</strong>: with AI carrying the operational baseline, HelloLilly can bring in specialists who understand autism, ADHD, age, youth, newcomers or disability, even if they are not traditional coaches.</li>
+</ul>
+
+  <div class="foot"><span><span class="dot"></span>HelloLilly · Jobseeker Product Vision v3</span><span>04 · Why People Will Engage</span></div>
+</section>
+<section class="page">
+  <div class="sec-head"><div class="l"><div class="sec-kicker">Section 05</div><h2 class="sec-title">The Solution</h2></div><div class="sec-no">05</div></div>
+  <h3 class="blk">The skeleton is already there</h3>
+<p>Providers in this sector, HelloLilly included, run on Workbuster Matcha (now part of Multisoft). It does what it is built to do well: administration, storing the data, scheduling, the library of templates and links, and the documentation that has to happen anyway. That is the skeleton. It is real, it is paid for, and it should stay.</p>
+<p>What infrastructure cannot do on its own is create outcomes. Stored data is not learning. A library is not advice. A scheduler is not a conversation. The value is added by what sits on top: agents that do the preparation work, a community that connects the people, tools that help the jobseeker actually execute, and a learning layer that makes the whole thing better over time.</p>
+<h3 class="blk">The mechanism: agents prepare, the person decides</h3>
+<p>Every tool in this system follows the same pattern, in three steps:</p>
+<ol class="clean">
+<li><strong>Agents prepare.</strong> Search, research, drafting, reviewing and checking happen in the background, often overnight.</li>
+<li><strong>The person decides.</strong> At every gate the person chooses: keep or cut a job, accept or change a line, send or wait. Nothing is sent, posted or submitted in their name.</li>
+<li><strong>Every decision is kept.</strong> An accepted answer, a confirmed fact, a reason for cutting a job: each is saved, so the next round starts from more than the last.</li>
+</ol>
+<div class="fig">
+  <div class="fig-label">The mechanism</div>
+  <svg viewBox="0 0 720 300" style="width:100%;height:auto;font-family:'Inter',sans-serif">
+    <defs><marker id="ae" markerWidth="9" markerHeight="9" refX="5" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9 z" fill="#0A66C2"/></marker></defs>
+    <rect x="40" y="30" width="200" height="76" rx="12" fill="#EAF2FB" stroke="#CFE2F6"/>
+    <text x="140" y="58" font-size="13.5" font-weight="800" fill="#084C92" text-anchor="middle">AGENTS PREPARE</text>
+    <text x="140" y="77" font-size="10.5" fill="#3B424B" text-anchor="middle">search, research, draft,</text>
+    <text x="140" y="92" font-size="10.5" fill="#3B424B" text-anchor="middle">review and check</text>
+    <rect x="480" y="30" width="200" height="76" rx="12" fill="#FBF0E2" stroke="#EEDBBF"/>
+    <text x="580" y="58" font-size="13.5" font-weight="800" fill="#B45309" text-anchor="middle">THE PERSON DECIDES</text>
+    <text x="580" y="77" font-size="10.5" fill="#3B424B" text-anchor="middle">keep or cut, accept or change,</text>
+    <text x="580" y="92" font-size="10.5" fill="#3B424B" text-anchor="middle">send or wait</text>
+    <rect x="480" y="196" width="200" height="76" rx="12" fill="#E6F2F1" stroke="#C4E3E0"/>
+    <text x="580" y="224" font-size="13.5" font-weight="800" fill="#0E7A72" text-anchor="middle">EVERY DECISION IS KEPT</text>
+    <text x="580" y="243" font-size="10.5" fill="#3B424B" text-anchor="middle">facts, wording, preferences</text>
+    <text x="580" y="258" font-size="10.5" fill="#3B424B" text-anchor="middle">and cut rules are saved</text>
+    <rect x="40" y="196" width="200" height="76" rx="12" fill="#F1EAFB" stroke="#DFCEF6"/>
+    <text x="140" y="224" font-size="13.5" font-weight="800" fill="#6D28D9" text-anchor="middle">THE NEXT ROUND</text>
+    <text x="140" y="243" font-size="10.5" fill="#3B424B" text-anchor="middle">starts from more</text>
+    <text x="140" y="258" font-size="10.5" fill="#3B424B" text-anchor="middle">than the last</text>
+    <path d="M244 68 L474 68" stroke="#0A66C2" stroke-width="2" marker-end="url(#ae)"/>
+    <path d="M580 110 L580 190" stroke="#0A66C2" stroke-width="2" marker-end="url(#ae)"/>
+    <path d="M476 234 L246 234" stroke="#0A66C2" stroke-width="2" marker-end="url(#ae)"/>
+    <path d="M140 190 L140 110" stroke="#0A66C2" stroke-width="2" marker-end="url(#ae)"/>
+    <text x="360" y="146" font-size="12" font-weight="700" fill="#15181C" text-anchor="middle" font-style="italic">nothing is sent in</text>
+    <text x="360" y="164" font-size="12" font-weight="700" fill="#15181C" text-anchor="middle" font-style="italic">the person's name</text>
+  </svg>
+  <div class="figcap"><b>The third step turns tools into a system.</b> Agents do the preparation, the person holds every gate, and each decision is saved so the next application, interview or search starts stronger than the last.</div>
+</div>
+<p>The third step is what turns a set of tools into a system. The person&#39;s own bank of confirmed facts and wording grows with every application, and HelloLilly&#39;s shared knowledge grows with every case.</p>
+<h3 class="blk">How the system answers each problem</h3>
+<table class="t">
+<thead>
+<tr>
+<th>Problem</th>
+<th>Tools that help</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Execution</td>
+<td>Job Applications (search, scoring, tailoring, checking), CV Builder, Progress Support</td>
+</tr>
+<tr>
+<td>Consistency</td>
+<td>Knowledge Hub, Coach Network, Knowledge Hive, Outcome Engine</td>
+</tr>
+<tr>
+<td>Confidence</td>
+<td>Interview Training, Interview Preparation, Coach Review, Progress Support, community</td>
+</tr>
+<tr>
+<td>Relevance</td>
+<td>Match Analysis and its two scores, Research Helper, Job Search, Coach Network</td>
+</tr>
+<tr>
+<td>Direction</td>
+<td>Transition Compass, Direction Explorer, Funding Navigator, Education Matcher, Coach Network</td>
+</tr>
+<tr>
+<td>Silo</td>
+<td>Coach Contacts, Network Match, Coach Network, Knowledge Hub, Knowledge Hive</td>
+</tr>
+<tr>
+<td>Barrier</td>
+<td>spoken mode, one question at a time, Progress Support, LinkedIn Helper, Image Studio</td>
+</tr>
+</tbody></table>
+<h3 class="blk">Help right now, and Lilly</h3>
+<p>Next to every tool sits a panel called <strong>Help right now</strong> (Hjälp just nu). It shows what is relevant to the task at hand: a coach-approved template, an example from a similar role, a short video, a discussion where another jobseeker hit the same wall, the right coach for the situation. It only shows help that actually exists; an empty slot is never filled with a promise.</p>
+<p>Above the panel sits <strong>Lilly</strong>, the assistant the person says hello to. Lilly explains any tool, finds the way, hands the person to the right place, and answers questions about their own situation by pointing to what is actually in it. Lilly suggests; she never acts on her own, never second-guesses another tool&#39;s verdict, and never tries to read the person&#39;s emotions.</p>
+<h3 class="blk">The crosslinking layer</h3>
+<p>The most important part of the system is not any single tool. It is the way every tool, person, resource, case, coach and piece of knowledge is crosslinked to whatever the jobseeker is doing at that moment. Most systems organise information by category. This one organises help by situation. Individual AI tools are easy to copy. A crosslinked knowledge and support system, built from HelloLilly&#39;s own coaches, cases, outcomes and labour-market knowledge, is much harder to copy. <strong>The tools are the visible layer. The crosslinking is the system.</strong></p>
+<p><strong>Example: one answer, used everywhere.</strong> An advert asks for experience training new staff. The person&#39;s CV does not mention it, so the gap interview asks one question: &quot;Have you ever trained someone new at work?&quot; The person answers out loud: two summers onboarding seasonal workers. They accept the wording. That fact now sits in their bank. It appears as an option in the next tailored CV, the cover letter can draw on it, the interview preparation turns it into a story to rehearse, and the match scores for every similar job improve. One answer, given once.</p>
+<p><strong>Example: Interview Training.</strong> The system uses the job advert, the CV, the employer brief and earlier practice answers to run a realistic spoken interview. At the same time it crosslinks to common questions for the role, coach advice, follow-up questions based on weak answers, and coaches who know the industry. The person is not just practising. They are practising in an environment that understands the role, the company and themselves.</p>
+<p><strong>Example: Job Radar.</strong> When a signal points to a company hiring more in the person&#39;s region, the system crosslinks it to the person&#39;s CV, suitable roles, a possible blind application angle, people to contact, coaches who know the company and the Company List. A market signal becomes an action path.</p>
+<p><strong>Example: Direction Explorer.</strong> When a person&#39;s target work is thinning out, the system maps their real experience onto the labour market&#39;s own map of occupations and skills and offers a few realistic adjacent directions, each with live adverts, the courses that close the gap, the funding the person may be entitled to, the cost in months and money, and a coach who knows the field. A dead end becomes a decision.</p>
+<h3 class="blk">The best of what already works</h3>
+<ul class="clean">
+<li><strong>From a great coach:</strong> judgement, encouragement and the right next step.</li>
+<li><strong>From the best CV tools:</strong> clean structure and awareness of how applications are screened.</li>
+<li><strong>From a recruiter&#39;s desk:</strong> three reviewers who read the application the way it will be read, before it is sent.</li>
+<li><strong>From an interview coach:</strong> rehearsal and honest, kind feedback.</li>
+<li><strong>From a job club:</strong> structure, accountability and peers, the things the evidence says actually move outcomes.</li>
+<li><strong>From a good study counsellor:</strong> an honest fork between applying now and re-training, with the money made plain.</li>
+<li><strong>From a community:</strong> shared templates, tips and help that anyone can contribute.</li>
+<li><strong>Built for HelloLilly:</strong> tied to the coaches, the employer network and the matching mission.</li>
+</ul>
+
+  <div class="foot"><span><span class="dot"></span>HelloLilly · Jobseeker Product Vision v3</span><span>05 · The Solution</span></div>
+</section>
+<section class="page">
+  <div class="sec-head"><div class="l"><div class="sec-kicker">Section 06</div><h2 class="sec-title">The Unique Value</h2></div><div class="sec-no">06</div></div>
+  <p><strong>The tools are easy to copy. The expertise is not.</strong> Any single tool here is a weekend&#39;s work over a language model. That is not where the value is. The value is the engine underneath.</p>
+<p><strong>Human relationships still beat AI.</strong> As AI floods the job-search market with generic tools, the human coach becomes more valuable, not less. The system augments the coach; it does not replace them.</p>
+<h3 class="blk">Two flywheels</h3>
+<table class="t">
+<thead>
+<tr>
+<th></th>
+<th>The person&#39;s flywheel</th>
+<th>HelloLilly&#39;s flywheel</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>What accumulates</td>
+<td>Confirmed facts, accepted wording, preferences and cut rules</td>
+<td>Coach knowledge, cases, resources and outcomes</td>
+</tr>
+<tr>
+<td>How it grows</td>
+<td>Every gap answered, every line accepted, every job cut with a reason</td>
+<td>Every coach interaction, every case, every placement</td>
+</tr>
+<tr>
+<td>What it buys</td>
+<td>Each application is faster and stronger than the last</td>
+<td>Advice weighted by what actually got people hired</td>
+</tr>
+<tr>
+<td>Why rivals can&#39;t catch up</td>
+<td>They start from a blank CV</td>
+<td>They start with none of HelloLilly&#39;s cases</td>
+</tr>
+</tbody></table>
+<h3 class="blk">Why HelloLilly can own this</h3>
+<p>Everyone has access to AI. HelloLilly&#39;s advantage is AI connected to things a generic startup does not have:</p>
+<ul class="clean">
+<li>many jobseekers, many coaches, many municipalities, many different barriers and life situations;</li>
+<li>coaches whose professional networks can open doors, reached without ever exposing their contacts;</li>
+<li>real employer relationships and a results-based business model that rewards good matching;</li>
+<li>existing administrative infrastructure to build on, not replace;</li>
+<li>activity and outcome data accumulating already;</li>
+<li>a stated 2030 goal that gives the strategic horizon.</li>
+</ul>
+<h3 class="blk">One value layer, built for the mission</h3>
+<p>Above the existing infrastructure, the value layer lives in one place, built around HelloLilly&#39;s actual job: matching people to the right work. The skeleton and the layer are not in competition. One holds the data and the workflow. The other turns them into outcomes.</p>
+
+  <div class="foot"><span><span class="dot"></span>HelloLilly · Jobseeker Product Vision v3</span><span>06 · The Unique Value</span></div>
+</section>
+<section class="page">
+  <div class="sec-head"><div class="l"><div class="sec-kicker">Section 07</div><h2 class="sec-title">How We Build It Responsibly</h2></div><div class="sec-no">07</div></div>
+  <p>Three principles carry the system, and each is enforced in how it is built, not only promised:</p>
+<ul class="clean">
+<li><strong>The person decides what is true.</strong> No line reaches a CV or letter unless it comes from something the person has confirmed or written. An application may sell and present real experience at its strongest. It may never invent.</li>
+<li><strong>The writer never checks its own work.</strong> The agent that drafts is never the agent that checks.</li>
+<li><strong>Argue for the person, never judge them.</strong> When something falls short, the fault lies in the document, the gap or the market, never in the person.</li>
+</ul>
+<p>Around them: <strong>agents prepare, people decide</strong>, and nothing is sent in anyone&#39;s name. <strong>Consent first</strong> for any recording or transcription. <strong>Retrieval, not training</strong>: the system draws on a living knowledge base that cites its sources and can forget a person on request, and personal data is never used to train a model. <strong>A fork, not a funnel</strong>: where re-training is raised, applying directly is always shown beside it. <strong>Reach the underserved on purpose.</strong> <strong>Transparent</strong>: every person can see what the system knows about them and delete it. <strong>Support, not surveillance.</strong></p>
+<p>On the community side, not everything is shared with everyone. Public guides, coach-approved resources, anonymised examples shared with explicit consent, private case data visible only to the person and their coach, and coach-only discussions are kept clearly apart.</p>
+<p><strong>Before real people use it</strong>, the system passes a review of GDPR, the EU AI Act and the Arbetsförmedlingen framework, signed off by a qualified professional. Until then no claim of compliance is made.</p>
+<p>The full set of principles, and the list of what the system will never do, are in <strong>Addendum A: Principles and Boundaries</strong>.</p>
+
+  <div class="foot"><span><span class="dot"></span>HelloLilly · Jobseeker Product Vision v3</span><span>07 · How We Build It Responsibly</span></div>
+</section>
+<section class="page">
+  <div class="sec-head"><div class="l"><div class="sec-kicker">Section 08</div><h2 class="sec-title">The Full Vision</h2></div><div class="sec-no">08</div></div>
+  <p>This is the complete suite. Each tool is useful on its own and ships independently; the connected layer is what makes them work together.</p>
+<h3 class="blk">A. The five core jobseeker tools</h3>
+<p>These are the tools a jobseeker uses directly. They share one CV and one bank of confirmed facts, but each can be used on its own, and the person can choose to use or skip any of them.</p>
+<h4 class="blk">1. CV Builder (CV-byggaren)</h4>
+<p><strong>Why:</strong> A CV and its content are the foundation for everything else.</p>
+<ul class="clean">
+<li><strong>Career intake (Karriärprofil).</strong> The person first loads everything they have: old CVs, cover letters, applications, certificates, links. Then the system asks one question at a time, each with a short explanation and examples. Where the answer can be found in the loaded material, it is suggested for the person to confirm or correct. Otherwise the person speaks or writes the answer. Shorter and more focused than a traditional career form.</li>
+<li><strong>Builds the master CV and its versions.</strong> A decision tree builds the master CV and versions for the kinds of jobs the person is aiming for. Which versions, and which sections, depend on the person: a nurse&#39;s versions differ from a manager&#39;s, and some people need sections others do not.</li>
+<li><strong>Suggestions from the person&#39;s own material.</strong> The system drafts possible CV lines from the person&#39;s documents. Each one becomes a fact only when the person accepts it. Job adverts and other people&#39;s material can never be a source of experience.</li>
+<li><strong>One structured CV</strong>, shared by every other tool, and output as PDF or Word.</li>
+</ul>
+<h4 class="blk">2. Job Applications (Jobbansökan)</h4>
+<p><strong>Why:</strong> Turn a wide, tiring search into a short list of good decisions.</p>
+<div class="fig">
+  <div class="fig-label">The start page of job search</div>
+  <div class="mock">
+    <div class="mock-bar"><span class="dot" style="background:#ED6A5E"></span><span class="dot" style="background:#F5BF4F"></span><span class="dot" style="background:#61C554"></span><span class="u">hellolilly.se/jobb/idag</span></div>
+    <div class="mock-body" style="padding:0">
+      <div style="padding:14px 14px 8px">
+        <div class="mono" style="font-size:9px;color:var(--muted);letter-spacing:.14em">GOOD MORNING · TODAY</div>
+        <div style="font-family:'Fraunces',serif;font-size:19px;font-weight:700;margin-top:4px">6 new jobs found overnight. One question waiting.</div>
+      </div>
+      <div style="display:flex;gap:6px;padding:0 14px 10px">
+        <span class="pill ink">New today 6</span><span class="pill amber">Questions 1</span><span class="pill green">Send 2</span><span class="pill ghost">Cuts 14</span><span class="pill blue">Ansökningskoll 5</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 64px 64px 92px;gap:10px;align-items:center;padding:9px 12px;border-top:1px solid var(--line)">
+    <div><div style="font-weight:700;font-size:12.5px">Warehouse team lead</div><div style="font-size:10.5px;color:var(--muted)">Nordic Logistics AB · leads a team you already know how to run</div></div>
+    <div class="mono" style="font-size:11px;text-align:center"><b style="color:var(--teal)">82</b><br><span style="font-size:8.5px;color:var(--muted)">LIKE</span></div>
+    <div class="mono" style="font-size:11px;text-align:center"><b style="color:var(--brand)">76</b><br><span style="font-size:8.5px;color:var(--muted)">FIT</span></div>
+    <div style="text-align:right"><span class="pill green">Go</span> <span class="pill ghost">Cut</span></div>
+  </div>
+      <div style="display:grid;grid-template-columns:1fr 64px 64px 92px;gap:10px;align-items:center;padding:9px 12px;border-top:1px solid var(--line)">
+    <div><div style="font-weight:700;font-size:12.5px">Shift supervisor, packaging</div><div style="font-size:10.5px;color:var(--muted)">Valla Foods · your onboarding experience matches 3 of 4 needs</div></div>
+    <div class="mono" style="font-size:11px;text-align:center"><b style="color:var(--teal)">74</b><br><span style="font-size:8.5px;color:var(--muted)">LIKE</span></div>
+    <div class="mono" style="font-size:11px;text-align:center"><b style="color:var(--brand)">81</b><br><span style="font-size:8.5px;color:var(--muted)">FIT</span></div>
+    <div style="text-align:right"><span class="pill green">Go</span> <span class="pill ghost">Cut</span></div>
+  </div>
+      <div style="display:grid;grid-template-columns:1fr 64px 64px 92px;gap:10px;align-items:center;padding:9px 12px;border-top:1px solid var(--line)">
+    <div><div style="font-weight:700;font-size:12.5px">Operations coordinator</div><div style="font-size:10.5px;color:var(--muted)">Kustbygg · commute 70 min; asks for a forklift licence</div></div>
+    <div class="mono" style="font-size:11px;text-align:center"><b style="color:var(--teal)">61</b><br><span style="font-size:8.5px;color:var(--muted)">LIKE</span></div>
+    <div class="mono" style="font-size:11px;text-align:center"><b style="color:var(--brand)">58</b><br><span style="font-size:8.5px;color:var(--muted)">FIT</span></div>
+    <div style="text-align:right"><span class="pill green">Go</span> <span class="pill ghost">Cut</span></div>
+  </div>
+      <div style="padding:10px 14px;background:var(--brand-wash);border-top:1px solid var(--line);font-size:11.5px">
+        <b>Question for you:</b> Valla Foods asks for experience training new staff. Have you ever trained someone new at work? <span class="mono" style="font-size:10px;color:var(--brand)">ANSWER BY VOICE OR TEXT</span>
+      </div>
+    </div>
+  </div>
+  <div class="figcap"><b>Job search starts here, with the preparation already done.</b> Each job carries two explained scores (how likely the person is to like it, and how well they fit), and the person decides Go or Cut. Fictional jobs and companies.</div>
+</div>
+<ul class="clean">
+<li><strong>The start page.</strong> Job search begins on a morning page with tabs for <em>New today</em>, <em>Questions</em>, <em>Send</em>, <em>Cuts</em> and <strong>Ansökningskoll</strong>, where every sent application shows its status. One clear next action at a time.</li>
+<li><strong>Job Search (Jobbsök).</strong> The person keeps their own list of job titles, plus a broad catch-all search and an optional direction track that only ever adds options. Many sources are combined so each job appears once. Only new jobs are fetched each day. If a site blocks access, the search stops and tries again tomorrow; it never works around a block.</li>
+<li><strong>Filtering that learns.</strong> Every cut job carries a named reason and can be overruled. When the person cuts a job by hand, their reason becomes a draft rule; once they accept it, it joins their preferences.</li>
+<li><strong>Match Analysis (Matchanalys).</strong> Each job gets two scores, always with their explanation: how likely the person is to <strong>like</strong> the job, and how well they <strong>fit</strong> what the employer wants. Every requirement in the advert is checked against the person&#39;s evidence, with the source named. The scores sort a long list; they are never a verdict on the person. Earlier applications to the same employer are checked for consistency.</li>
+<li><strong>Go or Cut.</strong> The person decides. Undecided jobs wait until tomorrow.</li>
+<li><strong>Employer brief.</strong> For each chosen job, a brief with a fixed core (culture, way of working, stability, career path, hiring risk) plus topics chosen for the profession: shift patterns and staffing levels for a nurse, safety record and permanent versus agency work for a factory worker, technology and ways of working for an office role. Open sources only, and it says what it could not read.</li>
+<li><strong>Tailored CV and Cover Letter (Anpassat CV, Personligt brev).</strong> Starts from the closest CV version and uses confirmed lines only. Where a sharper wording would fit this job, it is proposed; the person picks it or keeps the original, and an accepted version is saved for next time. The letter must name one concrete link: to the company, its industry, a competitor, or the phase the organisation is in.</li>
+<li><strong>Gap interview.</strong> When the advert asks for something the bank does not cover, the system asks one question at a time, in writing. The person answers by voice or text. Accepted answers go into the person&#39;s bank of facts, wording and figures, so every application makes the next one stronger.</li>
+<li><strong>Application Check (Ansökningsgranskning).</strong> Three reviewers read the application before it is sent: one as an applicant tracking system, one as a recruiter, one as an HR consultant. Each reviews alone, then they compare notes once. They point out problems and never rewrite. Where they disagree, whatever keeps the person from being screened out wins. It is a simulation, not access to the employer&#39;s own system.</li>
+<li><strong>Final check.</strong> A separate checker compares every line and figure with the person&#39;s confirmed bank, and checks the layout. A line that is not in the bank blocks the application until it is fixed or confirmed. Everything else is advice.</li>
+<li><strong>Send.</strong> The person sends. The application appears in Ansökningskoll, and a job already applied for never comes back.</li>
+</ul>
+<h4 class="blk">3. Interview Preparation (Intervjuförberedelse)</h4>
+<p><strong>Why:</strong> Walk into every interview, or important meeting, knowing more than expected.</p>
+<ul class="clean">
+<li><strong>Intake:</strong> the advert, recruiter message or company name, and the CV version that was sent. The system confirms who and what before doing any research.</li>
+<li><strong>Research on several fronts:</strong> the real employer when a recruiter posted the advert, the company, the market, the role behind the advert, and the people the person will meet.</li>
+<li><strong>Analysis:</strong> &quot;can you do it, and do you actually want it?&quot;, with the honest gaps and how to bridge them.</li>
+<li><strong>A preparation pack</strong> in three lengths (full read, thirty-minute review, five-minute glance), the job advert where clicking a phrase shows the person&#39;s angle and a question to ask, a bank of answers to rehearse, and stories from the person&#39;s own experience.</li>
+<li><strong>Weighting by stage:</strong> a recruiter screen calls for warmth and motivation; a hiring manager calls for strategy and sharp questions.</li>
+<li><strong>During and after:</strong> a call window with notes, and afterwards a short review. Anything new the person said that is not in their bank is offered as a fact to accept.</li>
+<li>Every bold claim in the CV becomes something to prepare for.</li>
+</ul>
+<h4 class="blk">4. Interview Training (Intervjuträning)</h4>
+<p><strong>Why:</strong> A realistic spoken rehearsal, not a list of common questions.</p>
+<ul class="clean">
+<li>The tool plays the interviewer out loud and the person answers out loud, in a safe place, as many times as they like.</li>
+<li>Built from the advert, the CV, the gaps and the employer brief, and from the interview preparation if the person has done it.</li>
+<li>Asks follow-up questions depending on the answer, because real interviews are not static questionnaires. Style is adjustable: friendly, formal, case-based, competency-based, short and direct.</li>
+<li>Feedback quotes the person&#39;s own answer and never invents. It names strong moments, weak moments, and one thing to practise.</li>
+<li>The aim is not only better answers. It is safety, familiarity and less fear.</li>
+</ul>
+<h4 class="blk">5. Network Outreach (Nätverkskontakt)</h4>
+<p><strong>Why:</strong> Many jobs are filled through a recommendation or an introduction, not an advert.</p>
+<ul class="clean">
+<li><strong>Lists that keep growing:</strong> target jobs and companies, and the people at them by role: senior leaders, team leads, recruiters, HR, hiring managers. The system finds people from public profile information; nothing behind a login is ever used.</li>
+<li><strong>A step-by-step sequence for each person:</strong> first a thoughtful comment on something they posted, then a short introduction, then a few follow-ups, with the goal of a recommendation or an introduction.</li>
+<li><strong>Proactive or reactive:</strong> start from a company the person wants to work for, or from a job just found or already applied for.</li>
+<li><strong>A small daily pace</strong>, for example five to ten people, with every step and reply tracked so the person sees what works.</li>
+<li><strong>The person does the sending.</strong> The tool drafts, reminds and keeps score; it never sends.</li>
+<li><strong>Contacts can be linked to a job</strong> at any time.</li>
+</ul>
+<p>This builds new connections. It is different from using the people the person already knows (see the Network Map below).</p>
+<h3 class="blk">B. Finding opportunities</h3>
+<p><strong>Job Radar (Jobbradar).</strong> Find opportunities before they appear as ordinary adverts. It starts with signals that can be read honestly: companies posting noticeably more jobs in the person&#39;s region and field, and relevant news with links to the source. Each signal comes with one suggested action. Tenders, investments and leadership changes are added as further signals.</p>
+<p><strong>Company List (Företagslista).</strong> The person&#39;s own wish list of employers. Each company card shows why it may be relevant, open roles, recent signals and a status (interested, contacted, waiting, closed), and is the launch point for research, a blind application and outreach.</p>
+<p><strong>Companies by Area (Företag i området).</strong> Every employer within a region or a commuting distance, so the person can see the whole map around them rather than finding companies one advert at a time. A third way in, beside signals and the wish list.</p>
+<p><strong>Staffing Agencies (Bemanningsföretag).</strong> A curated guide to staffing agencies, often the fastest route into work, with direct links. The system prepares the CV for each agency; the person sends it.</p>
+<p><strong>Blind Applications (Spontanansökningar).</strong> Contact companies with no published role, in five steps: research, angle, recipient, message, follow-up. If the person feels stuck, it first asks how much they can manage today (a full message, two lines, buy time, or not today), and &quot;not today&quot; is a valid answer. Fewer but better attempts, never mass outreach.</p>
+<p><strong>Research Helper (Researchstöd).</strong> Research a company, an industry or a role, with or without a job attached: a short summary of what matters for the purpose, detailed briefs with sources, and a &quot;dig deeper&quot; on any point.</p>
+<h3 class="blk">C. Direction and re-skilling</h3>
+<p><strong>Find the honest path when the answer is a new direction or new skills, not another application.</strong> These tools are reached from Match Analysis, when a requirement truthfully cannot be met, or directly, by a person who arrives without a target role at all. They open by asking why the person is changing, because the right help differs sharply between a chosen move, a redundancy and a health reason. And whatever the distance to travel, one choice never leaves the screen:</p>
+<table class="t">
+<thead>
+<tr>
+<th>Apply now anyway</th>
+<th>Re-train</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Faster, a lower fit. Often the honest better choice: rapid placement with support beats studying first for many people. Always shown, never buried.</td>
+<td>Slower, a higher fit. Worth it when the skill distance is genuinely large, and only with the timeline named: returns arrive over years, not months.</td>
+</tr>
+</tbody></table>
+<ul class="clean">
+<li><strong>Transition Compass (Omställningskompassen).</strong> A short conversation, spoken if preferred, that records why the person is changing, their financial runway, their comfort with technology and their confidence. For someone on sick leave, it surfaces the formal routes back to work as a matter of course.</li>
+<li><strong>Direction Explorer (Riktningsutforskaren).</strong> Maps the person&#39;s real experience onto the labour market&#39;s own map of occupations and skills and offers a few realistic adjacent directions, each with what transfers, what is missing, how far it is (up to half a year, about a year, up to three years), demand, live adverts and salary reality. Ends in something to test, not a verdict.</li>
+<li><strong>Funding Navigator (Finansieringsguiden).</strong> Checks eligibility against the real conditions, shows amounts and dates as dated facts, and assembles an application-ready pack in advance, with a motivation the coach reviews, so a person is not beaten by an incomplete form or a slow start. Those who will not qualify are routed to the alternatives that fit them.</li>
+<li><strong>Education Matcher (Utbildningsmatchningen).</strong> Ranks the few real courses that close the gap, from the national catalogue of publicly funded education, each with an honest outcome note, its true cost and timeline, and applying directly beside it. Outcome figures are never presented as proof that a course caused a job.</li>
+<li><strong>Test-Before-Invest (Prova-först).</strong> A short plan to try a direction for real: an informational conversation, a day of shadowing, a taster course, a work trial. Sits before any commitment of six months or more.</li>
+<li><strong>Transition Economics (Omställningskalkylen).</strong> Applying now, a short course and a full re-training side by side, in months and money, under the real support caps. Payback is named honestly, in ranges, never as a promise.</li>
+</ul>
+<h3 class="blk">D. Network and visibility</h3>
+<p><strong>LinkedIn Helper (LinkedIn-stöd).</strong> A safety and confidence tool for people who find social visibility hard. It reviews what the person wrote and shows a suggestion beside it, with a plain explanation of why it reads better. Every check ends in one verdict: <em>send</em>, <em>send with one change</em>, or <em>hold</em>. After <em>send</em> it offers nothing more, because permission to stop is the point. It walks the person to the send button and stops there; it never posts.</p>
+<p><strong>Image Studio (Bildstöd).</strong> Help the person look clear and professional in a CV or profile photo. It improves the real photo (sharpness, light, background, cropping to the right sizes) under one rule: <em>same face, better photograph</em>. The person approves the before and after. Nothing that changes who they look like is possible.</p>
+<p><strong>Network Map (Nätverkskarta).</strong> A map of who the jobseeker already knows and where those people work, to find warm ways into target employers. It covers more than LinkedIn, because many people&#39;s real networks live elsewhere, and it is built from the person&#39;s own exports of their contacts, owned by them.</p>
+<p><strong>Network Match (Nätverksmatch).</strong> When a case needs a door opened at a company, the system checks quietly whether any coach&#39;s network reaches it. Each coach&#39;s contacts stay on the coach&#39;s own computer (see Coach Contacts); only a yes or no ever reaches HelloLilly. On a yes, that coach makes the introduction personally. Everyone else sees only that &quot;a request has gone to a coach&quot;. No names are shown, and nobody can search the network freely.</p>
+<h3 class="blk">E. Coach tools</h3>
+<p><strong>Case Record (Ärendevy).</strong> The shared picture of the jobseeker&#39;s journey: goals, CV versions, applications, research, study and funding plans, agreed next steps and activity, in one page the person can read too.</p>
+<p><strong>Coach Contacts (Coachkontakter).</strong> Each coach loads their own professional contacts into a private, encrypted store on their own computer. HelloLilly never receives, stores or searches it. It powers Network Match while the contacts remain the coach&#39;s own professional asset, which is both the legal position and the reason coaches will want to take part.</p>
+<p><strong>Coach Network (Coachnätverk).</strong> HelloLilly&#39;s internal competence, searchable by field, special strength and language, so the coach who knows the field can give a second opinion.</p>
+<p><strong>Coach Review (Coachgranskning).</strong> Ask coaches for feedback on a CV, letter, profile or plan, answered in the coach&#39;s own words. No AI ever writes in a coach&#39;s voice.</p>
+<p><strong>Live Support (Mötesstöd).</strong> With clear consent, recorded before anything is processed, sessions are transcribed and summarised, so agreed steps and resources reach the case record after the meeting.</p>
+<p><strong>Transition View (Omställningsvyn).</strong> Keeps human judgement on the biggest decision a jobseeker can make. It shows the person&#39;s direction, funding and study plans to the coach, with prompts that follow the evidence. Any plan built on long education needs a coach&#39;s sign-off.</p>
+<p><strong>Knowledge Hub (Kunskapshubb).</strong> Templates, guides, videos, documents and coach experience in one place. Jobseekers can suggest items, which stay marked as suggested until a coach approves them. Lilly can explain any item.</p>
+<p><strong>Feedback Loop (Återkoppling).</strong> Suggestions, upvotes, polls and feedback after interviews and applications. Poll results appear only after the person has voted.</p>
+<h3 class="blk">F. Learning layer</h3>
+<p><strong>Knowledge Hive (Kunskapssystem).</strong> The long-term core, where HelloLilly&#39;s experience accumulates: from coaches, resources, cases, applications and outcomes. What competitors will find hardest to copy.</p>
+<p><strong>Outcome Engine (Resultatmotor).</strong> Connects actions to results: which support helps which people, which activities lead to interviews, which paths lead to jobs or education. Outcomes are recorded as dated facts, never as proof of cause. No figure ever describes fewer than five people, and nothing it learns ever feeds a decision about a person&#39;s benefits, sanctions or eligibility.</p>
+<h3 class="blk">G. Delivery</h3>
+<p><strong>The hub.</strong> A calm home, not a dashboard: one clear next action, visible progress, and quiet entries grouped by need (search and match, create material, prepare, make contact, new direction, my coach).</p>
+<p><strong>Progress Support (Framstegsstöd).</strong> Reminds, suggests and breaks larger tasks into small steps, with one next step at a time. Activity is logged to help the person remember and restart, grouped by job, and every item can be hidden. No streaks and no nagging. During any period of study it keeps one light market action a week in the plan.</p>
+<p><strong>On the phone.</strong> An app installed from the browser onto the home screen, with reminders for new matching jobs, applications that need finishing and coach calls. Works for people who live more on a phone than at a desk.</p>
+<p><strong>Community.</strong> A place to ask, talk, share contacts and vouch for each other, with clear privacy boundaries.</p>
+
+  <div class="foot"><span><span class="dot"></span>HelloLilly · Jobseeker Product Vision v3</span><span>08 · The Full Vision</span></div>
+</section>
+<section class="page">
+  <div class="sec-head"><div class="l"><div class="sec-kicker">Section 09</div><h2 class="sec-title">Build Order</h2></div><div class="sec-no">09</div></div>
+  <p>Nothing here needs to be built all at once. Each tool is useful on its own. The phases sequence the suite so that early value is real, and the connected system grows around it.</p>
+<table class="t">
+<thead>
+<tr>
+<th>Phase</th>
+<th>Purpose</th>
+<th>Tools</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>1. Foundation</strong></td>
+<td>The CV and the first applications, with the coach in the loop</td>
+<td>Career intake, CV Builder, Tailored CV and Cover Letter, Application Check, Progress Support, Case Record, Knowledge Hub, Help right now and Lilly, Transition Compass, Funding Navigator</td>
+</tr>
+<tr>
+<td><strong>2. Matching</strong></td>
+<td>From material to direction, selection and practice</td>
+<td>Start page and Job Search, Match Analysis, employer brief and Research Helper, Gap interview, Ansökningskoll, Interview Preparation, Interview Training, the remaining re-skilling tools</td>
+</tr>
+<tr>
+<td><strong>3. Network</strong></td>
+<td>Opportunities that come through people</td>
+<td>Network Outreach, LinkedIn Helper, Network Map, Company List, Companies by Area, Staffing Agencies, Blind Applications, Coach Contacts and Network Match, Coach Network, Coach Review, Image Studio</td>
+</tr>
+<tr>
+<td><strong>4. Market and learning</strong></td>
+<td>A proactive, self-improving system</td>
+<td>Job Radar, Live Support, Feedback Loop, Knowledge Hive, Outcome Engine, community</td>
+</tr>
+</tbody></table>
+<h3 class="blk">How it reaches real people</h3>
+<ol class="clean">
+<li><strong>A pilot coach first</strong>, working with the tools on sample cases, so a professional user hardens the system before the first vulnerable user arrives.</li>
+<li><strong>Then a small group of consenting jobseekers</strong>, using only the tools that are fully real, after the legal review is signed off.</li>
+<li><strong>Then the wider rollout</strong>, phase by phase.</li>
+</ol>
+<p>Before the first real user: logins and roles, &quot;see what it knows&quot; and &quot;delete me&quot; all work.</p>
+<h3 class="blk">What we will measure</h3>
+<table class="t">
+<thead>
+<tr>
+<th>Measure</th>
+<th>Why it matters</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Time from a job being found to an application being sent</td>
+<td>The execution problem, in hours</td>
+</tr>
+<tr>
+<td>Interviews per application sent</td>
+<td>Whether tailoring and checking work</td>
+</tr>
+<tr>
+<td>Share of coach time spent on human work rather than admin</td>
+<td>The core promise to coaches</td>
+</tr>
+<tr>
+<td>Placements into work or education, in HelloLilly&#39;s own verified terms</td>
+<td>The 2030 goal</td>
+</tr>
+<tr>
+<td>Facts in each person&#39;s bank and how often they are reused</td>
+<td>The person&#39;s flywheel</td>
+</tr>
+<tr>
+<td>Uptake among the people furthest from the labour market</td>
+<td>Whether the system reaches the underserved, not only the confident</td>
+</tr>
+</tbody></table>
+<p>A baseline for each is taken before the pilot starts.</p>
+<h3 class="blk">Why this is realistic</h3>
+<p>The first versions are now fast and inexpensive to build. With today&#39;s AI models and agents, transcription, search, voice tools and document generation, many modules can be built quickly. Several of the hardest pieces already run in the author&#39;s own tooling (see Section 1): the daily job pipeline from search to a checked, tailored application, the interview war-room, and a production LinkedIn reader and CSV import. So this is a proven process to package for a wider audience, not a guess. The direction and re-skilling tools lean on open public data: the national course catalogue, the labour market&#39;s map of occupations and skills, and demand forecasts. The strategic value, though, lives less in the first tool and more in the connected system, the accumulated knowledge, and the outcome-weighted learning over time.</p>
+<div class="callout big"><div class="big-line">The tools help the individual. The connected system, built on HelloLilly&#39;s own coaches, cases and outcomes, helps the organisation get better every day. That is the difference, and that is what is missing.</div></div>
+<p>What the system will deliberately not build, now or ever, is listed in <strong>Addendum A</strong>.</p>
+
+  <div class="foot"><span><span class="dot"></span>HelloLilly · Jobseeker Product Vision v3</span><span>09 · Build Order</span></div>
+</section>
+<section class="page">
+  <div class="sec-head"><div class="l"><div class="sec-kicker">Appendix A</div><h2 class="sec-title">Why This Works</h2></div><div class="sec-no">A</div></div>
+  <p>The design is built on what the evidence says actually helps people get back to work. These findings come from structured programmes and human services, so they are the case for the human-plus-tool model, not for software alone.</p>
+<ul class="clean">
+<li><strong>The right tools raise the odds.</strong> Across many studies, structured job-search interventions and assistance raise the odds of obtaining employment roughly 2.67 times (Liu, Huang and Wang, 2014).</li>
+<li><strong>So do job clubs.</strong> Classic job-club trials, built on structure, daily activity, peers and accountability, placed far more people than unstructured search.</li>
+<li><strong>Confidence is causal, not soft.</strong> The JOBS II programme improved both re-employment and mental health by building a sense of mastery and inoculating people against setbacks, with the largest gains for those most at risk.</li>
+<li><strong>For barrier groups, place then train.</strong> Supported employment, which places people quickly and supports them afterwards, roughly doubles competitive employment for people with significant barriers.</li>
+<li><strong>Speed matters.</strong> The longer someone is unemployed, the harder re-entry becomes, so anything that restores momentum early works against that scarring.</li>
+<li><strong>Re-training pays off slowly, and should say so.</strong> Study reduces job search while it lasts, and the returns arrive over years, not months.</li>
+<li><strong>Support reaches the confident first.</strong> Left alone, re-training help and funding are taken up most by those who need them least.</li>
+<li><strong>Different situations, different paths.</strong> There is no single funnel that fits everyone, and the evidence itself says so.</li>
+</ul>
+<p>The design follows from that. Instead of analysing a jobseeker and pushing them into a predetermined path, the system lets the person&#39;s situation find the right help. The help comes to the person, not the person to a funnel.</p>
+
+  <div class="foot"><span><span class="dot"></span>HelloLilly · Jobseeker Product Vision v3</span><span>A · Why This Works</span></div>
+</section>
+<section class="page">
+  <div class="sec-head"><div class="l"><div class="sec-kicker">Appendix B</div><h2 class="sec-title">A Week in the Life</h2></div><div class="sec-no">B</div></div>
+  <p><strong>Sara is 52 and has been out of work for fourteen months. Her confidence is low and she has started to avoid the search altogether.</strong></p>
+<p><strong>Monday.</strong> She opens the hub. It does not show her a wall of tasks, just a warm greeting and one next step: build her CV. She uploads an old CV and two letters she wrote years ago. Then the assistant asks her about her last role, one question at a time. Where her old documents already hold the answer, it shows her and she confirms it; where they do not, she answers out loud. She did not have to face a blank page.</p>
+<p><strong>Tuesday.</strong> Her start page shows six new jobs found overnight, sorted by how likely she is to like each one and how well she fits, each with the reason. She picks two and cuts one: &quot;too far to travel&quot;. The system asks whether it should skip jobs that far away from now on. She says yes.</p>
+<p><strong>Wednesday.</strong> For each of her two jobs, an employer brief, a tailored CV and a cover letter are waiting. One advert asks for experience training new staff, which her CV does not mention, so she gets one question: &quot;Have you ever trained someone new at work?&quot; She answers out loud: she onboarded the summer temps for six years. She accepts the wording, and it will be there for every application after this one. Three reviewers read each application: the recruiter flags a missing keyword, and she adds it. The final check passes. She presses send, and both applications appear in Ansökningskoll.</p>
+<p><strong>Thursday.</strong> An invitation arrives. Her interview preparation opens with what the company does, what the role really needs, and the three questions she is most likely to get. She practises out loud with the interview trainer, three times, alone in her kitchen, and the feedback is kind and specific. By the third try she does not freeze.</p>
+<p><strong>Friday.</strong> Her coach opens Sara&#39;s case and the week&#39;s activity is already there, so the report is done. Instead of admin, the meeting is about how Sara is feeling. A request has quietly gone to another coach whose network reaches the company, and that coach offers to put in a word.</p>
+<p><strong>Three weeks later Sara has an offer.</strong> The system did not replace her coach. It made sure that everything between the meetings actually happened, and that every word she sent was hers.</p>
+
+<p><strong>Johan is 47 and was made redundant after twenty-two years in a printing plant that closed. He does not need a better CV. He needs a direction.</strong></p>
+<p><strong>Monday.</strong> The Compass asks him, in plain spoken questions, why he is here and what he can carry financially. It does not cheer at him. It notes that this change was not his choice, and his coach sees that too.</p>
+<p><strong>Tuesday.</strong> The Direction Explorer shows him three realistic moves built on what he already knows (machine operation, quality control, maintenance), each with the local adverts, what is missing, and what closing it would take. Beside every one: apply now anyway, as a real choice.</p>
+<p><strong>Wednesday.</strong> He picks one to test. The system drafts the message for a short chat with a maintenance technician his coach knows, and finds a taster day. The calculator shows him, in months and money, what the short course would mean, and that the funding window opens in six weeks.</p>
+<p><strong>Thursday.</strong> His application pack for the study grant is assembled and complete: the checklist, the details, the motivation his coach has reviewed. When the window opens at eight in the evening, he files in minutes, ahead of the queue that usually beats people like him to the money.</p>
+<p><strong>Johan&#39;s week did not end in a job.</strong> It ended in a direction he had tested, a plan he could afford, and a coach who signed off on it. That is what the second route looks like when it is real.</p>
+
+  <div class="foot"><span><span class="dot"></span>HelloLilly · Jobseeker Product Vision v3</span><span>B · A Week in the Life</span></div>
+</section>
+<section class="page">
+  <div class="sec-head"><div class="l"><div class="sec-kicker">Appendix C</div><h2 class="sec-title">What Changed in Version 3</h2></div><div class="sec-no">C</div></div>
+  <table class="t">
+<thead>
+<tr>
+<th>Area</th>
+<th>Change</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Stance on automation</td>
+<td>&quot;Not automation&quot; becomes <strong>agents prepare, the person decides, approves every word, and sends</strong>. Nothing is sent in anyone&#39;s name.</td>
+</tr>
+<tr>
+<td>Truth</td>
+<td>New principle: the person decides what is true. Only confirmed or person-written lines reach a CV or letter; a final check blocks anything else.</td>
+</tr>
+<tr>
+<td>Core jobseeker tools</td>
+<td>Reorganised into five tools, each usable on its own: CV Builder, Job Applications, Interview Preparation, Interview Training, Network Outreach.</td>
+</tr>
+<tr>
+<td>CV Builder</td>
+<td>Adds career intake from the person&#39;s old documents, versions built by a decision tree, and suggestions the person accepts.</td>
+</tr>
+<tr>
+<td>Job Applications</td>
+<td>New end-to-end process: start page, daily search, learning filter, two explained scores, employer brief, tailoring that can propose new wording, gap interview, three-reviewer Application Check, final check, Ansökningskoll.</td>
+</tr>
+<tr>
+<td>Names</td>
+<td>Application Check is the three-reviewer review; Ansökningskoll is the start-page section for sent applications.</td>
+</tr>
+<tr>
+<td>Interview Preparation</td>
+<td>Expanded into a full preparation pack, including real employer, people briefs, interactive advert and stage weighting.</td>
+</tr>
+<tr>
+<td>Interview Training</td>
+<td>Now its own tool: spoken rehearsal with feedback that quotes the person&#39;s own answers.</td>
+</tr>
+<tr>
+<td>Network Outreach</td>
+<td>New: a personal CRM that finds people at target companies and runs a step-by-step sequence; the person always sends.</td>
+</tr>
+<tr>
+<td>Network</td>
+<td>New Network Map, Coach Contacts (a coach&#39;s private, local contacts) and a blind Network Match.</td>
+</tr>
+<tr>
+<td>Opportunity</td>
+<td>New Companies by Area and Staffing Agencies; Job Radar starts from signals that can be read honestly.</td>
+</tr>
+<tr>
+<td>Help</td>
+<td>The side panel is named <strong>Help right now</strong>; the assistant is <strong>Lilly</strong>.</td>
+</tr>
+<tr>
+<td>Image Studio</td>
+<td>Real photo enhancement under &quot;same face, better photograph&quot;.</td>
+</tr>
+<tr>
+<td>Responsible build</td>
+<td>Shortened to three principles; the full set and the never-build list move to Addendum A. &quot;Compliant by design&quot; is replaced by a legal review before real use. Personal data is never used for training.</td>
+</tr>
+<tr>
+<td>Phone</td>
+<td>An installable web app rather than separate iOS and Android apps.</td>
+</tr>
+<tr>
+<td>Build order</td>
+<td>Career intake and CV Builder first; adds how the system reaches real people and what is measured.</td>
+</tr>
+<tr>
+<td>Appendix B</td>
+<td>Sara&#39;s week now follows the new process.</td>
+</tr>
+</tbody></table>
+
+  <div class="foot"><span><span class="dot"></span>HelloLilly · Jobseeker Product Vision v3</span><span>C · What Changed in Version 3</span></div>
+</section></body></html>

@@ -1,0 +1,393 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>HelloLilly Addendum A</title><style>/* ============================================================
+   PREMIUM REPORT DESIGN SYSTEM  ·  v1.0
+   A paged, magazine-grade stylesheet for A4 strategy documents,
+   whitepapers, pitch reports, and briefs rendered to PDF via headless Chrome.
+
+   Fonts:  Fraunces (display serif) · Inter (body) · JetBrains Mono (labels)
+   Page:   A4, each <section class="page"> starts on a fresh sheet.
+   Print:  designed for Chromium/Puppeteer PDF with printBackground:true.
+
+   NO em/en dashes anywhere in rendered output - use hyphens.
+   ============================================================ */
+
+/* ============ FONTS ============ */
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700;9..144,900&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+/* ============ TOKENS ============ */
+:root{
+  --ink:#15181C;
+  --ink2:#3B424B;
+  --muted:#6A7280;
+  --faint:#9AA1AB;
+  --line:#E4E7EC;
+  --line2:#EEF0F3;
+  --paper:#FFFFFF;
+  --wash:#F7F8FA;
+  --wash2:#F1F3F6;
+
+  --brand:#0A66C2;      /* OIG blue */
+  --brand-d:#084C92;
+  --brand-wash:#EAF2FB;
+  --teal:#0E7A72;       /* Danne / verified */
+  --teal-wash:#E6F2F1;
+  --amber:#B45309;      /* Mihail / commercial */
+  --amber-wash:#FBF0E2;
+  --violet:#6D28D9;     /* newsletter / status */
+  --violet-wash:#F1EAFB;
+  --green:#1F7A44;      /* good / live */
+  --green-wash:#E7F4EC;
+  --red:#B42318;        /* stop / not building */
+  --red-wash:#FDECEA;
+  --gold:#B7791F;
+
+  --r:14px;
+  --r-sm:9px;
+  --shadow:0 1px 2px rgba(16,24,40,.05), 0 6px 20px rgba(16,24,40,.05);
+  --shadow-lift:0 10px 34px rgba(16,24,40,.10);
+}
+
+/* ============ PAGE / PRINT ============ */
+@page{
+  size:A4;
+  margin:18mm 20mm 16mm 20mm;
+  background:#fff;
+}
+*{ box-sizing:border-box; margin:0; padding:0; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+html{ font-size:15px; }
+body{
+  font-family:'Inter',system-ui,sans-serif;
+  color:var(--ink);
+  background:#fff;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* A .page is a section that always starts on a fresh sheet, then flows naturally */
+.page{
+  page-break-before:always;
+  break-before:page;
+  position:relative;
+  padding-top:2mm;
+}
+.page:first-child{ page-break-before:avoid; break-before:avoid; }
+
+/* full-bleed cover overrides the margin box */
+.cover{
+  page-break-before:avoid;
+  margin:-18mm -20mm 0 -20mm;
+  padding:0;
+}
+
+/* keep figures, cards, tables, mockups from splitting across a page break */
+.fig, .card, .darkbox, .callout, .stat, .mock, table.t, .toc-row, .stagecard, .featurecard, .ladder-row, .flowstep{
+  break-inside:avoid;
+  page-break-inside:avoid;
+}
+h2,h3,h4{ break-after:avoid; page-break-after:avoid; }
+
+/* running foot is drawn per-page via the @page bottom-center using a fixed element trick is unreliable in chromium;
+   instead we place a lightweight footer at the end of each section */
+.foot{
+  display:flex; justify-content:space-between; align-items:center;
+  font:500 10px/1 'JetBrains Mono',monospace; color:var(--faint);
+  letter-spacing:.04em; border-top:1px solid var(--line2); padding-top:8px; margin-top:26px;
+}
+.foot .dot{ width:5px;height:5px;border-radius:50%;background:var(--brand);display:inline-block;margin-right:7px;vertical-align:middle; }
+.rhead{ display:none; } /* running head handled by section eyebrow instead */
+
+/* ============ TYPE ============ */
+h1,h2,h3,h4{ font-family:'Fraunces',Georgia,serif; color:var(--ink); line-height:1.1; letter-spacing:-.01em; }
+.serif{ font-family:'Fraunces',Georgia,serif; }
+.mono{ font-family:'JetBrains Mono',monospace; }
+
+.sec-no{ font:700 12px/1 'JetBrains Mono',monospace; color:var(--brand); letter-spacing:.1em; }
+.sec-kicker{ font:600 11px/1 'JetBrains Mono',monospace; color:var(--muted); letter-spacing:.16em; text-transform:uppercase; margin-bottom:12px; }
+h2.sec-title{ font-size:34px; font-weight:900; margin-bottom:6px; }
+.sec-lede{ font-size:15.5px; color:var(--ink2); max-width:62ch; margin:14px 0 22px; line-height:1.62; }
+.sec-head{ border-bottom:2px solid var(--ink); padding-bottom:16px; margin-bottom:26px; display:flex; align-items:flex-end; justify-content:space-between; gap:20px; }
+.sec-head .l{ flex:1; }
+
+h3.blk{ font-size:20px; font-weight:700; margin:22px 0 8px; letter-spacing:-.01em; }
+h4.blk{ font-size:15px; font-weight:700; font-family:'Inter',sans-serif; margin:16px 0 5px; color:var(--ink); }
+
+p{ font-size:14px; color:var(--ink2); margin-bottom:11px; line-height:1.64; }
+p.tight{ margin-bottom:6px; }
+strong,b{ color:var(--ink); font-weight:700; }
+em{ font-style:italic; }
+a{ color:var(--brand); text-decoration:none; }
+.lead-in{ font-weight:700; color:var(--ink); }
+
+ul.clean,ol.clean{ margin:10px 0 14px; padding-left:0; list-style:none; }
+ul.clean li,ol.clean li{ font-size:14px; color:var(--ink2); margin-bottom:8px; padding-left:26px; position:relative; line-height:1.58; }
+ul.clean li::before{ content:''; position:absolute; left:6px; top:9px; width:6px; height:6px; border-radius:50%; background:var(--brand); }
+ol.clean{ counter-reset:c; }
+ol.clean li{ counter-increment:c; }
+ol.clean li::before{ content:counter(c); position:absolute; left:0; top:0; width:19px; height:19px; border-radius:50%; background:var(--brand); color:#fff; font:700 10px/19px 'JetBrains Mono',monospace; text-align:center; }
+
+/* ============ COMPONENTS ============ */
+.pill{ display:inline-flex; align-items:center; gap:6px; font:700 10.5px/1 'JetBrains Mono',monospace; letter-spacing:.05em; text-transform:uppercase; padding:5px 10px; border-radius:100px; border:1px solid transparent; white-space:nowrap; }
+.pill.blue{ background:var(--brand-wash); color:var(--brand-d); border-color:#CFE2F6; }
+.pill.teal{ background:var(--teal-wash); color:var(--teal); border-color:#C4E3E0; }
+.pill.amber{ background:var(--amber-wash); color:var(--amber); border-color:#EEDBBF; }
+.pill.violet{ background:var(--violet-wash); color:var(--violet); border-color:#DFCEF6; }
+.pill.green{ background:var(--green-wash); color:var(--green); border-color:#C4E5D0; }
+.pill.red{ background:var(--red-wash); color:var(--red); border-color:#F3CFC9; }
+.pill.ink{ background:#20242A; color:#fff; }
+.pill.ghost{ background:var(--wash); color:var(--muted); border-color:var(--line); }
+
+.card{ background:var(--paper); border:1px solid var(--line); border-radius:var(--r); padding:18px 20px; }
+.card.wash{ background:var(--wash); }
+.card.tint-blue{ background:var(--brand-wash); border-color:#CFE2F6; }
+.card.tint-green{ background:var(--green-wash); border-color:#C4E5D0; }
+.card.tint-red{ background:var(--red-wash); border-color:#F3CFC9; }
+.card.tint-amber{ background:var(--amber-wash); border-color:#EEDBBF; }
+.card.tint-violet{ background:var(--violet-wash); border-color:#DFCEF6; }
+
+.grid{ display:grid; gap:14px; }
+.g2{ grid-template-columns:1fr 1fr; }
+.g3{ grid-template-columns:1fr 1fr 1fr; }
+.g4{ grid-template-columns:repeat(4,1fr); }
+
+/* callout / pull */
+.callout{ border-left:4px solid var(--brand); background:var(--wash); border-radius:0 var(--r) var(--r) 0; padding:16px 20px; margin:18px 0; }
+.callout .k{ font:700 10px/1 'JetBrains Mono',monospace; letter-spacing:.14em; text-transform:uppercase; color:var(--brand); margin-bottom:8px; }
+.callout.big{ border-left-color:var(--ink); }
+.callout.big .big-line{ font-family:'Fraunces',serif; font-size:20px; font-weight:700; color:var(--ink); line-height:1.3; }
+
+.darkbox{ background:#181C22; color:#E8EBEF; border-radius:var(--r); padding:22px 24px; }
+.darkbox .k{ font:700 10px/1 'JetBrains Mono',monospace; letter-spacing:.16em; text-transform:uppercase; color:#8B93A0; margin-bottom:10px; }
+.darkbox .q{ font-family:'Fraunces',serif; font-size:20px; font-weight:700; line-height:1.34; }
+.darkbox .q .hl{ color:#6FB2F0; }
+.darkbox p{ color:#C4C9D1; }
+
+/* stat */
+.stat{ background:var(--paper); border:1px solid var(--line); border-radius:var(--r); padding:15px 16px; }
+.stat .v{ font-family:'Fraunces',serif; font-weight:900; font-size:27px; line-height:1; letter-spacing:-.02em; }
+.stat .v.blue{ color:var(--brand); } .stat .v.green{ color:var(--green); } .stat .v.red{ color:var(--red); } .stat .v.violet{ color:var(--violet); }
+.stat .l{ font-size:12px; color:var(--ink2); margin-top:8px; line-height:1.4; font-weight:500; }
+.stat .s{ font:500 9.5px/1.3 'JetBrains Mono',monospace; color:var(--faint); margin-top:8px; }
+
+/* table */
+table.t{ width:100%; border-collapse:collapse; margin:6px 0 14px; font-size:12.5px; }
+table.t th{ text-align:left; font:600 9.5px/1.3 'JetBrains Mono',monospace; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); background:var(--wash); padding:9px 11px; border-bottom:1px solid var(--line); }
+table.t td{ padding:9px 11px; border-bottom:1px solid var(--line2); color:var(--ink2); vertical-align:top; line-height:1.45; }
+table.t tr:last-child td{ border-bottom:none; }
+table.t td.em{ font-weight:600; color:var(--ink); }
+table.t .mono{ font-family:'JetBrains Mono',monospace; font-size:11px; }
+
+/* figure caption */
+.fig{ margin:16px 0 6px; }
+.figcap{ font:500 11px/1.5 'Inter',sans-serif; color:var(--muted); margin-top:9px; padding-left:2px; }
+.figcap b{ color:var(--ink2); }
+.fig-label{ display:inline-flex; align-items:center; gap:7px; font:700 10px/1 'JetBrains Mono',monospace; letter-spacing:.1em; text-transform:uppercase; color:var(--brand); margin-bottom:11px; }
+.fig-label::before{ content:'FIG'; background:var(--brand); color:#fff; padding:3px 6px; border-radius:4px; font-size:9px; }
+
+/* ==== MOCKUP CHROME (fake product UI) ==== */
+.mock{ border:1px solid var(--line); border-radius:12px; overflow:hidden; box-shadow:var(--shadow-lift); background:#fff; }
+.mock-bar{ background:var(--wash2); border-bottom:1px solid var(--line); padding:9px 13px; display:flex; align-items:center; gap:7px; }
+.mock-bar .dot{ width:9px; height:9px; border-radius:50%; }
+.mock-bar .u{ margin-left:10px; font:500 10.5px/1 'JetBrains Mono',monospace; color:var(--faint); background:#fff; border:1px solid var(--line); border-radius:5px; padding:4px 10px; flex:1; }
+.mock-body{ background:#fff; }
+
+/* avatars */
+.av{ border-radius:50%; display:flex; align-items:center; justify-content:center; font-family:'Inter',sans-serif; font-weight:700; color:#fff; flex-shrink:0; }
+.av.sq{ border-radius:9px; }
+
+/* verified tick */
+.vf{ display:inline-flex; align-items:center; gap:4px; font:600 10px/1 'Inter',sans-serif; color:var(--teal); }
+.vf svg{ width:12px; height:12px; }
+
+/* cover */
+.cover-wrap{ height:297mm; display:flex; flex-direction:column; }
+.cover-top{ flex:1; padding:34mm 22mm 0; display:flex; flex-direction:column; }
+.cover-strip{ height:15mm; background:var(--ink); display:flex; align-items:center; padding:0 22mm; gap:22px; }
+.cover-strip .s{ font:600 10px/1 'JetBrains Mono',monospace; letter-spacing:.14em; text-transform:uppercase; color:#9AA1AB; }
+.cover-strip .s b{ color:#fff; }
+
+/* TOC */
+.toc-row{ display:flex; align-items:baseline; gap:12px; padding:9px 0; border-bottom:1px solid var(--line2); }
+.toc-row .n{ font:700 12px/1 'JetBrains Mono',monospace; color:var(--brand); width:26px; flex-shrink:0; }
+.toc-row .t{ font-size:14px; font-weight:600; color:var(--ink); }
+.toc-row .d{ flex:1; border-bottom:1px dotted var(--line); transform:translateY(-4px); }
+.toc-row .p{ font:600 11px/1 'JetBrains Mono',monospace; color:var(--muted); }
+.toc-row .t small{ display:block; font:400 11px/1.3 'Inter',sans-serif; color:var(--muted); margin-top:2px; }
+
+/* misc helpers */
+.row{ display:flex; gap:14px; }
+.mt0{margin-top:0}.mt8{margin-top:8px}.mt14{margin-top:14px}.mt20{margin-top:20px}
+.mb0{margin-bottom:0}.mb6{margin-bottom:6px}.mb14{margin-bottom:14px}
+.center{text-align:center}
+.divider{ height:1px; background:var(--line); margin:20px 0; border:none; }
+</style></head><body><section class="cover"><div class="cover-wrap">
+  <div class="cover-top">
+    <div style="margin-top:44mm">
+      <div class="mono" style="font-size:11px;color:var(--brand);letter-spacing:.2em;text-transform:uppercase;font-weight:700;margin-bottom:20px">HelloLilly · Addendum A</div>
+      <h1 style="font-size:68px;font-weight:900;line-height:0.98;letter-spacing:-.03em">Principles<br>and boundaries</h1>
+      <p style="font-family:'Fraunces',serif;font-size:22px;font-style:italic;color:var(--ink2);max-width:32ch;margin-top:26px">The rules every tool is built under, and what the system will never do.</p>
+    </div>
+    <div style="margin-top:auto;margin-bottom:20mm"><span class="pill blue">Companion to the Product Vision v3</span></div>
+  </div>
+  <div class="cover-strip"><div class="s">VERSION <b>3.0</b></div><div class="s">DATE <b>OCTOBER 2026</b></div><div class="s" style="margin-left:auto">CONFIDENTIAL DRAFT</div></div>
+</div></section><section class="page">
+  <div class="sec-head" style="margin-top:26px"><div class="l"><div class="sec-kicker">Section 01</div><h2 class="sec-title">The three load-bearing principles</h2></div><div class="sec-no">01</div></div>
+  <p>The strategy paper describes the problem and the solution. This addendum holds the rules the solution is built under: the principles that shape every tool, and the things the system will not do. Section 7 of the paper names the three load-bearing principles and points here for the rest.</p>
+<table class="t">
+<thead>
+<tr>
+<th>Principle</th>
+<th>What it means in practice</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>The person decides what is true</strong></td>
+<td>No line, bullet point or figure reaches a CV or letter unless it comes from something the person has confirmed or written themselves. What the person types is saved as fact without friction. A model&#39;s suggestion becomes a fact only when the person accepts it, and a fixed check stops an invented line from slipping in on a careless click. Applications may sell and present real experience at its strongest; they may never invent.</td>
+</tr>
+<tr>
+<td><strong>The writer never checks its own work</strong></td>
+<td>The agent or call that drafts is never the one that checks. Every judgement the person relies on (a verdict, a fit claim, a final check) has a separate checker.</td>
+</tr>
+<tr>
+<td><strong>Argue for the person, never judge them</strong></td>
+<td>Present real experience at its maximum truthful strength. When something falls short, the fault lies in the document, the gap or the market, never in the person&#39;s character. A hard market truth is stated as a mechanism (&quot;adverts in this field increasingly ask for a certificate you do not hold&quot;), never as a verdict on the person.</td>
+</tr>
+</tbody></table>
+
+  
+  <div class="sec-head" style="margin-top:26px"><div class="l"><div class="sec-kicker">Section 02</div><h2 class="sec-title">How decisions are made</h2></div><div class="sec-no">02</div></div>
+  <ul class="clean">
+<li><strong>Agents prepare, the person decides.</strong> Search, research, drafting and checking happen in the background. The person holds every gate.</li>
+<li><strong>Nothing is sent in anyone&#39;s name.</strong> No message, application, post or submission leaves the system without the person pressing send.</li>
+<li><strong>Suggestions, not actions.</strong> The assistant Lilly navigates, explains and drafts handoffs. She never writes or acts on her own, and never re-argues another tool&#39;s verdict.</li>
+<li><strong>Every cut can be overruled.</strong> Anything the system filters out carries its reason and an overrule.</li>
+<li><strong>Scores explain, never judge.</strong> A score sorts a long list and always comes with its reasons. It is never presented as an employer&#39;s verdict on the person.</li>
+<li><strong>Block only on truth.</strong> The final check stops an application only when a line is not in the person&#39;s confirmed bank. Everything else is advice.</li>
+<li><strong>Human judgement on the biggest decisions.</strong> Any plan built on long education needs a coach&#39;s sign-off.</li>
+<li><strong>Augment, never replace.</strong> The coach stays the anchor of the relationship.</li>
+</ul>
+
+  
+  <div class="sec-head" style="margin-top:26px"><div class="l"><div class="sec-kicker">Section 03</div><h2 class="sec-title">Data, privacy and law</h2></div><div class="sec-no">03</div></div>
+  <ul class="clean">
+<li><strong>Consent first.</strong> Any recording or transcription happens only with clear, informed consent, recorded before anything is processed. A person can decline without losing support.</li>
+<li><strong>A legal review before real use.</strong> No real person beyond the pilot uses tools that interpret a person&#39;s situation until a review of GDPR, the EU AI Act, data controls, the Arbetsförmedlingen framework, incident handling and accessibility has been signed off by a qualified EU-law professional. Until then, no claim of compliance is made.</li>
+<li><strong>See what it knows, and delete me.</strong> Both work before the first real user.</li>
+<li><strong>Retrieval, not training.</strong> The system draws on a living knowledge base that cites its sources. Personal data is never used to train a model.</li>
+<li><strong>Real-derived is real.</strong> Pseudonymised or combined data from real people is treated as real data, never as synthetic.</li>
+<li><strong>No figure about fewer than five people.</strong> Any aggregate shown to anyone other than the person describes at least five people.</li>
+<li><strong>No consequential decisions.</strong> Nothing the system infers about a person ever feeds a decision about their benefits, sanctions, eligibility or rationing.</li>
+<li><strong>Networks stay with their owners.</strong> A coach&#39;s contacts stay on the coach&#39;s own computer, encrypted. Only a yes or no about a match ever leaves it. A jobseeker&#39;s network map is built from their own exports and belongs to them.</li>
+<li><strong>Public information only.</strong> When the system finds people or companies, it uses public information only. Nothing behind a login is ever scraped or automated.</li>
+<li><strong>Clear sharing boundaries.</strong> Public guides, coach-approved resources, consented anonymised examples, private case data and coach-only discussions are kept apart.</li>
+<li><strong>Support, not surveillance.</strong> Activity is logged to help the person remember, restart and recover. Any item can be hidden. It is not a monitoring tool.</li>
+</ul>
+
+  
+  <div class="sec-head" style="margin-top:26px"><div class="l"><div class="sec-kicker">Section 04</div><h2 class="sec-title">Honesty in what the system shows</h2></div><div class="sec-no">04</div></div>
+  <ul class="clean">
+<li><strong>Honest labels.</strong> A screen with sample data says so; an idea not yet built is shown as a concept. A capability that will never exist gets no picture at all.</li>
+<li><strong>Only real help.</strong> The Help right now panel shows a resource only when it actually exists.</li>
+<li><strong>Honest scope.</strong> The Application Check is a simulation of how an application may be read, not access to an employer&#39;s own system.</li>
+<li><strong>A fork, not a funnel.</strong> Where re-training is raised, applying directly is always shown beside it. Course outcomes and funding are presented as dated facts, never as proof that a course caused a result, and every such claim traces to a source.</li>
+<li><strong>Reach the underserved on purpose.</strong> The system is built to get the people most exposed to change ready, not only to serve the quick and the confident.</li>
+<li><strong>No engagement tricks.</strong> No streaks, no nagging, no &quot;just checking in&quot;.</li>
+</ul>
+
+  
+  <div class="sec-head" style="margin-top:26px"><div class="l"><div class="sec-kicker">Section 05</div><h2 class="sec-title">How it reaches real people</h2></div><div class="sec-no">05</div></div>
+  <ul class="clean">
+<li><strong>A pilot coach before a vulnerable user.</strong> A professional user tests the system on sample cases before the first real jobseeker arrives.</li>
+<li><strong>No accidental pilots.</strong> &quot;Just try it on your CV&quot; at a demo counts as real use and is not allowed before the gates are passed.</li>
+<li><strong>Demonstrations use sample data only.</strong></li>
+</ul>
+
+  
+  <div class="sec-head" style="margin-top:26px"><div class="l"><div class="sec-kicker">Section 06</div><h2 class="sec-title">What we will not build</h2></div><div class="sec-no">06</div></div>
+  <p>These are deliberate refusals, not postponements.</p>
+<table class="t">
+<thead>
+<tr>
+<th>We will not</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Send, post or submit anything in the person&#39;s name</td>
+<td>The person stays in charge of what is said about them</td>
+</tr>
+<tr>
+<td>Mass outreach to employers</td>
+<td>Fewer, better attempts; generic outreach harms the person&#39;s reputation</td>
+</tr>
+<tr>
+<td>Post to LinkedIn through software, or use LinkedIn&#39;s API to act for the person</td>
+<td>The person sends; the tool stops at the send button</td>
+</tr>
+<tr>
+<td>Scrape anything behind a login, or automate a person&#39;s social accounts</td>
+<td>Legal and platform risk, and trust</td>
+</tr>
+<tr>
+<td>Submit CVs to staffing agencies automatically</td>
+<td>Assisted only; the person sends</td>
+</tr>
+<tr>
+<td>Invent a fact, figure or skill about a person</td>
+<td>The person decides what is true</td>
+</tr>
+<tr>
+<td>Generate a face, or change how a person looks</td>
+<td>Same face, better photograph</td>
+</tr>
+<tr>
+<td>Write in a coach&#39;s voice</td>
+<td>A coach&#39;s words are their own</td>
+</tr>
+<tr>
+<td>Show invented analytics as if they were real</td>
+<td>Honest labels</td>
+</tr>
+<tr>
+<td>Show poll results before the person has voted</td>
+<td>Results should not steer answers</td>
+</tr>
+<tr>
+<td>Show a &quot;your messages landed well&quot; track record</td>
+<td>Silence would read as failure</td>
+</tr>
+<tr>
+<td>Store interview call audio</td>
+<td>Privacy</td>
+</tr>
+<tr>
+<td>Use inferences about a person in decisions about benefits or eligibility</td>
+<td>No consequential decisions</td>
+</tr>
+<tr>
+<td>Use personal data to train models</td>
+<td>Retrieval, not training</td>
+</tr>
+<tr>
+<td>Let anyone search a coach&#39;s network freely</td>
+<td>Contacts stay with their owner</td>
+</tr>
+<tr>
+<td>Read a person&#39;s emotions, or interrupt them unprompted</td>
+<td>Quiet by default</td>
+</tr>
+</tbody></table>
+
+  
+  <div class="sec-head" style="margin-top:26px"><div class="l"><div class="sec-kicker">Section 07</div><h2 class="sec-title">What we will not build first</h2></div><div class="sec-no">07</div></div>
+  <p>These earn their place only once the foundation exists.</p>
+<ul class="clean">
+<li>The full Outcome Engine</li>
+<li>Advanced Live Support beyond a simple session summary</li>
+<li>Paid market-signal data (tenders, investments, leadership changes) in Job Radar</li>
+<li>Separate native iOS and Android apps (an installable web app is enough to start)</li>
+<li>Fine-tuned models</li>
+<li>Heavy data integrations beyond public sources</li>
+<li>A self-built community platform before the decision between hosting and building has been made</li>
+<li>Push notifications, before in-app reminders prove their value</li>
+</ul>
+
+  </section></body></html>
