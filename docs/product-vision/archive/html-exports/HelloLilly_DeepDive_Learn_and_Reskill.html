@@ -1,0 +1,621 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Learn and Re-skill</title><style>/* ============================================================
+   PREMIUM REPORT DESIGN SYSTEM  ·  v1.0
+   A paged, magazine-grade stylesheet for A4 strategy documents,
+   whitepapers, pitch reports, and briefs rendered to PDF via headless Chrome.
+
+   Fonts:  Fraunces (display serif) · Inter (body) · JetBrains Mono (labels)
+   Page:   A4, each <section class="page"> starts on a fresh sheet.
+   Print:  designed for Chromium/Puppeteer PDF with printBackground:true.
+
+   NO em/en dashes anywhere in rendered output - use hyphens.
+   ============================================================ */
+
+/* ============ FONTS ============ */
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700;9..144,900&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+/* ============ TOKENS ============ */
+:root{
+  --ink:#15181C;
+  --ink2:#3B424B;
+  --muted:#6A7280;
+  --faint:#9AA1AB;
+  --line:#E4E7EC;
+  --line2:#EEF0F3;
+  --paper:#FFFFFF;
+  --wash:#F7F8FA;
+  --wash2:#F1F3F6;
+
+  --brand:#0A66C2;      /* OIG blue */
+  --brand-d:#084C92;
+  --brand-wash:#EAF2FB;
+  --teal:#0E7A72;       /* Danne / verified */
+  --teal-wash:#E6F2F1;
+  --amber:#B45309;      /* Mihail / commercial */
+  --amber-wash:#FBF0E2;
+  --violet:#6D28D9;     /* newsletter / status */
+  --violet-wash:#F1EAFB;
+  --green:#1F7A44;      /* good / live */
+  --green-wash:#E7F4EC;
+  --red:#B42318;        /* stop / not building */
+  --red-wash:#FDECEA;
+  --gold:#B7791F;
+
+  --r:14px;
+  --r-sm:9px;
+  --shadow:0 1px 2px rgba(16,24,40,.05), 0 6px 20px rgba(16,24,40,.05);
+  --shadow-lift:0 10px 34px rgba(16,24,40,.10);
+}
+
+/* ============ PAGE / PRINT ============ */
+@page{
+  size:A4;
+  margin:18mm 20mm 16mm 20mm;
+  background:#fff;
+}
+*{ box-sizing:border-box; margin:0; padding:0; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+html{ font-size:15px; }
+body{
+  font-family:'Inter',system-ui,sans-serif;
+  color:var(--ink);
+  background:#fff;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* A .page is a section that always starts on a fresh sheet, then flows naturally */
+.page{
+  page-break-before:always;
+  break-before:page;
+  position:relative;
+  padding-top:2mm;
+}
+.page:first-child{ page-break-before:avoid; break-before:avoid; }
+
+/* full-bleed cover overrides the margin box */
+.cover{
+  page-break-before:avoid;
+  margin:-18mm -20mm 0 -20mm;
+  padding:0;
+}
+
+/* keep figures, cards, tables, mockups from splitting across a page break */
+.fig, .card, .darkbox, .callout, .stat, .mock, table.t, .toc-row, .stagecard, .featurecard, .ladder-row, .flowstep{
+  break-inside:avoid;
+  page-break-inside:avoid;
+}
+h2,h3,h4{ break-after:avoid; page-break-after:avoid; }
+
+/* running foot is drawn per-page via the @page bottom-center using a fixed element trick is unreliable in chromium;
+   instead we place a lightweight footer at the end of each section */
+.foot{
+  display:flex; justify-content:space-between; align-items:center;
+  font:500 10px/1 'JetBrains Mono',monospace; color:var(--faint);
+  letter-spacing:.04em; border-top:1px solid var(--line2); padding-top:8px; margin-top:26px;
+}
+.foot .dot{ width:5px;height:5px;border-radius:50%;background:var(--brand);display:inline-block;margin-right:7px;vertical-align:middle; }
+.rhead{ display:none; } /* running head handled by section eyebrow instead */
+
+/* ============ TYPE ============ */
+h1,h2,h3,h4{ font-family:'Fraunces',Georgia,serif; color:var(--ink); line-height:1.1; letter-spacing:-.01em; }
+.serif{ font-family:'Fraunces',Georgia,serif; }
+.mono{ font-family:'JetBrains Mono',monospace; }
+
+.sec-no{ font:700 12px/1 'JetBrains Mono',monospace; color:var(--brand); letter-spacing:.1em; }
+.sec-kicker{ font:600 11px/1 'JetBrains Mono',monospace; color:var(--muted); letter-spacing:.16em; text-transform:uppercase; margin-bottom:12px; }
+h2.sec-title{ font-size:34px; font-weight:900; margin-bottom:6px; }
+.sec-lede{ font-size:15.5px; color:var(--ink2); max-width:62ch; margin:14px 0 22px; line-height:1.62; }
+.sec-head{ border-bottom:2px solid var(--ink); padding-bottom:16px; margin-bottom:26px; display:flex; align-items:flex-end; justify-content:space-between; gap:20px; }
+.sec-head .l{ flex:1; }
+
+h3.blk{ font-size:20px; font-weight:700; margin:22px 0 8px; letter-spacing:-.01em; }
+h4.blk{ font-size:15px; font-weight:700; font-family:'Inter',sans-serif; margin:16px 0 5px; color:var(--ink); }
+
+p{ font-size:14px; color:var(--ink2); margin-bottom:11px; line-height:1.64; }
+p.tight{ margin-bottom:6px; }
+strong,b{ color:var(--ink); font-weight:700; }
+em{ font-style:italic; }
+a{ color:var(--brand); text-decoration:none; }
+.lead-in{ font-weight:700; color:var(--ink); }
+
+ul.clean,ol.clean{ margin:10px 0 14px; padding-left:0; list-style:none; }
+ul.clean li,ol.clean li{ font-size:14px; color:var(--ink2); margin-bottom:8px; padding-left:26px; position:relative; line-height:1.58; }
+ul.clean li::before{ content:''; position:absolute; left:6px; top:9px; width:6px; height:6px; border-radius:50%; background:var(--brand); }
+ol.clean{ counter-reset:c; }
+ol.clean li{ counter-increment:c; }
+ol.clean li::before{ content:counter(c); position:absolute; left:0; top:0; width:19px; height:19px; border-radius:50%; background:var(--brand); color:#fff; font:700 10px/19px 'JetBrains Mono',monospace; text-align:center; }
+
+/* ============ COMPONENTS ============ */
+.pill{ display:inline-flex; align-items:center; gap:6px; font:700 10.5px/1 'JetBrains Mono',monospace; letter-spacing:.05em; text-transform:uppercase; padding:5px 10px; border-radius:100px; border:1px solid transparent; white-space:nowrap; }
+.pill.blue{ background:var(--brand-wash); color:var(--brand-d); border-color:#CFE2F6; }
+.pill.teal{ background:var(--teal-wash); color:var(--teal); border-color:#C4E3E0; }
+.pill.amber{ background:var(--amber-wash); color:var(--amber); border-color:#EEDBBF; }
+.pill.violet{ background:var(--violet-wash); color:var(--violet); border-color:#DFCEF6; }
+.pill.green{ background:var(--green-wash); color:var(--green); border-color:#C4E5D0; }
+.pill.red{ background:var(--red-wash); color:var(--red); border-color:#F3CFC9; }
+.pill.ink{ background:#20242A; color:#fff; }
+.pill.ghost{ background:var(--wash); color:var(--muted); border-color:var(--line); }
+
+.card{ background:var(--paper); border:1px solid var(--line); border-radius:var(--r); padding:18px 20px; }
+.card.wash{ background:var(--wash); }
+.card.tint-blue{ background:var(--brand-wash); border-color:#CFE2F6; }
+.card.tint-green{ background:var(--green-wash); border-color:#C4E5D0; }
+.card.tint-red{ background:var(--red-wash); border-color:#F3CFC9; }
+.card.tint-amber{ background:var(--amber-wash); border-color:#EEDBBF; }
+.card.tint-violet{ background:var(--violet-wash); border-color:#DFCEF6; }
+
+.grid{ display:grid; gap:14px; }
+.g2{ grid-template-columns:1fr 1fr; }
+.g3{ grid-template-columns:1fr 1fr 1fr; }
+.g4{ grid-template-columns:repeat(4,1fr); }
+
+/* callout / pull */
+.callout{ border-left:4px solid var(--brand); background:var(--wash); border-radius:0 var(--r) var(--r) 0; padding:16px 20px; margin:18px 0; }
+.callout .k{ font:700 10px/1 'JetBrains Mono',monospace; letter-spacing:.14em; text-transform:uppercase; color:var(--brand); margin-bottom:8px; }
+.callout.big{ border-left-color:var(--ink); }
+.callout.big .big-line{ font-family:'Fraunces',serif; font-size:20px; font-weight:700; color:var(--ink); line-height:1.3; }
+
+.darkbox{ background:#181C22; color:#E8EBEF; border-radius:var(--r); padding:22px 24px; }
+.darkbox .k{ font:700 10px/1 'JetBrains Mono',monospace; letter-spacing:.16em; text-transform:uppercase; color:#8B93A0; margin-bottom:10px; }
+.darkbox .q{ font-family:'Fraunces',serif; font-size:20px; font-weight:700; line-height:1.34; }
+.darkbox .q .hl{ color:#6FB2F0; }
+.darkbox p{ color:#C4C9D1; }
+
+/* stat */
+.stat{ background:var(--paper); border:1px solid var(--line); border-radius:var(--r); padding:15px 16px; }
+.stat .v{ font-family:'Fraunces',serif; font-weight:900; font-size:27px; line-height:1; letter-spacing:-.02em; }
+.stat .v.blue{ color:var(--brand); } .stat .v.green{ color:var(--green); } .stat .v.red{ color:var(--red); } .stat .v.violet{ color:var(--violet); }
+.stat .l{ font-size:12px; color:var(--ink2); margin-top:8px; line-height:1.4; font-weight:500; }
+.stat .s{ font:500 9.5px/1.3 'JetBrains Mono',monospace; color:var(--faint); margin-top:8px; }
+
+/* table */
+table.t{ width:100%; border-collapse:collapse; margin:6px 0 14px; font-size:12.5px; }
+table.t th{ text-align:left; font:600 9.5px/1.3 'JetBrains Mono',monospace; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); background:var(--wash); padding:9px 11px; border-bottom:1px solid var(--line); }
+table.t td{ padding:9px 11px; border-bottom:1px solid var(--line2); color:var(--ink2); vertical-align:top; line-height:1.45; }
+table.t tr:last-child td{ border-bottom:none; }
+table.t td.em{ font-weight:600; color:var(--ink); }
+table.t .mono{ font-family:'JetBrains Mono',monospace; font-size:11px; }
+
+/* figure caption */
+.fig{ margin:16px 0 6px; }
+.figcap{ font:500 11px/1.5 'Inter',sans-serif; color:var(--muted); margin-top:9px; padding-left:2px; }
+.figcap b{ color:var(--ink2); }
+.fig-label{ display:inline-flex; align-items:center; gap:7px; font:700 10px/1 'JetBrains Mono',monospace; letter-spacing:.1em; text-transform:uppercase; color:var(--brand); margin-bottom:11px; }
+.fig-label::before{ content:'FIG'; background:var(--brand); color:#fff; padding:3px 6px; border-radius:4px; font-size:9px; }
+
+/* ==== MOCKUP CHROME (fake product UI) ==== */
+.mock{ border:1px solid var(--line); border-radius:12px; overflow:hidden; box-shadow:var(--shadow-lift); background:#fff; }
+.mock-bar{ background:var(--wash2); border-bottom:1px solid var(--line); padding:9px 13px; display:flex; align-items:center; gap:7px; }
+.mock-bar .dot{ width:9px; height:9px; border-radius:50%; }
+.mock-bar .u{ margin-left:10px; font:500 10.5px/1 'JetBrains Mono',monospace; color:var(--faint); background:#fff; border:1px solid var(--line); border-radius:5px; padding:4px 10px; flex:1; }
+.mock-body{ background:#fff; }
+
+/* avatars */
+.av{ border-radius:50%; display:flex; align-items:center; justify-content:center; font-family:'Inter',sans-serif; font-weight:700; color:#fff; flex-shrink:0; }
+.av.sq{ border-radius:9px; }
+
+/* verified tick */
+.vf{ display:inline-flex; align-items:center; gap:4px; font:600 10px/1 'Inter',sans-serif; color:var(--teal); }
+.vf svg{ width:12px; height:12px; }
+
+/* cover */
+.cover-wrap{ height:297mm; display:flex; flex-direction:column; }
+.cover-top{ flex:1; padding:34mm 22mm 0; display:flex; flex-direction:column; }
+.cover-strip{ height:15mm; background:var(--ink); display:flex; align-items:center; padding:0 22mm; gap:22px; }
+.cover-strip .s{ font:600 10px/1 'JetBrains Mono',monospace; letter-spacing:.14em; text-transform:uppercase; color:#9AA1AB; }
+.cover-strip .s b{ color:#fff; }
+
+/* TOC */
+.toc-row{ display:flex; align-items:baseline; gap:12px; padding:9px 0; border-bottom:1px solid var(--line2); }
+.toc-row .n{ font:700 12px/1 'JetBrains Mono',monospace; color:var(--brand); width:26px; flex-shrink:0; }
+.toc-row .t{ font-size:14px; font-weight:600; color:var(--ink); }
+.toc-row .d{ flex:1; border-bottom:1px dotted var(--line); transform:translateY(-4px); }
+.toc-row .p{ font:600 11px/1 'JetBrains Mono',monospace; color:var(--muted); }
+.toc-row .t small{ display:block; font:400 11px/1.3 'Inter',sans-serif; color:var(--muted); margin-top:2px; }
+
+/* misc helpers */
+.row{ display:flex; gap:14px; }
+.mt0{margin-top:0}.mt8{margin-top:8px}.mt14{margin-top:14px}.mt20{margin-top:20px}
+.mb0{margin-bottom:0}.mb6{margin-bottom:6px}.mb14{margin-bottom:14px}
+.center{text-align:center}
+.divider{ height:1px; background:var(--line); margin:20px 0; border:none; }
+</style>
+<body>
+<section class="cover"><div class="cover-wrap"><div class="cover-top"><div style="margin-top:44mm">
+<div class="mono" style="font-size:11px;color:var(--brand);letter-spacing:.2em;text-transform:uppercase;font-weight:700;margin-bottom:20px">HelloLilly · Deep-dive</div>
+<h1 style="font-size:60px;font-weight:900;line-height:0.98;letter-spacing:-.03em">Learn and<br>re-skill:<br>the second route</h1>
+<p style="font-family:'Fraunces',serif;font-size:21px;font-style:italic;color:var(--ink2);max-width:34ch;margin-top:26px">Education as a first-class route back to work, standing beside applying directly, never beneath it.</p></div>
+<div style="margin-top:auto;margin-bottom:20mm"><span class="pill blue">Deep-dive</span> <span class="pill violet">Companion to Version 4</span></div></div>
+<div class="cover-strip"><div class="s">DATE <b>OCTOBER 2026</b></div><div class="s" style="margin-left:auto">CONFIDENTIAL DRAFT</div></div></div></section>
+<section class="page"><div class="sec-head"><div class="l"><div class="sec-kicker">Contents</div><h2 class="sec-title">What is inside</h2></div><div class="sec-no">·</div></div><div style="columns:2;column-gap:34px"><div style="break-inside:avoid"><div class="toc-row"><span class="n">·</span><span class="t">Opening</span></div></div><div style="break-inside:avoid"><div class="toc-row"><span class="n">01</span><span class="t">What the Evidence Insists On</span></div></div><div style="break-inside:avoid"><div class="toc-row"><span class="n">02</span><span class="t">How the Route Fits the System</span></div></div><div style="break-inside:avoid"><div class="toc-row"><span class="n">03</span><span class="t">The Tools</span></div></div><div style="break-inside:avoid"><div class="toc-row"><span class="n">04</span><span class="t">How the Route Connects to the Rest of the Site</span></div></div><div style="break-inside:avoid"><div class="toc-row"><span class="n">05</span><span class="t">How We Keep It Honest</span></div></div><div style="break-inside:avoid"><div class="toc-row"><span class="n">06</span><span class="t">What It Is Built On</span></div></div><div style="break-inside:avoid"><div class="toc-row"><span class="n">A</span><span class="t">Courses and Funding, the Facts</span></div></div><div style="break-inside:avoid"><div class="toc-row"><span class="n">B</span><span class="t">Johan&#x27;s Week</span></div></div></div><p style="margin-top:28px;font-size:12.5px;color:var(--muted)">A companion to the HelloLilly Jobseeker Product Vision, Version 4. Principles and boundaries are in Addendum A.</p></section>
+<section class="page"><div class="sec-head"><div class="l"><div class="sec-kicker">HelloLilly</div><h2 class="sec-title">Opening</h2></div><div class="sec-no">·</div></div><p>The rest of the system is largely built around presenting who the jobseeker already is: their profile, their CV, their network, their interviews. For a real share of people that is not the barrier. The work they know is thinning out, or the work they want needs a skill they do not yet have. For them, education is not a footnote to the job search. It is a first-class route back to work, standing beside applying directly rather than beneath it.</p>
+<p>That is also what HelloLilly's own goal says when it promises to match people to the right job <strong>or education</strong> by 2030. This route makes the second half of that promise real.</p>
+<p>One is fifty-three and made redundant after twenty years in a trade that is thinning out. One has applied to the same kind of role for a year and the market has moved on. One is on sick leave and does not know a gentler way back exists. One knows exactly which job they want but not one honest step toward the skill it needs. One has a foreign qualification nobody has looked at. Each needs a direction and a way to fund it, and each is stuck for a different reason.</p>
+<p>The route answers a question the rest of the system does not: when the honest answer is "this needs new skills" or "you need a new direction", what is the path, and is it even the right path? The evidence is clear that the answer is often not "take a course". So the whole route is built to show people the whole fork, honestly, and to reach the people the public system currently underserves.</p>
+<p>In Version 4 terms the route follows the same division of labour as everything else. <strong>The system carries the load</strong>: it maps the person's experience, finds the courses, checks what is free, assembles the funding pack and works out the months and money. <strong>The person makes the choices</strong>: apply now or study, which direction, which course. <strong>The coach does the human work</strong>: the judgement about whether re-training is right for this particular life, and the sign-off on anything long.</p>
+<div class="foot"><span><span class="dot"></span>HelloLilly · Learn and Re-skill</span><span>· · Opening</span></div></section>
+<section class="page"><div class="sec-head"><div class="l"><div class="sec-kicker">Section 01</div><h2 class="sec-title">What the Evidence Insists On</h2></div><div class="sec-no">01</div></div><p>Seven findings shape every choice in this route. Each carries the caution that comes with it. The full evidence, with confidence tags, is in the companion document <strong>What the Evidence Says</strong>.</p>
+<p><strong>Re-skilling pays off slowly.</strong> Training reduces job search while a person studies and turns positive only over two to three years and beyond. Swedish labour-market training shows a clear positive effect at three years that persists for close to a decade. The defensible promise is a better-matched, more durable transition, never "retrain and escape disruption". Timelines are shown honestly, and the cost of stepping out of the search is named.</p>
+<p><strong>Short and demand-aligned beats long and catalogue-chosen.</strong> Labour-market training through Arbetsförmedlingen shows around 7 per cent higher income at five years than comparable municipal vocational study, despite being about a third as long. Courses are recommended from real demand, not from what happens to be in the catalogue.</p>
+<p><strong>Rapid placement with support often beats train-then-place.</strong> For people with real barriers, getting into work with ongoing support outperforms training first. So applying directly, and a placement, stay firmly on the table beside every re-training option.</p>
+<p><strong>The human coach is the reliably effective ingredient.</strong> Career tools used entirely alone have a thin record; the presence of a counsellor is what reliably moves outcomes, and help works only when it builds both skill and motivation. The tools prepare, structure and inform; the coach carries motivation, accountability and the judgement.</p>
+<p><strong>The public grant reaches the already-advantaged first.</strong> Sweden's transition study grant has so far been used most by higher-educated workers in occupations at low risk from AI, partly because a fixed budget handled first-come-first-served rewards whoever applies fastest and most completely. The people most exposed to change are the least likely to reach for it on their own. Reaching them is the point of the route.</p>
+<p><strong>The starting state differs sharply by reason.</strong> Whether a change is chosen or forced is tied to how it feels afterwards, and money is the most consistent predictor of how a transition ends. A forced change can leave a mark that outlasts finding new work. So the opening move is to understand why the person is here.</p>
+<p><strong>Bias in hiring is real, and no course fixes it.</strong> In Sweden, callbacks fall from the early forties onwards, and the decline is steeper for women. This is a demand-side problem. The honest answer is positioning, HelloLilly's employer relationships and the coach network, not another qualification.</p>
+<p>Direction-finding itself is a real but modest lever. Its job is not to hand someone a verdict, but to produce options worth testing and to move what actually matters: a person's belief that they can do the next thing, and whether they take it.</p>
+<div class="foot"><span><span class="dot"></span>HelloLilly · Learn and Re-skill</span><span>01 · What the Evidence Insists On</span></div></section>
+<section class="page"><div class="sec-head"><div class="l"><div class="sec-kicker">Section 02</div><h2 class="sec-title">How the Route Fits the System</h2></div><div class="sec-no">02</div></div><h3 class="blk">Four ways in</h3>
+<p>The route is never a separate world. People arrive from four places, and each arrival carries its context with it:</p>
+<table class="t">
+<thead>
+<tr>
+<th>Entry point</th>
+<th>What happens</th>
+<th>What the route receives</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Match Analysis</strong></td>
+<td>A requirement in an advert cannot honestly be met yet</td>
+<td>The exact gap, the advert, and the person's evidence</td>
+</tr>
+<tr>
+<td><strong>Plan Analysis</strong></td>
+<td>The person's plan and the labour market have drifted apart, or the plan needs a skill the person lacks</td>
+<td>The plan, the target, and what adverts for it ask for</td>
+</tr>
+<tr>
+<td><strong>Directly</strong></td>
+<td>The person arrives without a target role at all, which is where many long-term jobseekers actually start</td>
+<td>The profile and fact bank from Career Intake</td>
+</tr>
+<tr>
+<td><strong>The coach</strong></td>
+<td>The coach sees that the honest answer is a new direction</td>
+<td>The coach's note, through the Case Record</td>
+</tr>
+</tbody>
+</table>
+<h3 class="blk">The fork, always</h3>
+<p>Whatever the way in, and however far the person has to travel, one choice never leaves the screen:</p>
+<table class="t">
+<thead>
+<tr>
+<th>Apply now anyway</th>
+<th>Re-train</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Faster, a lower fit. Often the honest better choice: rapid placement with support beats studying first for many people. A placement or a supported first job is part of this side. Always shown, never buried.</td>
+<td>Slower, a higher fit. Worth it when the skill distance is large, and only with the timeline named: returns arrive over years, not months.</td>
+</tr>
+</tbody>
+</table>
+<p>The person sees the trade-off and decides. The system's job is to make both routes honest, not to push the expensive one. And the choice is not either-or: many people will do both, applying now while starting a short course.</p>
+<h3 class="blk">Three distances</h3>
+<p>The route shapes itself around how far the person has to travel, using the three indicative sizes from OECD work on retraining need:</p>
+<table class="t">
+<thead>
+<tr>
+<th>Distance</th>
+<th>Indicative time</th>
+<th>Typical shape</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>A small gap</strong></td>
+<td>Up to about half a year</td>
+<td>A short course, a certificate, a recognised skill, often alongside applying</td>
+</tr>
+<tr>
+<td><strong>A real pivot</strong></td>
+<td>About a year</td>
+<td>An adjacent occupation built on what transfers, often vocational college or labour-market training</td>
+</tr>
+<tr>
+<td><strong>A full re-education</strong></td>
+<td>Up to about three years</td>
+<td>A new occupation; only when the skill distance is genuinely large and the money holds</td>
+</tr>
+</tbody>
+</table>
+<p>The distances are shown as indications, never as promises. Transition Economics turns them into this person's months and money.</p>
+<div class="foot"><span><span class="dot"></span>HelloLilly · Learn and Re-skill</span><span>02 · How the Route Fits the System</span></div></section>
+<section class="page"><div class="sec-head"><div class="l"><div class="sec-kicker">Section 03</div><h2 class="sec-title">The Tools</h2></div><div class="sec-no">03</div></div><p>Each tool is useful on its own and connects to the rest through the same crosslinking layer as everything else.</p>
+<h3 class="blk">Transition Compass (Omställningskompassen)</h3>
+<p><strong>Why:</strong> understand why the person is here before recommending anything, because the right support depends on it.</p>
+<ul class="clean">
+<li>A short conversation, spoken if preferred and in plain Swedish, that records the driver (a chosen move, a redundancy, a health reason, a foreign qualification), the financial runway, comfort with technology, and a plain sense of the person's own confidence.</li>
+<li>For someone on sick leave, it surfaces the formal routes back to work as a matter of course rather than leaving them undiscovered.</li>
+<li>The confidence it captures is also how the route measures whether it is working, revisited over time, because belief, not just information, is what moves people.</li>
+</ul>
+<h3 class="blk">Direction Explorer (Riktningsutforskaren)</h3>
+<p><strong>Why:</strong> for the person with no target role, and the paralysis that comes with it.</p>
+<ul class="clean">
+<li>Maps the person's real experience, from their fact bank, onto the labour market's own map of occupations and skills, and offers a few realistic adjacent directions.</li>
+<li>For each: what transfers, what is missing, how far it is, what demand looks like in the person's region, live local adverts, and the salary reality.</li>
+<li>For someone whose body can no longer do the old job, directions can be filtered by physical demand.</li>
+<li>Ends in something to test, not a verdict, because an algorithm's idea of "adjacent" and an employer's are not always the same.</li>
+</ul>
+<h3 class="blk">Prior Learning Check (Validering)</h3>
+<p><strong>Why:</strong> nobody should study for a year to prove what they already know.</p>
+<ul class="clean">
+<li>Before any course is recommended, checks whether what the person can already do could be formally recognised, for entry, for credit, or as a qualification in its own right.</li>
+<li>For a foreign qualification, explains the recognition route for that profession in plain Swedish.</li>
+<li>Honest about its limits: there is no open national register of which programme recognises what, so the tool gives guidance and the next step, and the coach helps with the contact. It never invents a recognition that does not exist.</li>
+</ul>
+<h3 class="blk">Education Matcher (Utbildningsmatchningen)</h3>
+<p><strong>Why:</strong> show the few concrete educations that actually close the gap, not a catalogue to browse.</p>
+<ul class="clean">
+<li>Given a direction or a named gap, ranks the handful of real courses that close it, from the national catalogue of publicly funded education: vocational college (yrkeshögskola), adult education (komvux), folk high school (folkhögskola), university and labour-market training.</li>
+<li>Ranks by how well the course closes the gap, how strong demand is for the occupation, and what the outcomes have been.</li>
+<li>Shows plainly which courses are tuition-free, which are short, which include a work placement, and which run near the person or at a distance.</li>
+<li>Each carries an honest outcome note tagged to its year, its true cost and timeline, the cost of stepping out of the search, and applying directly beside it.</li>
+<li>Shorter, demand-aligned labour-market training is offered first where it fits.</li>
+</ul>
+<h3 class="blk">Free Learning (Fri kunskap)</h3>
+<p><strong>Why:</strong> a missing skill can often start closing this week, without enrolling anywhere.</p>
+<ul class="clean">
+<li>Free ways to learn matched to the person's gap and direction: open online courses, language practice, digital and AI basics, and short certificates employers recognise.</li>
+<li>Linked to the Tutorial Library for the short, practical things, and to the free digital help public libraries already offer.</li>
+<li>Anything completed is offered to the person as a fact for their bank, so it appears in the CV and LinkedIn profile.</li>
+</ul>
+<h3 class="blk">Funding Navigator (Finansieringsguiden)</h3>
+<p><strong>Why:</strong> get the people the public system currently misses ready for the funding they are entitled to, before the window closes on them.</p>
+<ul class="clean">
+<li>Checks eligibility against the real conditions and shows amounts and dates as the dated facts they are, tagged to the year.</li>
+<li>Assembles an application-ready pack in advance: the checklist, the employment history the conditions will be checked against, the study choice, and a first draft of the motivation, written from the person's own facts and reviewed by the coach.</li>
+<li>Reminds the person to ask for a supporting statement where one helps, and to be ready when the window opens.</li>
+<li>Routes the many who will not qualify to the alternatives that fit them, instead of showing a door marked "not for you", and points them to the free, independent study and careers guidance every municipality already offers.</li>
+</ul>
+<h3 class="blk">Transition Economics (Omställningskalkylen)</h3>
+<p><strong>Why:</strong> answer the question underneath every other one: can I afford this, and when does it pay back?</p>
+<ul class="clean">
+<li>Sets applying now, a short course and a full re-training side by side, in months and money, under the real support caps.</li>
+<li>Names the multi-year payback honestly, in ranges, never as a promise.</li>
+<li>Financial clarity first, because money is the most consistent predictor of how a transition ends.</li>
+</ul>
+<h3 class="blk">Test Before You Invest (Prova först)</h3>
+<p><strong>Why:</strong> reduce the uncertainty before committing to long, expensive study.</p>
+<ul class="clean">
+<li>A short plan to try a direction for real: an informational conversation, a day of shadowing, a taster course, a work trial.</li>
+<li>Each step says plainly what is being tested and what would change the person's mind.</li>
+<li>Sits before any commitment of six months or more.</li>
+<li>The informational conversation is prepared by the Contact Planner, as a ready-to-send message the person sends, and the coach network can open the door.</li>
+</ul>
+<h3 class="blk">Transition View (Omställningsvyn), for the coach</h3>
+<p><strong>Why:</strong> keep the human judgement where it belongs, on a decision this large.</p>
+<ul class="clean">
+<li>Shows the coach the person's direction, education, funding and placement plans, with prompts that follow the evidence: a tighter cadence where confidence is low, a wellbeing check where the change was forced, a positioning strategy where age or gender bias is in play.</li>
+<li>Any plan built on a long education needs the coach's sign-off before it is presented to the person as the plan.</li>
+<li>Matches the person to the coach who knows the target field through Coach Network: a pivot into care reaches the coach who has placed dozens of nurses.</li>
+</ul>
+<h3 class="blk">Two things that run alongside</h3>
+<ul class="clean">
+<li><strong>Stay warm while studying.</strong> During any period of study, Progress Support keeps one light job action a week in the plan, so the person does not vanish from the search while they learn.</li>
+<li><strong>See others get through.</strong> Stories of people who made the same move, shared with consent through the Community, are crosslinked onto the direction and course cards, so seeing others succeed is part of the decision.</li>
+</ul>
+<div class="foot"><span><span class="dot"></span>HelloLilly · Learn and Re-skill</span><span>03 · The Tools</span></div></section>
+<section class="page"><div class="sec-head"><div class="l"><div class="sec-kicker">Section 04</div><h2 class="sec-title">How the Route Connects to the Rest of the Site</h2></div><div class="sec-no">04</div></div><p>The route is valuable on its own. It becomes powerful because every tool in it both gives to and takes from the rest of the system.</p>
+<table class="t">
+<thead>
+<tr>
+<th>Connected tool or route</th>
+<th>What it gives this route</th>
+<th>What this route gives back</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Career Intake and fact bank</strong></td>
+<td>The person's real experience, skills and history</td>
+<td>Completed courses, certificates and recognised skills as new confirmed facts</td>
+</tr>
+<tr>
+<td><strong>My Plan and Plan Analysis</strong></td>
+<td>The person's goal, and the signal that plan and market have drifted</td>
+<td>A tested direction, a course and a timeline written into the plan</td>
+</tr>
+<tr>
+<td><strong>Match Analysis</strong></td>
+<td>The exact gap a real advert reveals</td>
+<td>A route to close it, so a gap is never a dead end</td>
+</tr>
+<tr>
+<td><strong>Job Applications and Job Radar</strong></td>
+<td>Live adverts and hiring signals per direction</td>
+<td>A direction track that adds the new occupation to the morning search</td>
+</tr>
+<tr>
+<td><strong>Placement Finder and Employer Bridge</strong></td>
+<td>Placements, work trials and employers HelloLilly already knows</td>
+<td>Courses that include placements, matched to those employers</td>
+</tr>
+<tr>
+<td><strong>Contact Planner</strong></td>
+<td>Ready-to-send messages for informational conversations</td>
+<td>Target people in the new field, by role</td>
+</tr>
+<tr>
+<td><strong>CV Builder and LinkedIn Profile</strong></td>
+<td>The documents the person will use in the new field</td>
+<td>The new skills and education, shown truthfully, the moment they are confirmed</td>
+</tr>
+<tr>
+<td><strong>Interview Preparation</strong></td>
+<td>Preparation for a course interview or a career-change interview</td>
+<td>The story of why the change makes sense, built from the person's own facts</td>
+</tr>
+<tr>
+<td><strong>Situation Guide and Letter Helper</strong></td>
+<td>Plain-Swedish explanations of rules and letters from authorities</td>
+<td>The funding and study context for the person's own situation</td>
+</tr>
+<tr>
+<td><strong>Tutorial Library and Free Learning</strong></td>
+<td>Short clips and free courses for the first steps</td>
+<td>The specific skills worth learning now</td>
+</tr>
+<tr>
+<td><strong>Community and Expertise Exchange</strong></td>
+<td>Stories, questions and people who made the same move</td>
+<td>New stories, with consent, for the next person</td>
+</tr>
+<tr>
+<td><strong>Coach Network and Network Match</strong></td>
+<td>The coach who knows the target field, and doors into employers</td>
+<td>The case where that expertise matters most</td>
+</tr>
+<tr>
+<td><strong>Case Record and Lilly</strong></td>
+<td>One shared picture, and a guide to every tool</td>
+<td>The full direction, course, funding and placement plan in that picture</td>
+</tr>
+<tr>
+<td><strong>Outcome Engine</strong></td>
+<td>What has actually worked for people like this</td>
+<td>Dated outcomes per route, never as proof of cause</td>
+</tr>
+</tbody>
+</table>
+<div class="foot"><span><span class="dot"></span>HelloLilly · Learn and Re-skill</span><span>04 · How the Route Connects to the Rest of the Site</span></div></section>
+<section class="page"><div class="sec-head"><div class="l"><div class="sec-kicker">Section 05</div><h2 class="sec-title">How We Keep It Honest</h2></div><div class="sec-no">05</div></div><p>This route carries its own version of the principles that govern the rest of the system, because the ways it could mislead are specific.</p>
+<ul class="clean">
+<li><strong>Never sell escape.</strong> The promise is a better-matched, more durable, faster transition, not a guaranteed way out of a changing labour market.</li>
+<li><strong>Show the fork every time.</strong> Applying directly, and a placement, are shown beside every re-training option. Re-skilling is one route, never the default.</li>
+<li><strong>Be honest about time and money.</strong> Outcome figures are shown where they exist, tagged to the year and the cohort, and never presented as proof that a course caused a job. Funding amounts and windows are dated facts.</li>
+<li><strong>Recommend from demand, not from the catalogue.</strong> No course is recommended without a demand signal behind it.</li>
+<li><strong>Recognise before re-training.</strong> The Prior Learning Check comes first.</li>
+<li><strong>Reach the underserved on purpose.</strong> A route that served only motivated self-starters would widen the very gap it exists to close.</li>
+<li><strong>A source behind every claim.</strong> Every recommendation about courses, funding or outcomes traces each claim to a source before it reaches a person, and figures the sources have retired are refused automatically.</li>
+<li><strong>No digital gate.</strong> A spoken mode in plain Swedish, and a coach hand-off, run on the same flows, because the people who need this most are the least likely to fight their way through a complex form alone.</li>
+<li><strong>The coach signs off the big decisions.</strong> Nothing longer than six months becomes "the plan" without a coach.</li>
+</ul>
+<div class="foot"><span><span class="dot"></span>HelloLilly · Learn and Re-skill</span><span>05 · How We Keep It Honest</span></div></section>
+<section class="page"><div class="sec-head"><div class="l"><div class="sec-kicker">Section 06</div><h2 class="sec-title">What It Is Built On</h2></div><div class="sec-no">06</div></div><p>The route needs almost no new infrastructure. The core data is open, public and free:</p>
+<table class="t">
+<thead>
+<tr>
+<th>Need</th>
+<th>Source</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Every publicly funded course in one feed</td>
+<td>Skolverket's national education database (Susa-navet), covering vocational college, adult education, university and labour-market training, updated daily</td>
+<td>Open, no key, verified live</td>
+</tr>
+<tr>
+<td>The map of occupations and skills</td>
+<td>JobTech Taxonomy (Arbetsförmedlingen), with links to the European ESCO framework</td>
+<td>Open for reading, verified live</td>
+</tr>
+<tr>
+<td>From education to occupation</td>
+<td>JobEd Connect, which links course content to the occupations and skills it leads to</td>
+<td>Verified live; key may be required later</td>
+</tr>
+<tr>
+<td>Demand per occupation</td>
+<td>Yrkesbarometern (shortage and five-year outlook, twice a year) and SCB vacancy statistics; live advert volume from JobTech</td>
+<td>Open; the twice-yearly file to be inspected before it becomes the ranking backbone</td>
+</tr>
+<tr>
+<td>Outcomes per pathway</td>
+<td>SCB and the vocational college authority's graduate statistics</td>
+<td>Open, partly as reports</td>
+</tr>
+<tr>
+<td>Funding rules</td>
+<td>No open feed; a small, dated file kept current by hand and re-verified every year</td>
+<td>Manual</td>
+</tr>
+<tr>
+<td>Recognition of prior learning per programme</td>
+<td>No open source exists</td>
+<td>A known gap: guidance now, never invented data</td>
+</tr>
+</tbody>
+</table>
+<p>It reuses the same connected architecture as the rest of the system, pointed at courses and directions instead of CV lines.</p>
+<div class="foot"><span><span class="dot"></span>HelloLilly · Learn and Re-skill</span><span>06 · What It Is Built On</span></div></section>
+<section class="page"><div class="sec-head"><div class="l"><div class="sec-kicker">Appendix A</div><h2 class="sec-title">Courses and Funding, the Facts</h2></div><div class="sec-no">A</div></div><p>The paper speaks in direction, not numbers. This appendix is the other half: the concrete Swedish routes and figures as dated facts. <strong>All figures below were verified against the public rules in July 2026 and must be re-verified before use.</strong> Amounts, ages and windows change, and a stale number is worse than none. When the system serves these facts, every claim traces to a source.</p>
+<h3 class="blk">The main route: the transition study grant (omställningsstudiestöd)</h3>
+<p>The strongest funding instrument Sweden has for working-age career change, and the one the evidence says reaches the already-advantaged first.</p>
+<table class="t">
+<thead>
+<tr>
+<th></th>
+<th>2026 rules</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Who</strong></td>
+<td>Ages 27 to 63, established in working life</td>
+</tr>
+<tr>
+<td><strong>Work condition</strong></td>
+<td>Worked at least 8 of the last 14 years, and at least 12 of the last 24 months</td>
+</tr>
+<tr>
+<td><strong>What it pays</strong></td>
+<td>80 per cent of previous income, capped at 5,773 kronor a week before tax (2026 level), with a loan top-up available; collectively agreed top-ups may add more above the cap</td>
+</tr>
+<tr>
+<td><strong>How long</strong></td>
+<td>Up to 44 weeks of full-time study, which can be drawn part-time</td>
+</tr>
+<tr>
+<td><strong>The condition</strong></td>
+<td>The education must strengthen the person's position in the labour market</td>
+</tr>
+<tr>
+<td><strong>Uptake</strong></td>
+<td>Around 20,900 people studied with the grant in 2025, up from 5,200 in 2023; about 70 per cent were over 40, and the approval rate rose to just under half</td>
+</tr>
+</tbody>
+</table>
+<p><strong>What decides the outcome.</strong> Applications are processed in the order they arrive, handling takes weeks, and an incomplete application is a common cause of rejection. The motivation, the case that this education strengthens the person's position, is the judged element and is worth drafting early with a coach. A supporting statement from a transition organisation strengthens the case. And the funding can be applied for before a place on the course is confirmed, so the two clocks can run in parallel.</p>
+<div class="callout big"><div class="big-line">The grant does not go to the most deserving. It goes to the most prepared. The Funding Navigator exists to make the underserved the most prepared people in the queue.</div></div>
+<h3 class="blk">When that route is closed: the alternatives</h3>
+<p>Many long-term jobseekers will not meet the work condition, because twelve of the last twenty-four months in work is exactly what a long gap breaks. That is a different door, not a dead end.</p>
+<ul class="clean">
+<li><strong>Labour-market training (arbetsmarknadsutbildning).</strong> Free, short, aimed directly at occupations where employers are short of people, with activity support during the course. The person stays inside the job search, and the evidence favours exactly this shape. Offered first where it fits.</li>
+<li><strong>The recruitment grant (studiestartsstöd).</strong> Built for people with a short previous education and a long time out of work, precisely the group the transition grant tends to miss. Reached through the home municipality, so the first step is a conversation, not a form.</li>
+<li><strong>Ordinary study funding (studiemedel).</strong> The general grant and loan from CSN, open far more widely, without the queue. The honest fallback for a longer re-education.</li>
+<li><strong>On sick leave: a gentler way back.</strong> From 1 March 2026, a person on full sickness benefit may test work at their own employer for limited periods while keeping the benefit (arbetsprövning, distinct from the older work training). Most people it could help do not know it exists. The Transition Compass surfaces it when the driver is health.</li>
+<li><strong>Free, independent study and careers guidance.</strong> Every municipality provides it for adults, and nobody there earns anything from the course chosen. The system points to it by name rather than replacing it.</li>
+</ul>
+<h3 class="blk">Where the courses come from</h3>
+<p>Every course is drawn from the national catalogue of publicly funded education. Nothing is scraped, guessed or sponsored.</p>
+<ul class="clean">
+<li><strong>Vocational college (yrkeshögskola).</strong> Vocational, employer-designed, and short enough to be survivable. 81 per cent of the 2024 graduates were in work about a year later: a descriptive figure for that cohort, down three points on the year before and the lowest since 2013, never presented as proof that the education caused the job.</li>
+<li><strong>Adult education (komvux).</strong> The route to formal eligibility, and the entry door many longer paths require. Vocational courses here show smaller income effects than labour-market training.</li>
+<li><strong>Folk high school (folkhögskola).</strong> A different way of teaching that suits people the ordinary classroom has failed, with routes to the same eligibility.</li>
+<li><strong>University.</strong> The long route, always shown beside its full price in months and money.</li>
+<li><strong>Labour-market training.</strong> Offered first where it fits.</li>
+</ul>
+<h3 class="blk">Being ready when the window opens</h3>
+<p>The manual version of what the Funding Navigator automates:</p>
+<ol class="clean">
+<li>Settle the direction and the course well before the window. That decision should never be made in the queue.</li>
+<li>Gather the employment history the work condition will be checked against.</li>
+<li>Draft the motivation early and have a coach review it.</li>
+<li>Ask for the supporting statement in good time.</li>
+<li>Apply for the funding without waiting for an admission decision.</li>
+<li>Be ready the moment the window opens, and file complete on the first attempt.</li>
+</ol>
+<p>None of these routes is the answer for everyone, and one of them, applying now with support, involves no course at all. What this appendix removes is the excuse the current system quietly relies on: that the money and the rules are too tangled for the people who need them most. They are not. They are facts, and facts can be prepared for.</p>
+<div class="foot"><span><span class="dot"></span>HelloLilly · Learn and Re-skill</span><span>A · Courses and Funding, the Facts</span></div></section>
+<section class="page"><div class="sec-head"><div class="l"><div class="sec-kicker">Appendix B</div><h2 class="sec-title">Johan&#x27;s Week</h2></div><div class="sec-no">B</div></div><p><strong>Johan is 47 and was made redundant after twenty-two years in a printing plant that closed. He does not need a better CV. He needs a direction.</strong></p>
+<p><strong>Monday.</strong> The Transition Compass asks him, in plain spoken questions, why he is here and what he can carry financially. It notes that this change was not his choice, and his coach sees that too.</p>
+<p><strong>Tuesday.</strong> The Direction Explorer shows three realistic moves built on what he knows: machine operation, quality control and maintenance. The Prior Learning Check shows that part of his maintenance experience can be formally recognised. Beside every direction: apply now anyway.</p>
+<p><strong>Wednesday.</strong> He picks maintenance to test. The Education Matcher shows a short, tuition-free labour-market training course nearby that includes a placement. The Contact Planner prepares a message to a maintenance technician his coach knows, and the system finds a taster day.</p>
+<p><strong>Thursday.</strong> Transition Economics shows him the three options in months and money. His funding pack is assembled, with the motivation his coach has reviewed. His morning job search now carries a maintenance track beside his old titles.</p>
+<p><strong>Johan's week did not end in a job.</strong> It ended in a direction he had tested, a course that costs him nothing, a placement that could become a job, and a coach who signed off on it. That is what the second route looks like when it is real.</p><div class="foot"><span><span class="dot"></span>HelloLilly · Learn and Re-skill</span><span>B · Johan&#x27;s Week</span></div></section>
+</body></html>

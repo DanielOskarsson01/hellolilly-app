@@ -1,0 +1,498 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>The CV Builder</title><style>/* ============================================================
+   PREMIUM REPORT DESIGN SYSTEM  ·  v1.0
+   A paged, magazine-grade stylesheet for A4 strategy documents,
+   whitepapers, pitch reports, and briefs rendered to PDF via headless Chrome.
+
+   Fonts:  Fraunces (display serif) · Inter (body) · JetBrains Mono (labels)
+   Page:   A4, each <section class="page"> starts on a fresh sheet.
+   Print:  designed for Chromium/Puppeteer PDF with printBackground:true.
+
+   NO em/en dashes anywhere in rendered output - use hyphens.
+   ============================================================ */
+
+/* ============ FONTS ============ */
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700;9..144,900&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+/* ============ TOKENS ============ */
+:root{
+  --ink:#15181C;
+  --ink2:#3B424B;
+  --muted:#6A7280;
+  --faint:#9AA1AB;
+  --line:#E4E7EC;
+  --line2:#EEF0F3;
+  --paper:#FFFFFF;
+  --wash:#F7F8FA;
+  --wash2:#F1F3F6;
+
+  --brand:#0A66C2;      /* OIG blue */
+  --brand-d:#084C92;
+  --brand-wash:#EAF2FB;
+  --teal:#0E7A72;       /* Danne / verified */
+  --teal-wash:#E6F2F1;
+  --amber:#B45309;      /* Mihail / commercial */
+  --amber-wash:#FBF0E2;
+  --violet:#6D28D9;     /* newsletter / status */
+  --violet-wash:#F1EAFB;
+  --green:#1F7A44;      /* good / live */
+  --green-wash:#E7F4EC;
+  --red:#B42318;        /* stop / not building */
+  --red-wash:#FDECEA;
+  --gold:#B7791F;
+
+  --r:14px;
+  --r-sm:9px;
+  --shadow:0 1px 2px rgba(16,24,40,.05), 0 6px 20px rgba(16,24,40,.05);
+  --shadow-lift:0 10px 34px rgba(16,24,40,.10);
+}
+
+/* ============ PAGE / PRINT ============ */
+@page{
+  size:A4;
+  margin:18mm 20mm 16mm 20mm;
+  background:#fff;
+}
+*{ box-sizing:border-box; margin:0; padding:0; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+html{ font-size:15px; }
+body{
+  font-family:'Inter',system-ui,sans-serif;
+  color:var(--ink);
+  background:#fff;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* A .page is a section that always starts on a fresh sheet, then flows naturally */
+.page{
+  page-break-before:always;
+  break-before:page;
+  position:relative;
+  padding-top:2mm;
+}
+.page:first-child{ page-break-before:avoid; break-before:avoid; }
+
+/* full-bleed cover overrides the margin box */
+.cover{
+  page-break-before:avoid;
+  margin:-18mm -20mm 0 -20mm;
+  padding:0;
+}
+
+/* keep figures, cards, tables, mockups from splitting across a page break */
+.fig, .card, .darkbox, .callout, .stat, .mock, table.t, .toc-row, .stagecard, .featurecard, .ladder-row, .flowstep{
+  break-inside:avoid;
+  page-break-inside:avoid;
+}
+h2,h3,h4{ break-after:avoid; page-break-after:avoid; }
+
+/* running foot is drawn per-page via the @page bottom-center using a fixed element trick is unreliable in chromium;
+   instead we place a lightweight footer at the end of each section */
+.foot{
+  display:flex; justify-content:space-between; align-items:center;
+  font:500 10px/1 'JetBrains Mono',monospace; color:var(--faint);
+  letter-spacing:.04em; border-top:1px solid var(--line2); padding-top:8px; margin-top:26px;
+}
+.foot .dot{ width:5px;height:5px;border-radius:50%;background:var(--brand);display:inline-block;margin-right:7px;vertical-align:middle; }
+.rhead{ display:none; } /* running head handled by section eyebrow instead */
+
+/* ============ TYPE ============ */
+h1,h2,h3,h4{ font-family:'Fraunces',Georgia,serif; color:var(--ink); line-height:1.1; letter-spacing:-.01em; }
+.serif{ font-family:'Fraunces',Georgia,serif; }
+.mono{ font-family:'JetBrains Mono',monospace; }
+
+.sec-no{ font:700 12px/1 'JetBrains Mono',monospace; color:var(--brand); letter-spacing:.1em; }
+.sec-kicker{ font:600 11px/1 'JetBrains Mono',monospace; color:var(--muted); letter-spacing:.16em; text-transform:uppercase; margin-bottom:12px; }
+h2.sec-title{ font-size:34px; font-weight:900; margin-bottom:6px; }
+.sec-lede{ font-size:15.5px; color:var(--ink2); max-width:62ch; margin:14px 0 22px; line-height:1.62; }
+.sec-head{ border-bottom:2px solid var(--ink); padding-bottom:16px; margin-bottom:26px; display:flex; align-items:flex-end; justify-content:space-between; gap:20px; }
+.sec-head .l{ flex:1; }
+
+h3.blk{ font-size:20px; font-weight:700; margin:22px 0 8px; letter-spacing:-.01em; }
+h4.blk{ font-size:15px; font-weight:700; font-family:'Inter',sans-serif; margin:16px 0 5px; color:var(--ink); }
+
+p{ font-size:14px; color:var(--ink2); margin-bottom:11px; line-height:1.64; }
+p.tight{ margin-bottom:6px; }
+strong,b{ color:var(--ink); font-weight:700; }
+em{ font-style:italic; }
+a{ color:var(--brand); text-decoration:none; }
+.lead-in{ font-weight:700; color:var(--ink); }
+
+ul.clean,ol.clean{ margin:10px 0 14px; padding-left:0; list-style:none; }
+ul.clean li,ol.clean li{ font-size:14px; color:var(--ink2); margin-bottom:8px; padding-left:26px; position:relative; line-height:1.58; }
+ul.clean li::before{ content:''; position:absolute; left:6px; top:9px; width:6px; height:6px; border-radius:50%; background:var(--brand); }
+ol.clean{ counter-reset:c; }
+ol.clean li{ counter-increment:c; }
+ol.clean li::before{ content:counter(c); position:absolute; left:0; top:0; width:19px; height:19px; border-radius:50%; background:var(--brand); color:#fff; font:700 10px/19px 'JetBrains Mono',monospace; text-align:center; }
+
+/* ============ COMPONENTS ============ */
+.pill{ display:inline-flex; align-items:center; gap:6px; font:700 10.5px/1 'JetBrains Mono',monospace; letter-spacing:.05em; text-transform:uppercase; padding:5px 10px; border-radius:100px; border:1px solid transparent; white-space:nowrap; }
+.pill.blue{ background:var(--brand-wash); color:var(--brand-d); border-color:#CFE2F6; }
+.pill.teal{ background:var(--teal-wash); color:var(--teal); border-color:#C4E3E0; }
+.pill.amber{ background:var(--amber-wash); color:var(--amber); border-color:#EEDBBF; }
+.pill.violet{ background:var(--violet-wash); color:var(--violet); border-color:#DFCEF6; }
+.pill.green{ background:var(--green-wash); color:var(--green); border-color:#C4E5D0; }
+.pill.red{ background:var(--red-wash); color:var(--red); border-color:#F3CFC9; }
+.pill.ink{ background:#20242A; color:#fff; }
+.pill.ghost{ background:var(--wash); color:var(--muted); border-color:var(--line); }
+
+.card{ background:var(--paper); border:1px solid var(--line); border-radius:var(--r); padding:18px 20px; }
+.card.wash{ background:var(--wash); }
+.card.tint-blue{ background:var(--brand-wash); border-color:#CFE2F6; }
+.card.tint-green{ background:var(--green-wash); border-color:#C4E5D0; }
+.card.tint-red{ background:var(--red-wash); border-color:#F3CFC9; }
+.card.tint-amber{ background:var(--amber-wash); border-color:#EEDBBF; }
+.card.tint-violet{ background:var(--violet-wash); border-color:#DFCEF6; }
+
+.grid{ display:grid; gap:14px; }
+.g2{ grid-template-columns:1fr 1fr; }
+.g3{ grid-template-columns:1fr 1fr 1fr; }
+.g4{ grid-template-columns:repeat(4,1fr); }
+
+/* callout / pull */
+.callout{ border-left:4px solid var(--brand); background:var(--wash); border-radius:0 var(--r) var(--r) 0; padding:16px 20px; margin:18px 0; }
+.callout .k{ font:700 10px/1 'JetBrains Mono',monospace; letter-spacing:.14em; text-transform:uppercase; color:var(--brand); margin-bottom:8px; }
+.callout.big{ border-left-color:var(--ink); }
+.callout.big .big-line{ font-family:'Fraunces',serif; font-size:20px; font-weight:700; color:var(--ink); line-height:1.3; }
+
+.darkbox{ background:#181C22; color:#E8EBEF; border-radius:var(--r); padding:22px 24px; }
+.darkbox .k{ font:700 10px/1 'JetBrains Mono',monospace; letter-spacing:.16em; text-transform:uppercase; color:#8B93A0; margin-bottom:10px; }
+.darkbox .q{ font-family:'Fraunces',serif; font-size:20px; font-weight:700; line-height:1.34; }
+.darkbox .q .hl{ color:#6FB2F0; }
+.darkbox p{ color:#C4C9D1; }
+
+/* stat */
+.stat{ background:var(--paper); border:1px solid var(--line); border-radius:var(--r); padding:15px 16px; }
+.stat .v{ font-family:'Fraunces',serif; font-weight:900; font-size:27px; line-height:1; letter-spacing:-.02em; }
+.stat .v.blue{ color:var(--brand); } .stat .v.green{ color:var(--green); } .stat .v.red{ color:var(--red); } .stat .v.violet{ color:var(--violet); }
+.stat .l{ font-size:12px; color:var(--ink2); margin-top:8px; line-height:1.4; font-weight:500; }
+.stat .s{ font:500 9.5px/1.3 'JetBrains Mono',monospace; color:var(--faint); margin-top:8px; }
+
+/* table */
+table.t{ width:100%; border-collapse:collapse; margin:6px 0 14px; font-size:12.5px; }
+table.t th{ text-align:left; font:600 9.5px/1.3 'JetBrains Mono',monospace; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); background:var(--wash); padding:9px 11px; border-bottom:1px solid var(--line); }
+table.t td{ padding:9px 11px; border-bottom:1px solid var(--line2); color:var(--ink2); vertical-align:top; line-height:1.45; }
+table.t tr:last-child td{ border-bottom:none; }
+table.t td.em{ font-weight:600; color:var(--ink); }
+table.t .mono{ font-family:'JetBrains Mono',monospace; font-size:11px; }
+
+/* figure caption */
+.fig{ margin:16px 0 6px; }
+.figcap{ font:500 11px/1.5 'Inter',sans-serif; color:var(--muted); margin-top:9px; padding-left:2px; }
+.figcap b{ color:var(--ink2); }
+.fig-label{ display:inline-flex; align-items:center; gap:7px; font:700 10px/1 'JetBrains Mono',monospace; letter-spacing:.1em; text-transform:uppercase; color:var(--brand); margin-bottom:11px; }
+.fig-label::before{ content:'FIG'; background:var(--brand); color:#fff; padding:3px 6px; border-radius:4px; font-size:9px; }
+
+/* ==== MOCKUP CHROME (fake product UI) ==== */
+.mock{ border:1px solid var(--line); border-radius:12px; overflow:hidden; box-shadow:var(--shadow-lift); background:#fff; }
+.mock-bar{ background:var(--wash2); border-bottom:1px solid var(--line); padding:9px 13px; display:flex; align-items:center; gap:7px; }
+.mock-bar .dot{ width:9px; height:9px; border-radius:50%; }
+.mock-bar .u{ margin-left:10px; font:500 10.5px/1 'JetBrains Mono',monospace; color:var(--faint); background:#fff; border:1px solid var(--line); border-radius:5px; padding:4px 10px; flex:1; }
+.mock-body{ background:#fff; }
+
+/* avatars */
+.av{ border-radius:50%; display:flex; align-items:center; justify-content:center; font-family:'Inter',sans-serif; font-weight:700; color:#fff; flex-shrink:0; }
+.av.sq{ border-radius:9px; }
+
+/* verified tick */
+.vf{ display:inline-flex; align-items:center; gap:4px; font:600 10px/1 'Inter',sans-serif; color:var(--teal); }
+.vf svg{ width:12px; height:12px; }
+
+/* cover */
+.cover-wrap{ height:297mm; display:flex; flex-direction:column; }
+.cover-top{ flex:1; padding:34mm 22mm 0; display:flex; flex-direction:column; }
+.cover-strip{ height:15mm; background:var(--ink); display:flex; align-items:center; padding:0 22mm; gap:22px; }
+.cover-strip .s{ font:600 10px/1 'JetBrains Mono',monospace; letter-spacing:.14em; text-transform:uppercase; color:#9AA1AB; }
+.cover-strip .s b{ color:#fff; }
+
+/* TOC */
+.toc-row{ display:flex; align-items:baseline; gap:12px; padding:9px 0; border-bottom:1px solid var(--line2); }
+.toc-row .n{ font:700 12px/1 'JetBrains Mono',monospace; color:var(--brand); width:26px; flex-shrink:0; }
+.toc-row .t{ font-size:14px; font-weight:600; color:var(--ink); }
+.toc-row .d{ flex:1; border-bottom:1px dotted var(--line); transform:translateY(-4px); }
+.toc-row .p{ font:600 11px/1 'JetBrains Mono',monospace; color:var(--muted); }
+.toc-row .t small{ display:block; font:400 11px/1.3 'Inter',sans-serif; color:var(--muted); margin-top:2px; }
+
+/* misc helpers */
+.row{ display:flex; gap:14px; }
+.mt0{margin-top:0}.mt8{margin-top:8px}.mt14{margin-top:14px}.mt20{margin-top:20px}
+.mb0{margin-bottom:0}.mb6{margin-bottom:6px}.mb14{margin-bottom:14px}
+.center{text-align:center}
+.divider{ height:1px; background:var(--line); margin:20px 0; border:none; }
+</style>
+<body>
+<section class="cover"><div class="cover-wrap"><div class="cover-top"><div style="margin-top:44mm">
+<div class="mono" style="font-size:11px;color:var(--brand);letter-spacing:.2em;text-transform:uppercase;font-weight:700;margin-bottom:20px">HelloLilly · Deep-dive</div>
+<h1 style="font-size:60px;font-weight:900;line-height:0.98;letter-spacing:-.03em">The CV<br>Builder</h1>
+<p style="font-family:'Fraunces',serif;font-size:21px;font-style:italic;color:var(--ink2);max-width:34ch;margin-top:26px">Every word yours. Every fact confirmed. The foundation for everything else.</p></div>
+<div style="margin-top:auto;margin-bottom:20mm"><span class="pill blue">Deep-dive</span> <span class="pill violet">Companion to Version 4</span></div></div>
+<div class="cover-strip"><div class="s">DATE <b>OCTOBER 2026</b></div><div class="s" style="margin-left:auto">CONFIDENTIAL DRAFT</div></div></div></section>
+<section class="page"><div class="sec-head"><div class="l"><div class="sec-kicker">Contents</div><h2 class="sec-title">What is inside</h2></div><div class="sec-no">·</div></div><div style="columns:2;column-gap:34px"><div style="break-inside:avoid"><div class="toc-row"><span class="n">·</span><span class="t">Opening</span></div></div><div style="break-inside:avoid"><div class="toc-row"><span class="n">01</span><span class="t">The Problem</span></div></div><div style="break-inside:avoid"><div class="toc-row"><span class="n">02</span><span class="t">Two Tools, Two Jobs</span></div></div><div style="break-inside:avoid"><div class="toc-row"><span class="n">03</span><span class="t">The Flow</span></div></div><div style="break-inside:avoid"><div class="toc-row"><span class="n">04</span><span class="t">The Truth Model</span></div></div><div style="break-inside:avoid"><div class="toc-row"><span class="n">05</span><span class="t">How the CV Builder Connects to the Rest of the Site</span></div></div><div style="break-inside:avoid"><div class="toc-row"><span class="n">06</span><span class="t">Built for People Who Find This Hard</span></div></div><div style="break-inside:avoid"><div class="toc-row"><span class="n">07</span><span class="t">What the Market Taught Us</span></div></div><div style="break-inside:avoid"><div class="toc-row"><span class="n">08</span><span class="t">How It Gets Built</span></div></div><div style="break-inside:avoid"><div class="toc-row"><span class="n">09</span><span class="t">What It Will Never Do</span></div></div></div><p style="margin-top:28px;font-size:12.5px;color:var(--muted)">A companion to the HelloLilly Jobseeker Product Vision, Version 4. Principles and boundaries are in Addendum A.</p></section>
+<section class="page"><div class="sec-head"><div class="l"><div class="sec-kicker">HelloLilly</div><h2 class="sec-title">Opening</h2></div><div class="sec-no">·</div></div><p>For many long-term jobseekers, the CV is where the search stops before it starts. The blank page, an old document nobody has touched in ten years, a career with gaps that are hard to explain, a second language, dyslexia, or simply hating to sell yourself. The CV is not the job, but it decides who gets to show they can do the job.</p>
+<p>The market's answer is AI CV tools, and most of them share one quiet flaw: they make things up. A tool suggests "award-winning" for someone with no award, adds "increased sales by 45 per cent" because it sounds good, or turns "helped the team leader" into "led the team". The person sends it under their own name, into a real hiring process, and pays the price when the interview arrives.</p>
+<p>HelloLilly's CV Builder is built on the opposite promise. <strong>The AI may ask, suggest, rephrase and assemble. It may never introduce a fact about the person that the person did not supply or confirm.</strong> Where evidence is missing, it asks, or leaves a marked gap. It never invents a plausible value.</p>
+<p>And the CV is not an end in itself. Every confirmed fact the person gives once goes into their fact bank and is reused everywhere: in tailored CVs, cover letters, the LinkedIn profile, interview preparation, plan analysis and the direction tools. The CV Builder is where the person's flywheel starts.</p>
+<div class="foot"><span><span class="dot"></span>HelloLilly · The CV Builder</span><span>· · Opening</span></div></section>
+<section class="page"><div class="sec-head"><div class="l"><div class="sec-kicker">Section 01</div><h2 class="sec-title">The Problem</h2></div><div class="sec-no">01</div></div><ul class="clean">
+<li><strong>How it is:</strong> Building a CV assumes writing skill, Swedish fluency, confidence in self-presentation and comfort with document tools. Existing AI tools lower the effort but raise a new risk: invented claims the person may not notice until it is too late.</li>
+<li><strong>What is missing:</strong> A guided way to build a clean, professional CV from what the person actually has, old documents, memory and voice, where every claim is theirs.</li>
+<li><strong>The effect:</strong> Many people never finish a CV at all. Others send CVs that undersell them, or, with AI tools, that oversell them in ways that collapse in the interview.</li>
+<li><strong>Scenario:</strong> You have an old CV from 2014, a certificate in a drawer, and twenty years of experience in your head. A free AI tool turns it into a polished CV in two minutes. It says you "managed a team of twelve". You helped train new staff. At the interview, the first question is about your team.</li>
+</ul>
+<div class="foot"><span><span class="dot"></span>HelloLilly · The CV Builder</span><span>01 · The Problem</span></div></section>
+<section class="page"><div class="sec-head"><div class="l"><div class="sec-kicker">Section 02</div><h2 class="sec-title">Two Tools, Two Jobs</h2></div><div class="sec-no">02</div></div><p>The system deliberately separates building a CV from tailoring one, because mixing the two is what produces bad CVs.</p>
+<table class="t">
+<thead>
+<tr>
+<th></th>
+<th><strong>CV Builder (CV-byggaren)</strong></th>
+<th><strong>Tailored CV (Anpassat CV)</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Job</strong></td>
+<td>Build and maintain the master CV and its versions</td>
+<td>Adapt one CV for one advert</td>
+</tr>
+<tr>
+<td><strong>Knows about adverts?</strong></td>
+<td>Never. It is job-independent</td>
+<td>Yes, it reads one advert</td>
+</tr>
+<tr>
+<td><strong>Can change structure?</strong></td>
+<td>Yes: sections, order, templates</td>
+<td>No: it selects, orders and words from confirmed lines within the template</td>
+</tr>
+<tr>
+<td><strong>Writes new content?</strong></td>
+<td>From the person's confirmed facts only</td>
+<td>Proposes sharper wording of confirmed lines; the person accepts or keeps the original</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td>The master CV and versions for the kinds of work the person aims for, as PDF and Word</td>
+<td>One application CV per job</td>
+</tr>
+</tbody>
+</table>
+<p>The boundary is firm: the builder never becomes job-aware, and the tailor never gains structural powers. Either doing the other's work recreates the confusion that makes AI CVs untrustworthy.</p>
+<div class="foot"><span><span class="dot"></span>HelloLilly · The CV Builder</span><span>02 · Two Tools, Two Jobs</span></div></section>
+<section class="page"><div class="sec-head"><div class="l"><div class="sec-kicker">Section 03</div><h2 class="sec-title">The Flow</h2></div><div class="sec-no">03</div></div><h3 class="blk">Start where the person is</h3>
+<p>There are four ways in, and the person can mix them:</p>
+<ul class="clean">
+<li><strong>Upload what you have.</strong> Old CVs, letters, certificates, references, a LinkedIn export. Scanned documents are read with text recognition.</li>
+<li><strong>Paste text.</strong> From an email, a job platform or a document.</li>
+<li><strong>Talk.</strong> Answer one question at a time, out loud.</li>
+<li><strong>Start from nothing.</strong> A guided set of questions, each with a short explanation and an example, in plain Swedish.</li>
+</ul>
+<h3 class="blk">Review what was found</h3>
+<p>Everything extracted from documents lands in a <strong>review inbox</strong>, never directly in the CV. The person sees each fact with where it came from, and confirms, corrects or rejects it. The inbox surfaces:</p>
+<ul class="clean">
+<li>conflicts, where two documents disagree on a title or date;</li>
+<li>uncertain readings, where the scan was hard to read;</li>
+<li>missing dates or employers;</li>
+<li>likely duplicates;</li>
+<li>facts that may have been read out of context, such as a line under "tasks I want to avoid".</li>
+</ul>
+<h3 class="blk">Ask, do not invent</h3>
+<p>Where something is missing, the system asks a small number of neutral questions, never more than it needs, and never with the answer pre-filled. "Did any of your roles include training new staff?" rather than "You trained new staff, right?" Skipping a question leaves an honest gap, not an invented line.</p>
+<h3 class="blk">Build the lines</h3>
+<p>For each role, the person answers a few short questions about what they did, how, and with what result. The system composes one clear line from those answers. An independent checker, separate from the writer, compares the line against the person's own answers and flags anything new: a number, a seniority, a result, a cause, a "led" that was really a "helped". The person then approves the exact final wording.</p>
+<h3 class="blk">Summary last</h3>
+<p>The summary is written last, from confirmed facts only, never the other way round. Each sentence links to the facts behind it. The system is explicitly forbidden from adding up facts into claims the person never made, such as turning two separate roles into "five years' experience".</p>
+<h3 class="blk">Skills and versions</h3>
+<p>Skills are suggested only from confirmed tasks, each with its reason, and can be rejected. A decision tree builds the master CV and versions for the kinds of work the person aims for: a nurse's versions differ from a manager's, and some people need sections others do not.</p>
+<h3 class="blk">Export, and check it can be read</h3>
+<p>The CV is produced as both PDF and Word from one underlying document, in a clean single-column template first. Both files are then read back automatically to check that the headings, dates and contact details come out in the right order, the way a recruitment system would read them. If the check fails, a safer template is offered. There is no promise of a universal "ATS score", because no such thing exists.</p>
+<div class="foot"><span><span class="dot"></span>HelloLilly · The CV Builder</span><span>03 · The Flow</span></div></section>
+<section class="page"><div class="sec-head"><div class="l"><div class="sec-kicker">Section 04</div><h2 class="sec-title">The Truth Model</h2></div><div class="sec-no">04</div></div><p>The CV Builder's credibility rests on a clear, honest model of what counts as true.</p>
+<h3 class="blk">Every fact has a state</h3>
+<table class="t">
+<thead>
+<tr>
+<th>State</th>
+<th>Meaning</th>
+<th>Can it reach the CV?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Found in a document</strong></td>
+<td>Read from an uploaded file, with the exact passage</td>
+<td>Not yet: the person must confirm it</td>
+</tr>
+<tr>
+<td><strong>Confirmed</strong></td>
+<td>The person has confirmed it</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><strong>Corrected</strong></td>
+<td>The person changed it; the original is kept for the record</td>
+<td>Yes, the corrected version</td>
+</tr>
+<tr>
+<td><strong>Typed by the person</strong></td>
+<td>Written in the person's own words</td>
+<td>Yes: what the person types is saved as their truth</td>
+</tr>
+<tr>
+<td><strong>Suggested by the system</strong></td>
+<td>A rewording or a derived line</td>
+<td>Only after the person approves the exact wording</td>
+</tr>
+<tr>
+<td><strong>Rejected</strong></td>
+<td>The person said no</td>
+<td>Never</td>
+</tr>
+</tbody>
+</table>
+<h3 class="blk">Three separate moments</h3>
+<p>A common trap in AI tools is a single "Yes, looks good" button that turns an AI suggestion into a verified fact. The CV Builder keeps three moments apart:</p>
+<ol class="clean">
+<li><strong>The fact is asserted</strong>, by the person or from a document they supplied.</li>
+<li><strong>The wording is checked</strong> against that fact by an independent checker.</li>
+<li><strong>The person approves the final wording.</strong></li>
+</ol>
+<p>A suggestion can never become evidence on a blanket click.</p>
+<h3 class="blk">What is guaranteed, and what is checked</h3>
+<p>The system is honest about the difference:</p>
+<ul class="clean">
+<li><strong>Guaranteed by construction:</strong> every claim in an exported CV traces to a confirmed fact or the person's own words; unconfirmed facts never reach generation or export; what the person approved is exactly what is exported; all AI runs on the server, behind protection against manipulated input.</li>
+<li><strong>Checked, not guaranteed:</strong> whether a reworded sentence quietly says more than the facts behind it. This is judged by an independent model and tested against an adversarial collection of hard cases, including deleted negations, swapped roles, inflated numbers and added-up claims. Any regression blocks release.</li>
+</ul>
+<p>So the public promise is precise: <strong>the AI is held to never introducing biography you did not supply, checked by an independent model and tested against an adversarial corpus. Fabrication is caught and regression-tested, not merely discouraged.</strong> It is never "fabrication is impossible", because no honest system can claim that.</p>
+<h3 class="blk">Every other path is held to the same rule</h3>
+<p>Translation into English, the plain-Swedish version, manual edits and voice dictation are all checked the same way. "Helped the team leader" may not become "Assistant Team Leader" in translation; "started a degree, no diploma" may not become "Bachelor's degree".</p>
+<div class="foot"><span><span class="dot"></span>HelloLilly · The CV Builder</span><span>04 · The Truth Model</span></div></section>
+<section class="page"><div class="sec-head"><div class="l"><div class="sec-kicker">Section 05</div><h2 class="sec-title">How the CV Builder Connects to the Rest of the Site</h2></div><div class="sec-no">05</div></div><p>The CV Builder is the foundation the rest of the system stands on.</p>
+<table class="t">
+<thead>
+<tr>
+<th>Connected tool</th>
+<th>How it connects</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Career Intake and the fact bank</strong></td>
+<td>The intake fills the fact bank; the CV Builder turns it into documents. Every confirmed fact is reused everywhere.</td>
+</tr>
+<tr>
+<td><strong>Tailored CV and Cover Letter</strong></td>
+<td>Start from the closest CV version; use confirmed lines only.</td>
+</tr>
+<tr>
+<td><strong>Gap interview</strong></td>
+<td>When an advert asks for something new, the answer goes into the bank, and appears as an option in the next CV version.</td>
+</tr>
+<tr>
+<td><strong>LinkedIn Profile</strong></td>
+<td>Built from the CV, which is why the CV comes first: headline, About section, experience and skills, rewritten the way LinkedIn is read, from the same confirmed facts.</td>
+</tr>
+<tr>
+<td><strong>Image Studio</strong></td>
+<td>A clear, professional photo under the rule "same face, better photograph".</td>
+</tr>
+<tr>
+<td><strong>Interview Preparation</strong></td>
+<td>Every bold claim in the CV becomes something to prepare for, with stories from the person's own facts.</td>
+</tr>
+<tr>
+<td><strong>My Plan and Plan Analysis</strong></td>
+<td>The CV versions mirror the directions in the plan; the plan analysis shows which experience counts toward which target.</td>
+</tr>
+<tr>
+<td><strong>Learn and Re-skill</strong></td>
+<td>Completed courses, certificates and recognised skills become confirmed facts and appear in the CV the moment they are confirmed.</td>
+</tr>
+<tr>
+<td><strong>Placement Finder and Staffing Agencies</strong></td>
+<td>A ready CV version for each agency or placement; the person sends.</td>
+</tr>
+<tr>
+<td><strong>Coach Review</strong></td>
+<td>Coaches give feedback in their own words; the coach never writes in the person's CV on their behalf.</td>
+</tr>
+<tr>
+<td><strong>Community, Shared Bank and Tutorial Library</strong></td>
+<td>Templates and short clips on writing a CV; shared examples, anonymised and with consent.</td>
+</tr>
+<tr>
+<td><strong>Lilly and Help right now</strong></td>
+<td>An example from a similar role, a short video, or the right coach, next to the step the person is on.</td>
+</tr>
+</tbody>
+</table>
+<div class="foot"><span><span class="dot"></span>HelloLilly · The CV Builder</span><span>05 · How the CV Builder Connects to the Rest of the Site</span></div></section>
+<section class="page"><div class="sec-head"><div class="l"><div class="sec-kicker">Section 06</div><h2 class="sec-title">Built for People Who Find This Hard</h2></div><div class="sec-no">06</div></div><ul class="clean">
+<li><strong>Spoken and one question at a time.</strong> The whole builder can run as a conversation.</li>
+<li><strong>Plain Swedish.</strong> Questions and explanations in simple Swedish; a plain-Swedish version of the CV itself is available, checked like every other version.</li>
+<li><strong>Do it together.</strong> A coach can run the builder side by side with the person, in the meeting.</li>
+<li><strong>A usable first version, fast.</strong> The point is a CV that can be sent this week, improved over time, not a perfect one before anything happens.</li>
+<li><strong>Honest about gaps.</strong> A gap in the CV is handled truthfully and in the person's favour, never hidden with invention.</li>
+</ul>
+<div class="foot"><span><span class="dot"></span>HelloLilly · The CV Builder</span><span>06 · Built for People Who Find This Hard</span></div></section>
+<section class="page"><div class="sec-head"><div class="l"><div class="sec-kicker">Section 07</div><h2 class="sec-title">What the Market Taught Us</h2></div><div class="sec-no">07</div></div><p>A detailed teardown of a leading AI CV product, and a study of what parsers and recruiters actually need, gave five lessons the CV Builder is designed around:</p>
+<ol class="clean">
+<li><strong>Tailoring is a commodity.</strong> Any tool can rewrite a CV for an advert. The defensible layer is the step before: turning raw career material into a reviewed, source-linked set of facts, and generating only from it.</li>
+<li><strong>Scores must be honest.</strong> The benchmark product displayed two different scores for the same CV. HelloLilly computes any score in code, from visible parts, and never lets a model invent a number.</li>
+<li><strong>"ATS optimisation" should be measurable.</strong> Read the exported file back and check it, rather than claiming a universal score.</li>
+<li><strong>Learning must not rewrite history.</strong> The system learns the person's style, length and layout preferences; it never learns new facts without the person confirming them.</li>
+<li><strong>A narrow, trustworthy first release beats a feature-rich clone.</strong> Swedish and English, document intake with review, a few honest questions, one structured editor, one safe template, and validated PDF and Word.</li>
+</ol>
+<div class="foot"><span><span class="dot"></span>HelloLilly · The CV Builder</span><span>07 · What the Market Taught Us</span></div></section>
+<section class="page"><div class="sec-head"><div class="l"><div class="sec-kicker">Section 08</div><h2 class="sec-title">How It Gets Built</h2></div><div class="sec-no">08</div></div><p>The CV Builder has been through two independent hostile design reviews, which found where the first design could still leak an invented claim and how to close each gap. The build follows from that review, in steps:</p>
+<table class="t">
+<thead>
+<tr>
+<th>Step</th>
+<th>What it delivers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Clean the existing facts</strong></td>
+<td>Every fact already in the system is classified by origin; anything the person did not confirm word for word is set aside for their explicit decision</td>
+</tr>
+<tr>
+<td><strong>Fact states and sources</strong></td>
+<td>Every fact carries its state and the exact source it came from</td>
+</tr>
+<tr>
+<td><strong>One canonical document</strong></td>
+<td>A single document model that every view, version and export is built from, so what is approved is exactly what is exported</td>
+</tr>
+<tr>
+<td><strong>Guided build from scratch</strong></td>
+<td>The question-led path, with the independent checker and the adversarial test collection in place from the first day</td>
+</tr>
+<tr>
+<td><strong>Upload and review</strong></td>
+<td>Document and voice intake with the review inbox, including context and reading-order checks</td>
+</tr>
+<tr>
+<td><strong>Summary and skills</strong></td>
+<td>Written last, from confirmed facts, with no adding-up</td>
+</tr>
+<tr>
+<td><strong>Templates and export</strong></td>
+<td>PDF and Word from the one document, read back and checked</td>
+</tr>
+</tbody>
+</table>
+<p>A safety check that arrives one step after the feature it protects is not a safety check, so each control ships with the feature it guards.</p>
+<div class="foot"><span><span class="dot"></span>HelloLilly · The CV Builder</span><span>08 · How It Gets Built</span></div></section>
+<section class="page"><div class="sec-head"><div class="l"><div class="sec-kicker">Section 09</div><h2 class="sec-title">What It Will Never Do</h2></div><div class="sec-no">09</div></div><ul class="clean">
+<li>Invent a fact, figure, title, skill, credential, duty, date or result about a person.</li>
+<li>Turn an AI suggestion into a fact on a single blanket click.</li>
+<li>Add up separate facts into a claim the person never made.</li>
+<li>Strengthen a claim in translation, simplification or editing.</li>
+<li>Read an advert while building the master CV.</li>
+<li>Write in a coach's voice inside the person's CV.</li>
+<li>Promise a universal ATS score.</li>
+<li>Send a CV anywhere. The person sends.</li>
+</ul><div class="foot"><span><span class="dot"></span>HelloLilly · The CV Builder</span><span>09 · What It Will Never Do</span></div></section>
+</body></html>
